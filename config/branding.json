@@ -1,0 +1,91 @@
+{
+  "client": {
+    "id": "medcin",
+    "name": "Medcin",
+    "legalName": "Medcin Health UAB",
+    "tagline": "Wellness & Healthcare Booking Ledger",
+    "description": "Lithuania's unified clinical healthcare and wellness booking platform. Connecting patients with verified medical centers through transparent pricing and real-time scheduling.",
+    "mission": "Upfront pricing. Verified doctors. Real-time availability."
+  },
+  "assets": {
+    "logoText": "Medcin",
+    "logoMark": "cross",
+    "favicon": "/favicon.ico"
+  },
+  "theme": {
+    "colors": {
+      "light": {
+        "ink": "#1F2A22",
+        "paper": "#F1F0E7",
+        "surface": "#FFFFFF",
+        "mist": "#DFDBCE",
+        "clay": "#B5713F",
+        "sage": "#5C8C63",
+        "amber": "#C98A34",
+        "muted": "#6B6B5E"
+      },
+      "dark": {
+        "ink": "#EDECE4",
+        "paper": "#171A15",
+        "surface": "#1F231C",
+        "mist": "#333628",
+        "clay": "#B5713F",
+        "sage": "#5C8C63",
+        "amber": "#C98A34",
+        "muted": "#9A9A88"
+      }
+    },
+    "typography": {
+      "sansFontFamily": "IBM Plex Sans, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      "monoFontFamily": "IBM Plex Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+    },
+    "borderRadius": {
+      "card": "0px",
+      "button": "2px",
+      "badge": "2px"
+    }
+  },
+  "localization": {
+    "country": "Lithuania",
+    "countryCode": "LT",
+    "defaultCity": "Vilnius",
+    "supportedCities": [
+      "Vilnius",
+      "Kaunas",
+      "Klaipėda"
+    ],
+    "currency": {
+      "code": "EUR",
+      "symbol": "€",
+      "position": "prefix"
+    },
+    "locale": "en-LT"
+  },
+  "compliance": {
+    "regulatoryBody": "Lithuanian Health Ministry Compliant",
+    "healthProtocol": "National Bioethics & Health Protocols",
+    "dataProtection": "256-Bit Encrypted Health Records",
+    "guarantee": "Transparent Pricing Standard · No Patient Surcharges"
+  },
+  "navigation": {
+    "links": [
+      { "label": "Find Care", "href": "/patient" },
+      { "label": "How It Works", "href": "/#how-it-works" },
+      { "label": "For Clinics", "href": "/#for-clinics" },
+      { "label": "About Platform", "href": "/#about" }
+    ],
+    "ctaLabel": "Book Appointment"
+  },
+  "contact": {
+    "email": "support@medcin.app",
+    "supportPhone": "+370 5 212 3456",
+    "address": "Gedimino pr. 24, Vilnius, Lithuania",
+    "operatingHours": "Mon-Fri: 08:00 - 20:00"
+  },
+  "features": {
+    "enableRatings": true,
+    "enableDisputes": true,
+    "enableCalendarExport": true,
+    "enableDarkMode": true
+  }
+}

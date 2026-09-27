@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Medcin — Wellness Theme & Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1F2A22; --paper:#F1F0E7; --surface:#FFFFFF; --mist:#DFDBCE;
+  --clay:#B5713F; --sage:#5C8C63; --amber:#C98A34; --muted:#6B6B5E;
+  --font-d:'IBM Plex Sans',system-ui,sans-serif; --font-m:'IBM Plex Mono',ui-monospace,monospace;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){ --ink:#EDECE4; --paper:#171A15; --surface:#1F231C; --mist:#333628; --muted:#9A9A88; } }
+:root[data-theme="dark"]{ --ink:#EDECE4; --paper:#171A15; --surface:#1F231C; --mist:#333628; --muted:#9A9A88; }
+html{ scroll-padding-top:env(safe-area-inset-top,0px); }
+*{ box-sizing:border-box; }
+body{ margin:0; background:var(--paper); color:var(--ink); font-family:var(--font-d); line-height:1.5; }
+.wrap{ max-width:960px; margin:0 auto; padding:0 24px; }
+nav{ padding:22px 0 0; }
+.logo{ display:flex; align-items:center; gap:9px; font-weight:700; font-size:20px; letter-spacing:-0.01em; }
+.logo .mark{ width:18px; height:18px; position:relative; flex:none; }
+.logo .mark::before,.logo .mark::after{ content:""; position:absolute; background:var(--clay); }
+.logo .mark::before{ width:18px; height:4px; top:7px; left:0; }
+.logo .mark::after{ width:4px; height:18px; left:7px; top:0; }
+
+header.hero{ padding:36px 0 26px; }
+h1{ font-size:clamp(26px,4vw,36px); line-height:1.12; letter-spacing:-0.02em; margin:0 0 8px; max-width:22ch; }
+.hero p{ color:var(--muted); font-size:15px; max-width:60ch; margin:0; }
+
+section{ padding:26px 0; border-top:1px solid var(--mist); }
+h2{ font-size:13px; font-weight:600; color:var(--muted); margin:0 0 16px; letter-spacing:.01em; }
+.swatches{ display:flex; gap:12px; flex-wrap:wrap; }
+.swatch .chip-sw{ width:52px; height:52px; border:1px solid var(--mist); margin-bottom:5px; }
+.swatch .label{ font-family:var(--font-m); font-size:11px; color:var(--muted); }
+
+/* Role + screen tabs */
+.tabs{ display:flex; gap:6px; flex-wrap:wrap; }
+.tabs.roles{ margin-bottom:10px; }
+.tabs button{ font-family:var(--font-m); font-size:11px; padding:7px 12px; border:1px solid var(--mist); background:var(--surface); color:var(--muted); cursor:pointer; }
+.tabs.roles button{ font-weight:600; }
+.tabs button.active{ border-color:var(--clay); color:var(--clay); }
+.tabs.screens{ margin-bottom:18px; }
+
+.frame{ width:100%; max-width:380px; margin:0 auto; border:1px solid var(--mist); background:var(--surface); min-height:680px; position:relative; overflow:auto; }
+.screen{ display:none; padding:18px; }
+.screen.active{ display:block; }
+.s-title{ font-weight:700; font-size:18px; margin:2px 0 14px; letter-spacing:-0.01em; }
+.s-sub{ font-size:12px; color:var(--muted); margin:-10px 0 14px; }
+.search-bar{ border:1px solid var(--mist); padding:10px 12px; font-size:13px; color:var(--muted); margin-bottom:12px; }
+.chip-row{ display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+.chip{ font-family:var(--font-m); font-size:10px; padding:5px 9px; border:1px solid var(--mist); color:var(--muted); cursor:pointer; }
+.chip.on{ border-color:var(--clay); color:var(--clay); }
+
+.p-card{ display:flex; gap:12px; border-top:1px solid var(--mist); padding:12px 0; align-items:center; }
+.p-card:first-of-type{ border-top:none; }
+.p-avatar{ width:44px; height:44px; background:var(--mist); flex:none; }
+.p-card .info{ flex:1; }
+.p-card h4{ margin:0; font-size:14px; }
+.p-card .role{ font-size:12px; color:var(--muted); margin:2px 0 0; }
+.price{ font-family:var(--font-m); font-size:12px; color:var(--sage); }
+
+.back{ font-family:var(--font-m); font-size:11px; color:var(--muted); margin-bottom:10px; display:inline-block; cursor:pointer; }
+.provider-hd{ display:flex; gap:12px; align-items:center; margin-bottom:14px; }
+.provider-hd .p-avatar{ width:52px; height:52px; }
+.svc-row{ display:flex; justify-content:space-between; border-top:1px solid var(--mist); padding:10px 0; font-size:13px; }
+.svc-row:first-of-type{ border-top:none; }
+.svc-row small{ display:block; color:var(--muted); font-family:var(--font-m); font-size:11px; }
+.svc-row .amt{ font-family:var(--font-m); }
+.day-tabs{ display:flex; gap:6px; margin:14px 0 10px; overflow-x:auto; }
+.day-tabs span{ font-family:var(--font-m); font-size:11px; padding:6px 10px; border:1px solid var(--mist); color:var(--muted); white-space:nowrap; cursor:pointer; }
+.day-tabs span.on{ border-color:var(--clay); color:var(--clay); }
+.slots{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px; }
+.slot-btn{ font-family:var(--font-m); font-size:12px; padding:9px 0; text-align:center; border:1px solid var(--mist); cursor:pointer; }
+.slot-btn.on{ border-color:var(--clay); color:var(--clay); }
+.slot-btn.full{ color:var(--mist); text-decoration:line-through; cursor:default; }
+.cta-fixed{ width:100%; font-family:var(--font-d); font-weight:600; font-size:14px; background:var(--clay); color:#fff; border:none; padding:13px; cursor:pointer; margin-top:4px; }
+.cta-outline{ width:100%; font-family:var(--font-d); font-weight:600; font-size:13px; background:none; color:var(--ink); border:1px solid var(--mist); padding:10px; cursor:pointer; margin-top:8px; }
+
+.confirm-check{ width:44px; height:44px; border:2px solid var(--sage); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:20px auto 16px; color:var(--sage); font-size:20px; }
+.confirm-box{ text-align:center; }
+.summary{ border:1px solid var(--mist); margin:18px 0; }
+.summary div{ display:flex; justify-content:space-between; padding:10px 12px; border-top:1px solid var(--mist); font-size:13px; }
+.summary div:first-child{ border-top:none; }
+.summary span:last-child{ font-family:var(--font-m); color:var(--muted); }
+
+.list-row{ display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--mist); padding:11px 0; gap:10px; }
+.list-row:first-of-type{ border-top:none; }
+.list-row .who{ font-size:13px; }
+.list-row .who small{ display:block; color:var(--muted); font-family:var(--font-m); font-size:11px; }
+.badge{ font-family:var(--font-m); font-size:10px; padding:3px 7px; border:1px solid transparent; white-space:nowrap; }
+.badge.pending{ background:color-mix(in srgb,var(--amber) 14%,transparent); color:var(--amber); border-color:color-mix(in srgb,var(--amber) 40%,transparent); }
+.badge.confirmed{ background:color-mix(in srgb,var(--sage) 14%,transparent); color:var(--sage); border-color:color-mix(in srgb,var(--sage) 40%,transparent); }
+.badge.flagged{ background:color-mix(in srgb,var(--clay) 14%,transparent); color:var(--clay); border-color:color-mix(in srgb,var(--clay) 40%,transparent); }
+.badge.muted{ background:var(--mist); color:var(--muted); }
+.mini-actions{ display:flex; gap:6px; margin-top:4px; justify-content:flex-end; }
+.mini-actions button{ font-family:var(--font-m); font-size:10px; padding:3px 8px; border:1px solid var(--mist); background:none; color:var(--ink); cursor:pointer; }
+
+.add-row{ font-family:var(--font-m); font-size:11px; color:var(--clay); border:1px dashed var(--mist); text-align:center; padding:9px; margin-top:10px; cursor:pointer; }
+.field{ margin-bottom:12px; }
+.field label{ display:block; font-family:var(--font-m); font-size:10px; color:var(--muted); margin-bottom:4px; }
+.field .box{ border:1px solid var(--mist); padding:9px 10px; font-size:13px; color:var(--ink); }
+.field .box.small{ color:var(--muted); }
+.section-label{ font-family:var(--font-m); font-size:11px; color:var(--muted); margin:18px 0 6px; }
+.toggle-list .list-row .box-in{ font-size:12px; }
+
+footer{ padding:28px 0 48px; color:var(--muted); font-size:12px; text-align:center; }
+@media (max-width:720px){ .principles{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav><div class="logo"><span class="mark"></span>Medcin</div></nav>
+
+  <header class="hero">
+    <h1>Wellness theme — full prototype</h1>
+    <p>Every screen from the MVP scope, across all three roles, built on the same tokens: clay for action, sage for available/confirmed, amber for pending or caution.</p>
+  </header>
+
+  <section>
+    <h2>Palette</h2>
+    <div class="swatches">
+      <div class="swatch"><div class="chip-sw" style="background:var(--ink)"></div><div class="label">ink</div></div>
+      <div class="swatch"><div class="chip-sw" style="background:var(--paper)"></div><div class="label">paper</div></div>
+      <div class="swatch"><div class="chip-sw" style="background:var(--clay)"></div><div class="label">clay</div></div>
+      <div class="swatch"><div class="chip-sw" style="background:var(--sage)"></div><div class="label">sage</div></div>
+      <div class="swatch"><div class="chip-sw" style="background:var(--amber)"></div><div class="label">amber</div></div>
+      <div class="swatch"><div class="chip-sw" style="background:var(--mist)"></div><div class="label">mist</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Prototype — 12 screens across 3 roles</h2>
+    <div class="tabs roles" id="roleTabs">
+      <button data-role="patient" class="active">Patient</button>
+      <button data-role="center">Med center</button>
+      <button data-role="admin">Platform admin</button>
+    </div>
+    <div class="tabs screens" id="screenTabs"></div>
+
+    <div class="frame" id="frame">
+
+      <!-- PATIENT -->
+      <div class="screen p-patient active" id="search">
+        <div class="s-title">Find care nearby</div>
+        <div class="search-bar">Search dentist, massage, physio…</div>
+        <div class="chip-row"><span class="chip on">All</span><span class="chip">Dental</span><span class="chip">Massage</span><span class="chip">Physio</span></div>
+        <div class="p-card"><div class="p-avatar"></div><div class="info"><h4>Dr. Alina Petraitė</h4><p class="role">Dentist · General & cosmetic</p></div><div class="price">from €35</div></div>
+        <div class="p-card"><div class="p-avatar"></div><div class="info"><h4>Dr. Mantas Ruzas</h4><p class="role">Massage therapist</p></div><div class="price">from €40</div></div>
+        <div class="p-card"><div class="p-avatar"></div><div class="info"><h4>Dr. Gabija Šimkė</h4><p class="role">Physiotherapist</p></div><div class="price">from €38</div></div>
+      </div>
+
+      <div class="screen p-patient" id="book">
+        <span class="back">← Back to search</span>
+        <div class="provider-hd"><div class="p-avatar"></div><div><h4 style="margin:0;font-size:16px;">Dr. Mantas Ruzas</h4><p class="role" style="margin:2px 0 0;">Massage therapist</p></div></div>
+        <div class="svc-row"><span>Deep tissue massage<small>60 min</small></span><span class="amt">€40</span></div>
+        <div class="svc-row"><span>Sports massage<small>45 min</small></span><span class="amt">€32</span></div>
+        <div class="day-tabs"><span class="on">Mon 29</span><span>Tue 30</span><span>Wed 1</span><span>Thu 2</span></div>
+        <div class="slots">
+          <div class="slot-btn on">10:30</div><div class="slot-btn">11:15</div><div class="slot-btn full">12:00</div>
+          <div class="slot-btn">14:00</div><div class="slot-btn">14:45</div><div class="slot-btn full">15:30</div>
+        </div>
+        <button class="cta-fixed">Confirm booking · €40</button>
+      </div>
+
+      <div class="screen p-patient" id="confirm">
+        <div class="confirm-box">
+          <div class="confirm-check">✓</div>
+          <div class="s-title" style="text-align:center;">You're booked</div>
+          <p class="role" style="text-align:center;">A confirmation was sent to Dr. Mantas Ruzas's clinic.</p>
+          <div class="summary">
+            <div><span>Provider</span><span>Dr. Mantas Ruzas</span></div>
+            <div><span>Service</span><span>Deep tissue, 60 min</span></div>
+            <div><span>When</span><span>Mon 29 · 10:30</span></div>
+            <div><span>Total</span><span>€40.00</span></div>
+          </div>
+          <button class="cta-fixed">Add to calendar</button>
+        </div>
+      </div>
+
+      <div class="screen p-patient" id="mybookings">
+        <div class="s-title">My bookings</div>
+        <div class="section-label">Upcoming</div>
+        <div class="list-row"><div class="who">Deep tissue massage<small>Dr. Mantas Ruzas · Mon 29, 10:30</small></div><div class="mini-actions"><button>Reschedule</button><button>Cancel</button></div></div>
+        <div class="section-label">Past</div>
+        <div class="list-row"><div class="who">Dental cleaning<small>Dr. Alina Petraitė · Sep 10</small></div><span class="badge muted">Completed</span></div>
+      </div>
+
+      <!-- CENTER -->
+      <div class="screen p-center" id="onboarding">
+        <div class="s-title">Center profile</div>
+        <div class="field"><label>Center name</label><div class="box">Vilnius Dental Studio</div></div>
+        <div class="field"><label>Category</label><div class="box">Dental clinic</div></div>
+        <div class="field"><label>Address</label><div class="box small">Gedimino pr. 12, Vilnius</div></div>
+        <div class="field"><label>Contact email</label><div class="box small">hello@vilniusdental.lt</div></div>
+        <button class="cta-fixed">Save & submit for approval</button>
+      </div>
+
+      <div class="screen p-center" id="doctors">
+        <div class="s-title">Doctors & services</div>
+        <div class="section-label">Doctors</div>
+        <div class="list-row"><div class="who">Dr. Alina Petraitė<small>Dentist</small></div><button style="font-family:var(--font-m);font-size:10px;padding:3px 8px;border:1px solid var(--mist);background:none;cursor:pointer;">Edit</button></div>
+        <div class="list-row"><div class="who">Dr. Kasparas Ilgis<small>Dentist</small></div><button style="font-family:var(--font-m);font-size:10px;padding:3px 8px;border:1px solid var(--mist);background:none;cursor:pointer;">Edit</button></div>
+        <div class="add-row">+ Add doctor</div>
+        <div class="section-label">Procedures</div>
+        <div class="list-row"><div class="who">Dental cleaning<small>30 min</small></div><span class="amt">€35</span></div>
+        <div class="list-row"><div class="who">Root canal<small>45 min</small></div><span class="amt">€120</span></div>
+        <div class="add-row">+ Add procedure</div>
+      </div>
+
+      <div class="screen p-center" id="availability">
+        <div class="s-title">Availability</div>
+        <div class="chip-row"><span class="chip on">Dr. Alina Petraitė</span><span class="chip">Dr. Kasparas Ilgis</span></div>
+        <div class="day-tabs"><span class="on">Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span></div>
+        <div class="s-sub">Tap a slot to open or block it</div>
+        <div class="slots">
+          <div class="slot-btn on">09:00</div><div class="slot-btn on">09:30</div><div class="slot-btn full">10:00</div>
+          <div class="slot-btn on">10:30</div><div class="slot-btn full">11:00</div><div class="slot-btn on">11:30</div>
+        </div>
+        <button class="cta-outline">Copy to rest of week</button>
+      </div>
+
+      <div class="screen p-center" id="inbox">
+        <div class="s-title">Bookings inbox</div>
+        <div class="list-row"><div class="who">Jonas K.<small>Dental cleaning · 09:00</small></div><div><span class="badge pending">Pending</span><div class="mini-actions"><button>Accept</button><button>Decline</button></div></div></div>
+        <div class="list-row"><div class="who">Rūta A.<small>Root canal · 13:00</small></div><span class="badge confirmed">Confirmed</span></div>
+        <div class="list-row"><div class="who">Eglė V.<small>Dental cleaning · 15:15</small></div><div><span class="badge pending">Pending</span><div class="mini-actions"><button>Accept</button><button>Decline</button></div></div></div>
+      </div>
+
+      <!-- PLATFORM ADMIN -->
+      <div class="screen p-admin" id="centers">
+        <div class="s-title">Centers</div>
+        <div class="section-label">Pending approval</div>
+        <div class="list-row"><div class="who">Zen Massage Vilnius<small>Submitted 2 days ago</small></div><div class="mini-actions"><button>Approve</button><button>Reject</button></div></div>
+        <div class="section-label">Active directory</div>
+        <div class="list-row"><div class="who">Vilnius Dental Studio<small>Dental · 2 doctors</small></div><span class="badge confirmed">Active</span></div>
+        <div class="list-row"><div class="who">Kaunas Physio Center<small>Physio · 3 doctors</small></div><span class="badge confirmed">Active</span></div>
+      </div>
+
+      <div class="screen p-admin" id="globalbookings">
+        <div class="s-title">All bookings</div>
+        <div class="list-row"><div class="who">Jonas K. → Vilnius Dental Studio<small>Dental cleaning · 09:00</small></div><span class="badge pending">Pending</span></div>
+        <div class="list-row"><div class="who">Rūta A. → Zen Massage Vilnius<small>Deep tissue · 10:30</small></div><span class="badge confirmed">Confirmed</span></div>
+        <div class="list-row"><div class="who">Tomas P. → Kaunas Physio Center<small>Physio session · 15:15</small></div><span class="badge confirmed">Confirmed</span></div>
+      </div>
+
+      <div class="screen p-admin" id="disputes">
+        <div class="s-title">Disputes & support</div>
+        <div class="list-row"><div class="who">Booking #1042<small>Patient no-show claim</small></div><span class="badge flagged">Open</span></div>
+        <div class="list-row"><div class="who">Booking #1031<small>Wrong procedure billed</small></div><span class="badge flagged">Open</span></div>
+        <div class="list-row"><div class="who">Booking #0998<small>Refund requested</small></div><span class="badge muted">Resolved</span></div>
+      </div>
+
+      <div class="screen p-admin" id="settings">
+        <div class="s-title">Platform settings</div>
+        <div class="field"><label>Commission per booking</label><div class="box">8%</div></div>
+        <div class="field"><label>Support email</label><div class="box small">support@medcin.app</div></div>
+        <div class="section-label">Service categories</div>
+        <div class="list-row"><div class="who">Dental</div><span class="badge confirmed">On</span></div>
+        <div class="list-row"><div class="who">Massage</div><span class="badge confirmed">On</span></div>
+        <div class="list-row"><div class="who">Physiotherapy</div><span class="badge confirmed">On</span></div>
+        <button class="cta-fixed">Save settings</button>
+      </div>
+
+    </div>
+  </section>
+
+  <footer>Medcin — Wellness theme. Patient · Med center · Platform admin, one token system.</footer>
+</div>
+
+<script>
+const roleScreens = {
+  patient: [{id:'search',label:'Search'},{id:'book',label:'Book'},{id:'confirm',label:'Confirm'},{id:'mybookings',label:'My bookings'}],
+  center:  [{id:'onboarding',label:'Onboarding'},{id:'doctors',label:'Doctors & services'},{id:'availability',label:'Availability'},{id:'inbox',label:'Bookings inbox'}],
+  admin:   [{id:'centers',label:'Centers'},{id:'globalbookings',label:'All bookings'},{id:'disputes',label:'Disputes'},{id:'settings',label:'Settings'}]
+};
+const roleTabs = document.getElementById('roleTabs');
+const screenTabs = document.getElementById('screenTabs');
+const allScreens = document.querySelectorAll('.screen');
+
+function showScreen(id){
+  allScreens.forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  screenTabs.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.dataset.id===id));
+}
+function renderScreenTabs(role){
+  screenTabs.innerHTML = '';
+  roleScreens[role].forEach((s,i)=>{
+    const b = document.createElement('button');
+    b.textContent = s.label; b.dataset.id = s.id;
+    if(i===0) b.classList.add('active');
+    b.addEventListener('click', ()=>showScreen(s.id));
+    screenTabs.appendChild(b);
+  });
+  showScreen(roleScreens[role][0].id);
+}
+roleTabs.querySelectorAll('button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    roleTabs.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    renderScreenTabs(b.dataset.role);
+  });
+});
+renderScreenTabs('patient');
+</script>
+</body>
+</html>
