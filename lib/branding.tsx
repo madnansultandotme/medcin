@@ -27,6 +27,7 @@ export interface BrandingConfig {
     logoText: string;
     logoMark: string;
     favicon: string;
+    heroImages?: string[];
   };
   theme: {
     colors: {
@@ -44,10 +45,12 @@ export interface BrandingConfig {
     };
   };
   localization: {
+    targetRegion?: string;
     country: string;
     countryCode: string;
     defaultCity: string;
     supportedCities: string[];
+    countries?: Array<{ name: string; code: string; currency: string; currencyCode: string }>;
     currency: {
       code: string;
       symbol: string;

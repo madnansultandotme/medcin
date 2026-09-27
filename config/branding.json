@@ -1,38 +1,43 @@
 {
   "client": {
-    "id": "medcin",
+    "id": "medcin-asean",
     "name": "Medcin",
-    "legalName": "Medcin Health UAB",
-    "tagline": "Wellness & Healthcare Booking Ledger",
-    "description": "Lithuania's unified clinical healthcare and wellness booking platform. Connecting patients with verified medical centers through transparent pricing and real-time scheduling.",
-    "mission": "Upfront pricing. Verified doctors. Real-time availability."
+    "legalName": "Medcin Healthcare Asia Pte. Ltd.",
+    "tagline": "Southeast Asia's Clinical & Wellness Booking Network",
+    "description": "Connecting patients across Singapore, Thailand, and Malaysia with accredited medical centers, premier wellness institutes, and verified specialists through upfront pricing and instant booking.",
+    "mission": "Upfront pricing. JCI-accredited doctors. Real-time availability."
   },
   "assets": {
     "logoText": "Medcin",
     "logoMark": "cross",
-    "favicon": "/favicon.ico"
+    "favicon": "/favicon.ico",
+    "heroImages": [
+      "/images/hero-bangkok.jpg",
+      "/images/hero-singapore.jpg",
+      "/images/hero-malaysia.jpg"
+    ]
   },
   "theme": {
     "colors": {
       "light": {
-        "ink": "#1F2A22",
-        "paper": "#F1F0E7",
+        "ink": "#1A2621",
+        "paper": "#F8F6F0",
         "surface": "#FFFFFF",
-        "mist": "#DFDBCE",
+        "mist": "#E2DDD2",
         "clay": "#B5713F",
-        "sage": "#5C8C63",
-        "amber": "#C98A34",
-        "muted": "#6B6B5E"
+        "sage": "#4D8259",
+        "amber": "#C4822B",
+        "muted": "#66695E"
       },
       "dark": {
-        "ink": "#EDECE4",
-        "paper": "#171A15",
-        "surface": "#1F231C",
-        "mist": "#333628",
-        "clay": "#B5713F",
-        "sage": "#5C8C63",
-        "amber": "#C98A34",
-        "muted": "#9A9A88"
+        "ink": "#ECEBE2",
+        "paper": "#141712",
+        "surface": "#1B1F18",
+        "mist": "#2F3529",
+        "clay": "#C47C49",
+        "sage": "#5C996B",
+        "amber": "#D49339",
+        "muted": "#929785"
       }
     },
     "typography": {
@@ -40,31 +45,40 @@
       "monoFontFamily": "IBM Plex Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
     },
     "borderRadius": {
-      "card": "0px",
+      "card": "4px",
       "button": "2px",
       "badge": "2px"
     }
   },
   "localization": {
-    "country": "Lithuania",
-    "countryCode": "LT",
-    "defaultCity": "Vilnius",
+    "targetRegion": "Southeast Asia (Singapore · Thailand · Malaysia)",
+    "country": "Singapore / Thailand / Malaysia",
+    "countryCode": "SG",
+    "defaultCity": "Singapore",
     "supportedCities": [
-      "Vilnius",
-      "Kaunas",
-      "Klaipėda"
+      "Singapore",
+      "Bangkok",
+      "Kuala Lumpur",
+      "Phuket",
+      "Penang",
+      "Chiang Mai"
+    ],
+    "countries": [
+      { "name": "Singapore", "code": "SG", "currency": "S$", "currencyCode": "SGD" },
+      { "name": "Thailand", "code": "TH", "currency": "฿", "currencyCode": "THB" },
+      { "name": "Malaysia", "code": "MY", "currency": "RM", "currencyCode": "MYR" }
     ],
     "currency": {
-      "code": "EUR",
-      "symbol": "€",
+      "code": "SGD",
+      "symbol": "S$",
       "position": "prefix"
     },
-    "locale": "en-LT"
+    "locale": "en-SG"
   },
   "compliance": {
-    "regulatoryBody": "Lithuanian Health Ministry Compliant",
-    "healthProtocol": "National Bioethics & Health Protocols",
-    "dataProtection": "256-Bit Encrypted Health Records",
+    "regulatoryBody": "MOH Singapore · MOPH Thailand · MOH Malaysia",
+    "healthProtocol": "JCI & National Clinical Bioethics Protocols",
+    "dataProtection": "PDPA & 256-Bit Encrypted Health Records",
     "guarantee": "Transparent Pricing Standard · No Patient Surcharges"
   },
   "navigation": {
@@ -72,15 +86,15 @@
       { "label": "Find Care", "href": "/patient" },
       { "label": "How It Works", "href": "/#how-it-works" },
       { "label": "For Clinics", "href": "/#for-clinics" },
-      { "label": "About Platform", "href": "/#about" }
+      { "label": "About Network", "href": "/#about" }
     ],
-    "ctaLabel": "Book Appointment"
+    "ctaLabel": "Book Consultation"
   },
   "contact": {
-    "email": "support@medcin.app",
-    "supportPhone": "+370 5 212 3456",
-    "address": "Gedimino pr. 24, Vilnius, Lithuania",
-    "operatingHours": "Mon-Fri: 08:00 - 20:00"
+    "email": "care@medcin.asia",
+    "supportPhone": "+65 6712 8900",
+    "address": "101 Thomson Road, United Square #18-02, Singapore 307591",
+    "operatingHours": "Mon-Sun: 07:00 - 22:00 (SGT / ICT)"
   },
   "features": {
     "enableRatings": true,

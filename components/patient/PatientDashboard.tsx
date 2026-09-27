@@ -133,12 +133,12 @@ export function PatientDashboard() {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-bold text-[var(--ink)] tracking-tight">
-                  Jonas Kazlauskas
+                  Marcus Wei
                 </h2>
                 <span className="badge-ledger badge-confirmed">Patient Account</span>
               </div>
               <p className="text-xs text-[var(--muted)] font-mono-ledger">
-                jonas@example.com · +370 600 12345 · Vilnius, Lithuania
+                marcus.wei@example.sg · +65 9123 4567 · Novena, Singapore
               </p>
             </div>
           </div>
@@ -230,7 +230,7 @@ export function PatientDashboard() {
                   Location
                 </label>
                 <div className="space-y-1">
-                  {["All", "Vilnius", "Kaunas", "Klaipėda"].map((city) => (
+                  {["All", "Singapore", "Bangkok", "Kuala Lumpur", "Phuket", "Penang"].map((city) => (
                     <button
                       key={city}
                       onClick={() => setSelectedCity(city)}

@@ -16,7 +16,7 @@ function LoginForm() {
   const { setRole } = useMedcinStore();
   const { branding } = useBranding();
   const [selectedRole, setSelectedRole] = useState<Role>(initialRole);
-  const [email, setEmail] = useState("jonas@example.com");
+  const [email, setEmail] = useState("marcus.wei@example.sg");
   const [password, setPassword] = useState("••••••••");
   const [rememberMe, setRememberMe] = useState(true);
   const [loginSuccess, setLoginSuccess] = useState(false);
@@ -26,21 +26,21 @@ function LoginForm() {
     { email: string; label: string; sub: string; redirect: string; icon: React.ReactNode }
   > = {
     patient: {
-      email: "jonas@example.com",
+      email: "marcus.wei@example.sg",
       label: "Patient Account",
       sub: "Access consultations & personal health reservations",
       redirect: "/patient",
       icon: <User className="w-4 h-4" />,
     },
     center: {
-      email: "hello@vilniusdental.lt",
+      email: "appointments@novenamedical.sg",
       label: "Medical Center Practice",
       sub: "Manage clinic roster, doctor slots & incoming appointments",
       redirect: "/center",
       icon: <Building2 className="w-4 h-4" />,
     },
     admin: {
-      email: "admin@medcin.app",
+      email: "admin@medcin.asia",
       label: "Platform Admin Console",
       sub: "Platform audits, facility vetting & financial settlements",
       redirect: "/admin",
