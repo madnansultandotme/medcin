@@ -99,10 +99,10 @@ function LoginForm() {
 
         {/* Role Selector Tabs */}
         <div>
-          <label className="block font-mono-ledger text-[10px] text-[var(--muted)] mb-1.5 uppercase tracking-wider">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
             Select Account Role
           </label>
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-3 gap-2">
             {(["patient", "center", "admin"] as Role[]).map((r) => {
               const info = roleCredentials[r];
               const isSelected = selectedRole === r;
@@ -111,7 +111,7 @@ function LoginForm() {
                   type="button"
                   key={r}
                   onClick={() => handleRoleSelect(r)}
-                  className={`p-2.5 border text-center font-mono-ledger text-xs transition-all flex flex-col items-center gap-1.5 rounded-xl ${
+                  className={`p-3 border text-center text-sm transition-all flex flex-col items-center gap-1.5 rounded-xl ${
                     isSelected
                       ? "border-[var(--clay)] bg-[var(--paper)] text-[var(--clay)] font-bold shadow-xs"
                       : "border-[var(--mist)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--muted)] hover:text-[var(--ink)]"
@@ -120,7 +120,7 @@ function LoginForm() {
                   <div className={isSelected ? "text-[var(--clay)]" : "text-[var(--muted)]"}>
                     {info.icon}
                   </div>
-                  <span className="capitalize">{r === "center" ? "Clinic" : r}</span>
+                  <span className="capitalize font-semibold">{r === "center" ? "Clinic" : r}</span>
                 </button>
               );
             })}
@@ -128,50 +128,50 @@ function LoginForm() {
         </div>
 
         {/* Credentials Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs font-sans-ledger">
+        <form onSubmit={handleSubmit} className="space-y-4 text-sm font-sans-ledger">
           <div>
-            <label className="block font-mono-ledger text-[10px] text-[var(--muted)] mb-1 uppercase tracking-wider">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
               Email Address
             </label>
             <div className="relative">
-              <Mail className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
+              <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 bg-[var(--surface)] border border-[var(--mist)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] font-mono-ledger rounded-xl"
+                className="w-full pl-10 pr-3.5 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
               />
             </div>
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="font-mono-ledger text-[10px] text-[var(--muted)] uppercase tracking-wider">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
                 Password
               </label>
               <button
                 type="button"
                 onClick={() => alert("Password reset instructions sent to your email.")}
-                className="font-mono-ledger text-[10px] text-[var(--clay)] hover:underline"
+                className="text-xs font-semibold text-[var(--clay)] hover:underline"
               >
                 Forgot password?
               </button>
             </div>
             <div className="relative">
-              <Lock className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
+              <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 bg-[var(--surface)] border border-[var(--mist)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] font-mono-ledger rounded-xl"
+                className="w-full pl-10 pr-3.5 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-xs">
-            <label className="flex items-center gap-2 cursor-pointer text-[var(--muted)] font-mono-ledger text-[11px]">
+          <div className="flex items-center justify-between text-sm">
+            <label className="flex items-center gap-2 cursor-pointer text-[var(--muted)] text-xs font-medium">
               <input
                 type="checkbox"
                 checked={rememberMe}

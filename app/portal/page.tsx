@@ -151,7 +151,7 @@ export default function PortalPage() {
             }`}
           >
             {selectedRole === "patient" && (
-              <span className="absolute -top-3 right-4 px-2.5 py-0.5 rounded-full bg-[var(--clay)] text-white text-[10px] font-mono-ledger font-semibold shadow-xs">
+              <span className="absolute -top-3 right-4 px-3 py-1 rounded-full bg-[var(--clay)] text-white text-xs font-semibold shadow-xs">
                 Selected
               </span>
             )}
@@ -207,7 +207,7 @@ export default function PortalPage() {
             }`}
           >
             {selectedRole === "center" && (
-              <span className="absolute -top-3 right-4 px-2.5 py-0.5 rounded-full bg-[var(--clay)] text-white text-[10px] font-mono-ledger font-semibold shadow-xs">
+              <span className="absolute -top-3 right-4 px-3 py-1 rounded-full bg-[var(--clay)] text-white text-xs font-semibold shadow-xs">
                 Selected
               </span>
             )}
@@ -263,7 +263,7 @@ export default function PortalPage() {
             }`}
           >
             {selectedRole === "admin" && (
-              <span className="absolute -top-3 right-4 px-2.5 py-0.5 rounded-full bg-[var(--clay)] text-white text-[10px] font-mono-ledger font-semibold shadow-xs">
+              <span className="absolute -top-3 right-4 px-3 py-1 rounded-full bg-[var(--clay)] text-white text-xs font-semibold shadow-xs">
                 Selected
               </span>
             )}

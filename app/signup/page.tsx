@@ -75,25 +75,25 @@ export default function SignupPage() {
 
         {/* Account Type Selector Tabs */}
         <div>
-          <label className="block font-mono-ledger text-[10px] text-[var(--muted)] mb-1.5 uppercase tracking-wider">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
             I am registering as:
           </label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => setAccountType("patient")}
-              className={`p-3 border text-left flex items-center gap-2.5 transition-all rounded-xl ${
+              className={`p-3.5 border text-left flex items-center gap-3 transition-all rounded-xl ${
                 accountType === "patient"
                   ? "border-[var(--clay)] bg-[var(--paper)] text-[var(--clay)] font-semibold shadow-xs"
                   : "border-[var(--mist)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--muted)]"
               }`}
             >
-              <User className="w-4 h-4 flex-none" />
+              <User className="w-5 h-5 flex-none" />
               <div>
-                <div className="font-semibold text-xs text-[var(--ink)]">
+                <div className="font-bold text-sm text-[var(--ink)]">
                   Patient
                 </div>
-                <div className="text-[10px] font-mono-ledger text-[var(--muted)]">
+                <div className="text-xs text-[var(--muted)]">
                   Personal bookings & care
                 </div>
               </div>
@@ -102,18 +102,18 @@ export default function SignupPage() {
             <button
               type="button"
               onClick={() => setAccountType("center")}
-              className={`p-3 border text-left flex items-center gap-2.5 transition-all rounded-xl ${
+              className={`p-3.5 border text-left flex items-center gap-3 transition-all rounded-xl ${
                 accountType === "center"
                   ? "border-[var(--clay)] bg-[var(--paper)] text-[var(--clay)] font-semibold shadow-xs"
                   : "border-[var(--mist)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--muted)]"
               }`}
             >
-              <Building2 className="w-4 h-4 flex-none" />
+              <Building2 className="w-5 h-5 flex-none" />
               <div>
-                <div className="font-semibold text-xs text-[var(--ink)]">
+                <div className="font-bold text-sm text-[var(--ink)]">
                   Medical Center
                 </div>
-                <div className="text-[10px] font-mono-ledger text-[var(--muted)]">
+                <div className="text-xs text-[var(--muted)]">
                   Clinic & practitioner roster
                 </div>
               </div>
@@ -122,12 +122,12 @@ export default function SignupPage() {
         </div>
 
         {/* Dynamic Form */}
-        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs font-sans-ledger">
+        <form onSubmit={handleSubmit} className="space-y-4 text-sm font-sans-ledger">
           {accountType === "patient" ? (
             /* Patient Fields */
             <>
               <div>
-                <label className="block font-mono-ledger text-[10px] text-[var(--muted)] mb-1 uppercase tracking-wider">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                   Full Legal Name
                 </label>
                 <input
@@ -136,13 +136,13 @@ export default function SignupPage() {
                   placeholder="e.g. Marcus Wei"
                   value={patientName}
                   onChange={(e) => setPatientName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[var(--surface)] border border-[var(--mist)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] rounded-xl"
+                  className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block font-mono-ledger text-[10px] text-[var(--muted)] mb-1 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                     Email Address
                   </label>
                   <input
@@ -151,11 +151,11 @@ export default function SignupPage() {
                     placeholder="marcus.wei@example.sg"
                     value={patientEmail}
                     onChange={(e) => setPatientEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[var(--surface)] border border-[var(--mist)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] rounded-xl"
+                    className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
                   />
                 </div>
                 <div>
-                  <label className="block font-mono-ledger text-[10px] text-[var(--muted)] mb-1 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                     Mobile Phone
                   </label>
                   <input
@@ -164,13 +164,13 @@ export default function SignupPage() {
                     placeholder="+65 9123 4567"
                     value={patientPhone}
                     onChange={(e) => setPatientPhone(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[var(--surface)] border border-[var(--mist)] text-xs font-mono-ledger text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] rounded-xl"
+                    className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm font-mono-ledger text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-mono-ledger text-[10px] text-[var(--muted)] mb-1 uppercase tracking-wider">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                   Create Password
                 </label>
                 <input
@@ -179,7 +179,7 @@ export default function SignupPage() {
                   placeholder="Min 8 characters"
                   value={patientPassword}
                   onChange={(e) => setPatientPassword(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[var(--surface)] border border-[var(--mist)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] rounded-xl"
+                  className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
                 />
               </div>
             </>
@@ -187,7 +187,7 @@ export default function SignupPage() {
             /* Medical Center Fields */
             <>
               <div>
-                <label className="block font-mono-ledger text-[10px] text-[var(--muted)] mb-1 uppercase tracking-wider">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                   Medical Center / Practice Name
                 </label>
                 <input
@@ -196,19 +196,19 @@ export default function SignupPage() {
                   placeholder="e.g. Novena Premier Specialist Medical"
                   value={centerName}
                   onChange={(e) => setCenterName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[var(--surface)] border border-[var(--mist)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] rounded-xl"
+                  className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block font-mono-ledger text-[10px] text-[var(--muted)] mb-1 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                     Primary Category
                   </label>
                   <select
                     value={centerCategory}
                     onChange={(e) => setCenterCategory(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[var(--surface)] border border-[var(--mist)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] rounded-xl"
+                    className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm font-semibold text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
                   >
                     <option value="Specialist diagnostics">Specialist diagnostics</option>
                     <option value="Aesthetic & anti-aging clinic">Aesthetic & anti-aging clinic</option>
@@ -218,7 +218,7 @@ export default function SignupPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block font-mono-ledger text-[10px] text-[var(--muted)] mb-1 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                     Healthcare License / Reg #
                   </label>
                   <input
@@ -227,13 +227,13 @@ export default function SignupPage() {
                     placeholder="e.g. MOH-SG-NOV-8812"
                     value={centerRegNumber}
                     onChange={(e) => setCenterRegNumber(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[var(--surface)] border border-[var(--mist)] text-xs font-mono-ledger text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] rounded-xl"
+                    className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm font-mono-ledger text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-mono-ledger text-[10px] text-[var(--muted)] mb-1 uppercase tracking-wider">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                   Physical Practice Address
                 </label>
                 <input
@@ -242,13 +242,13 @@ export default function SignupPage() {
                   placeholder="e.g. 10 Sinaran Drive, Novena Medical Hub, Singapore"
                   value={centerAddress}
                   onChange={(e) => setCenterAddress(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[var(--surface)] border border-[var(--mist)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] rounded-xl"
+                  className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block font-mono-ledger text-[10px] text-[var(--muted)] mb-1 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                     Practice Work Email
                   </label>
                   <input
@@ -257,11 +257,11 @@ export default function SignupPage() {
                     placeholder="appointments@novenamedical.sg"
                     value={centerEmail}
                     onChange={(e) => setCenterEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[var(--surface)] border border-[var(--mist)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] rounded-xl"
+                    className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
                   />
                 </div>
                 <div>
-                  <label className="block font-mono-ledger text-[10px] text-[var(--muted)] mb-1 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                     Contact Phone
                   </label>
                   <input
@@ -270,13 +270,13 @@ export default function SignupPage() {
                     placeholder="+65 6712 8900"
                     value={centerPhone}
                     onChange={(e) => setCenterPhone(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[var(--surface)] border border-[var(--mist)] text-xs font-mono-ledger text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] rounded-xl"
+                    className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm font-mono-ledger text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-mono-ledger text-[10px] text-[var(--muted)] mb-1 uppercase tracking-wider">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
                   Account Password
                 </label>
                 <input
@@ -285,7 +285,7 @@ export default function SignupPage() {
                   placeholder="Min 8 characters"
                   value={centerPassword}
                   onChange={(e) => setCenterPassword(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[var(--surface)] border border-[var(--mist)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] rounded-xl"
+                  className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
                 />
               </div>
             </>
@@ -293,7 +293,7 @@ export default function SignupPage() {
 
           {/* Terms Agreement */}
           <div className="pt-1">
-            <label className="flex items-start gap-2 cursor-pointer font-mono-ledger text-[11px] text-[var(--muted)]">
+            <label className="flex items-start gap-2.5 cursor-pointer text-xs text-[var(--muted)] leading-relaxed">
               <input
                 type="checkbox"
                 required

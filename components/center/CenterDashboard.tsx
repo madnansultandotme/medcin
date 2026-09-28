@@ -184,17 +184,17 @@ export function CenterDashboard() {
 
           {/* Quick Metrics */}
           <div className="flex items-center gap-3 font-mono-ledger text-xs">
-            <div className="rounded-2xl border border-[var(--mist)] p-3 bg-[var(--paper)] text-right shadow-2xs">
-              <span className="text-[10px] text-[var(--muted)] block">PENDING INBOX</span>
-              <span className="text-base font-bold text-[var(--amber)]">{pendingCount}</span>
+            <div className="rounded-2xl border border-[var(--mist)] p-4 bg-[var(--paper)] text-right shadow-2xs min-w-[120px]">
+              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">Pending Inbox</span>
+              <span className="text-2xl sm:text-3xl font-bold text-[var(--amber)]">{pendingCount}</span>
             </div>
-            <div className="rounded-2xl border border-[var(--mist)] p-3 bg-[var(--paper)] text-right shadow-2xs">
-              <span className="text-[10px] text-[var(--muted)] block">CONFIRMED VISITS</span>
-              <span className="text-base font-bold text-[var(--sage)]">{confirmedCount}</span>
+            <div className="rounded-2xl border border-[var(--mist)] p-4 bg-[var(--paper)] text-right shadow-2xs min-w-[120px]">
+              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">Confirmed Visits</span>
+              <span className="text-2xl sm:text-3xl font-bold text-[var(--sage)]">{confirmedCount}</span>
             </div>
-            <div className="rounded-2xl border border-[var(--mist)] p-3 bg-[var(--paper)] text-right shadow-2xs">
-              <span className="text-[10px] text-[var(--muted)] block">DOCTORS ON DUTY</span>
-              <span className="text-base font-bold text-[var(--ink)]">{clinicDoctors.length}</span>
+            <div className="rounded-2xl border border-[var(--mist)] p-4 bg-[var(--paper)] text-right shadow-2xs min-w-[120px]">
+              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">Doctors On Duty</span>
+              <span className="text-2xl sm:text-3xl font-bold text-[var(--ink)]">{clinicDoctors.length}</span>
             </div>
           </div>
         </div>
@@ -253,39 +253,39 @@ export function CenterDashboard() {
 
       {/* VIEW 1: BOOKINGS INBOX */}
       {activeTab === "inbox" && (
-        <div className="border border-[var(--mist)] bg-[var(--surface)] p-6 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--mist)]">
+        <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 md:p-8 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--mist)]">
             <div>
-              <h3 className="font-bold text-base text-[var(--ink)]">
+              <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
                 Appointments Inbox
               </h3>
-              <p className="text-xs text-[var(--muted)] font-mono-ledger">
+              <p className="text-sm text-[var(--muted)] font-mono-ledger mt-0.5">
                 Patient consultation requests and real-time appointment dispatch
               </p>
             </div>
 
             {/* Filter Tabs & Search */}
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-3">
               <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
                 <input
                   type="text"
                   placeholder="Filter patient or reference..."
                   value={inboxSearch}
                   onChange={(e) => setInboxSearch(e.target.value)}
-                  className="pl-8 pr-2 py-1 text-xs border border-[var(--mist)] bg-[var(--paper)] text-[var(--ink)] font-sans-ledger focus:outline-none"
+                  className="pl-9 pr-3 py-2 text-sm border border-[var(--mist)] bg-[var(--paper)] text-[var(--ink)] font-sans-ledger focus:outline-none focus:border-[var(--clay)] rounded-xl"
                 />
               </div>
 
-              <div className="flex border border-[var(--mist)] font-mono-ledger text-xs">
+              <div className="flex p-1 bg-[var(--paper)] border border-[var(--mist)] rounded-full text-xs font-mono-ledger">
                 {(["all", "pending", "confirmed", "completed"] as const).map((f) => (
                   <button
                     key={f}
                     onClick={() => setInboxFilter(f)}
-                    className={`px-2.5 py-1 capitalize ${
+                    className={`px-3.5 py-1.5 rounded-full capitalize font-semibold transition-all ${
                       inboxFilter === f
-                        ? "bg-[var(--clay)] text-white font-semibold"
-                        : "bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--ink)]"
+                        ? "bg-[var(--clay)] text-white shadow-xs"
+                        : "text-[var(--muted)] hover:text-[var(--ink)]"
                     }`}
                   >
                     {f}
@@ -296,23 +296,23 @@ export function CenterDashboard() {
           </div>
 
           {/* Table Feed */}
-          <div className="divide-y divide-[var(--mist)] border border-[var(--mist)]">
+          <div className="divide-y divide-[var(--mist)] border border-[var(--mist)] rounded-2xl overflow-hidden bg-white/40 dark:bg-black/20">
             {filteredInbox.length === 0 ? (
-              <div className="p-8 text-center text-xs font-mono-ledger text-[var(--muted)]">
+              <div className="p-12 text-center text-sm font-mono-ledger text-[var(--muted)]">
                 No bookings found matching current filters.
               </div>
             ) : (
               filteredInbox.map((b) => {
                 const isPending = b.status === "pending";
                 return (
-                  <div key={b.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono-ledger text-xs font-bold text-[var(--clay)]">
+                  <div key={b.id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-5 hover:bg-[var(--paper)]/50 transition-colors">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2.5">
+                        <span className="font-mono-ledger text-xs font-bold text-[var(--clay)] px-2.5 py-0.5 rounded-full bg-[var(--clay)]/10 border border-[var(--clay)]/20">
                           {b.reference}
                         </span>
                         <span
-                          className={`badge-ledger ${
+                          className={`badge-ledger rounded-full text-xs font-semibold px-3 py-0.5 ${
                             isPending
                               ? "badge-pending"
                               : b.status === "confirmed"
@@ -322,36 +322,38 @@ export function CenterDashboard() {
                         >
                           {isPending ? "Pending Clinic Approval" : b.status}
                         </span>
-                        <span className="text-[11px] font-mono-ledger text-[var(--muted)]">
+                        <span className="text-xs font-mono-ledger text-[var(--muted)]">
                           Booked {new Date(b.createdAt).toLocaleDateString()}
                         </span>
                       </div>
 
-                      <div className="font-bold text-sm text-[var(--ink)] flex items-center gap-2">
+                      <div className="font-bold text-base sm:text-lg text-[var(--ink)] flex items-center gap-2">
                         <span>{b.patientName}</span>
-                        <span className="text-xs font-normal text-[var(--muted)]">
+                        <span className="text-sm font-normal text-[var(--muted)]">
                           ({b.patientPhone} · {b.patientEmail})
                         </span>
                       </div>
 
-                      <div className="text-xs text-[var(--muted)] font-mono-ledger flex items-center gap-2">
+                      <div className="text-sm text-[var(--muted)] font-sans-ledger flex items-center gap-2">
                         <span className="font-semibold text-[var(--ink)]">{b.serviceName}</span>
                         <span>·</span>
                         <span>Doctor: {b.doctorName}</span>
                         <span>·</span>
-                        <span>{b.duration}</span>
+                        <span className="font-mono-ledger text-xs">{b.duration}</span>
                       </div>
 
-                      <div className="text-xs font-mono-ledger text-[var(--clay)] flex items-center gap-2 pt-0.5">
-                        <Calendar className="w-3.5 h-3.5" />
-                        <span>{b.date} at {b.time}</span>
+                      <div className="text-sm font-sans-ledger text-[var(--ink)] flex items-center gap-3 pt-0.5">
+                        <div className="flex items-center gap-1.5 font-medium text-[var(--clay)]">
+                          <Calendar className="w-4 h-4 shrink-0" />
+                          <span>{b.date} at {b.time}</span>
+                        </div>
                         <span>·</span>
-                        <span className="font-bold text-[var(--sage)]">{formatCurrency(b.price)}</span>
+                        <span className="font-bold text-[var(--sage)] font-mono-ledger text-base">{formatCurrency(b.price)}</span>
                       </div>
 
                       {b.patientNotes && (
-                        <div className="text-xs text-[var(--muted)] font-sans-ledger bg-[var(--paper)] p-2 border border-[var(--mist)] mt-1.5 max-w-lg">
-                          <span className="font-semibold text-[var(--ink)] font-mono-ledger text-[10px] block uppercase">
+                        <div className="text-sm text-[var(--muted)] font-sans-ledger bg-[var(--paper)] p-3 border border-[var(--mist)] rounded-xl mt-2 max-w-xl">
+                          <span className="font-semibold text-[var(--ink)] font-mono-ledger text-xs block uppercase mb-0.5">
                             Patient Note:
                           </span>
                           {b.patientNotes}
@@ -360,20 +362,20 @@ export function CenterDashboard() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2 font-mono-ledger text-xs flex-none">
+                    <div className="flex items-center gap-2.5 font-mono-ledger text-sm flex-none">
                       {isPending ? (
                         <>
                           <button
                             onClick={() => updateBookingStatus(b.id, "confirmed")}
-                            className="bg-[var(--sage)] text-white px-3.5 py-1.5 font-semibold hover:opacity-90 transition-opacity flex items-center gap-1"
+                            className="bg-[var(--sage)] text-white px-4 py-2 rounded-xl font-semibold hover:opacity-90 transition-all flex items-center gap-1.5 shadow-xs"
                           >
-                            <Check className="w-3.5 h-3.5" />
+                            <Check className="w-4 h-4" />
                             <span>Accept</span>
                           </button>
 
                           <button
                             onClick={() => setDeclineBookingModal(b)}
-                            className="border border-[var(--mist)] text-[var(--muted)] px-3 py-1.5 hover:border-[var(--clay)] hover:text-[var(--clay)] transition-colors"
+                            className="border border-[var(--mist)] text-[var(--muted)] px-4 py-2 rounded-xl hover:border-[var(--clay)] hover:text-[var(--clay)] transition-all font-semibold"
                           >
                             Decline
                           </button>
@@ -382,13 +384,13 @@ export function CenterDashboard() {
                         <>
                           <button
                             onClick={() => updateBookingStatus(b.id, "completed")}
-                            className="border border-[var(--sage)] text-[var(--sage)] px-3 py-1.5 hover:bg-[var(--sage)] hover:text-white transition-colors"
+                            className="border border-[var(--sage)] text-[var(--sage)] px-4 py-2 rounded-xl hover:bg-[var(--sage)] hover:text-white transition-all font-semibold shadow-2xs"
                           >
                             Mark Completed
                           </button>
                           <button
                             onClick={() => setDeclineBookingModal(b)}
-                            className="border border-[var(--mist)] text-[var(--muted)] px-2.5 py-1.5 hover:text-[var(--clay)]"
+                            className="border border-[var(--mist)] text-[var(--muted)] px-3 py-2 rounded-xl hover:text-[var(--clay)] hover:border-[var(--clay)] transition-all"
                           >
                             Cancel
                           </button>
@@ -407,43 +409,43 @@ export function CenterDashboard() {
 
       {/* VIEW 2: AVAILABILITY SCHEDULER */}
       {activeTab === "availability" && (
-        <div className="border border-[var(--mist)] bg-[var(--surface)] p-6 space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--mist)]">
+        <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 md:p-8 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--mist)]">
             <div>
-              <h3 className="font-bold text-base text-[var(--ink)]">
+              <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
                 Slot Availability Scheduler
               </h3>
-              <p className="text-xs text-[var(--muted)] font-mono-ledger">
-                Click any slot to open or block consultation appointments
+              <p className="text-sm text-[var(--muted)] font-mono-ledger mt-0.5">
+                Click any slot to open or block consultation appointments across the regional calendar
               </p>
             </div>
 
             <button
               onClick={copySlotsToRestOfWeek}
-              className="bg-[var(--clay)] text-white px-4 py-2 font-mono-ledger text-xs font-semibold hover:opacity-95 flex items-center gap-1.5"
+              className="bg-[var(--clay)] text-white px-5 py-2.5 rounded-xl font-mono-ledger text-sm font-semibold hover:opacity-95 flex items-center gap-2 shadow-xs transition-all self-start sm:self-auto"
             >
-              <Copy className="w-3.5 h-3.5" />
+              <Copy className="w-4 h-4" />
               <span>Clone {selectedDayAvailability} Schedule to Week</span>
             </button>
           </div>
 
           {/* Practitioner Selector Chips */}
           <div>
-            <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-2">
+            <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2.5 tracking-wider">
               Select Physician
             </label>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2.5 flex-wrap">
               {clinicDoctors.map((doc) => (
                 <button
                   key={doc.id}
                   onClick={() => setSelectedDoctorAvailability(doc.id)}
-                  className={`px-3 py-1.5 border font-mono-ledger text-xs flex items-center gap-2 transition-all ${
+                  className={`px-4 py-2 rounded-xl font-mono-ledger text-sm flex items-center gap-2 transition-all ${
                     selectedDoctorAvailability === doc.id
-                      ? "border-[var(--clay)] bg-[var(--paper)] text-[var(--clay)] font-semibold shadow-xs"
-                      : "border-[var(--mist)] text-[var(--muted)] bg-[var(--surface)] hover:border-[var(--muted)]"
+                      ? "border border-[var(--clay)] bg-[var(--paper)] text-[var(--clay)] font-semibold shadow-xs"
+                      : "border border-[var(--mist)] text-[var(--muted)] bg-[var(--surface)] hover:border-[var(--muted)]"
                   }`}
                 >
-                  <span className="w-2 h-2 rounded-full bg-[var(--sage)]" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[var(--sage)]" />
                   <span>{doc.name}</span>
                 </button>
               ))}
@@ -452,18 +454,18 @@ export function CenterDashboard() {
 
           {/* Weekday Selector */}
           <div>
-            <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-2">
+            <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2.5 tracking-wider">
               Day of Week
             </label>
-            <div className="flex gap-1.5 overflow-x-auto pb-1">
+            <div className="flex gap-2 overflow-x-auto pb-1">
               {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
                 <button
                   key={day}
                   onClick={() => setSelectedDayAvailability(day)}
-                  className={`px-4 py-2 border font-mono-ledger text-xs transition-colors ${
+                  className={`px-5 py-2.5 rounded-xl border font-mono-ledger text-sm font-semibold transition-all ${
                     selectedDayAvailability === day
-                      ? "border-[var(--clay)] text-[var(--clay)] bg-[var(--paper)] font-bold shadow-xs"
-                      : "border-[var(--mist)] text-[var(--muted)] bg-[var(--surface)] hover:text-[var(--ink)]"
+                      ? "border-[var(--clay)] text-white bg-[var(--clay)] shadow-xs"
+                      : "border-[var(--mist)] text-[var(--muted)] bg-[var(--surface)] hover:text-[var(--ink)] hover:border-[var(--muted)]"
                   }`}
                 >
                   {day}
@@ -474,21 +476,21 @@ export function CenterDashboard() {
 
           {/* Slot Grid Matrix */}
           <div>
-            <div className="flex justify-between items-center text-xs font-mono-ledger text-[var(--muted)] mb-2">
+            <div className="flex justify-between items-center text-sm font-mono-ledger text-[var(--muted)] mb-3">
               <span>Appointment Matrix (30-minute intervals)</span>
-              <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1 text-[var(--clay)]">
-                  <span className="w-2.5 h-2.5 border border-[var(--clay)] bg-[var(--paper)] inline-block" />
+              <div className="flex items-center gap-4">
+                <span className="flex items-center gap-1.5 text-[var(--clay)] font-medium">
+                  <span className="w-3 h-3 border border-[var(--clay)] bg-[var(--paper)] rounded-xs inline-block" />
                   <span>Available</span>
                 </span>
-                <span className="flex items-center gap-1 text-[var(--mist)]">
-                  <span className="w-2.5 h-2.5 border border-[var(--mist)] bg-[var(--surface)] inline-block" />
-                  <span className="line-through text-[var(--muted)]">Blocked</span>
+                <span className="flex items-center gap-1.5 text-[var(--muted)]">
+                  <span className="w-3 h-3 border border-[var(--mist)] bg-[var(--surface)] rounded-xs inline-block" />
+                  <span className="line-through">Blocked</span>
                 </span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
               {[
                 "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
                 "12:00", "12:30", "14:00", "14:30", "15:00", "15:30", "16:00",
@@ -501,9 +503,9 @@ export function CenterDashboard() {
                   <button
                     key={time}
                     onClick={() => toggleSlot(slotKey)}
-                    className={`py-2.5 px-2 text-center border font-mono-ledger text-xs transition-all ${
+                    className={`py-3 px-3 text-center border font-mono-ledger text-sm rounded-xl transition-all ${
                       isAvailable
-                        ? "border-[var(--clay)] bg-[var(--paper)] text-[var(--clay)] font-semibold shadow-xs hover:border-[var(--ink)]"
+                        ? "border-[var(--clay)] bg-[var(--paper)] text-[var(--clay)] font-bold shadow-xs hover:border-[var(--ink)]"
                         : "border-[var(--mist)] bg-[var(--surface)] text-[var(--mist)] line-through hover:border-[var(--muted)] hover:text-[var(--muted)]"
                     }`}
                     title={isAvailable ? "Open slot (click to block)" : "Blocked slot (click to open)"}
@@ -520,55 +522,55 @@ export function CenterDashboard() {
       {/* VIEW 3: DOCTORS & CATALOG */}
       {activeTab === "doctors" && (
         <div className="space-y-6">
-          <div className="border border-[var(--mist)] bg-[var(--surface)] p-6 space-y-4">
-            <div className="flex justify-between items-center pb-2 border-b border-[var(--mist)]">
+          <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 md:p-8 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[var(--mist)] gap-3">
               <div>
-                <h3 className="font-bold text-base text-[var(--ink)]">
+                <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
                   Practitioner Staff
                 </h3>
-                <p className="text-xs text-[var(--muted)] font-mono-ledger">
-                  Registered doctors and active duty statuses
+                <p className="text-sm text-[var(--muted)] font-mono-ledger mt-0.5">
+                  Registered doctors and active duty statuses in Novena facility
                 </p>
               </div>
 
               <button
                 onClick={() => setShowAddDoctorModal(true)}
-                className="bg-[var(--clay)] text-white px-3.5 py-1.5 font-mono-ledger text-xs font-semibold hover:opacity-95 flex items-center gap-1.5"
+                className="bg-[var(--clay)] text-white px-5 py-2.5 rounded-xl font-mono-ledger text-sm font-semibold hover:opacity-95 flex items-center gap-1.5 shadow-xs transition-all self-start sm:self-auto"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-4 h-4" />
                 <span>Add Doctor</span>
               </button>
             </div>
 
-            <div className="divide-y divide-[var(--mist)] border border-[var(--mist)]">
+            <div className="divide-y divide-[var(--mist)] border border-[var(--mist)] rounded-2xl overflow-hidden bg-white/40 dark:bg-black/20">
               {clinicDoctors.map((doc) => (
-                <div key={doc.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-11 h-11 bg-[var(--mist)] flex items-center justify-center font-mono-ledger font-bold text-sm text-[var(--ink)]">
+                <div key={doc.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-5 hover:bg-[var(--paper)]/50 transition-colors">
+                  <div className="flex items-start gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-[var(--mist)]/40 flex items-center justify-center font-mono-ledger font-bold text-base text-[var(--ink)] border border-[var(--mist)]">
                       {doc.initials}
                     </div>
                     <div>
-                      <div className="font-bold text-sm text-[var(--ink)] flex items-center gap-2">
+                      <div className="font-bold text-base sm:text-lg text-[var(--ink)] flex items-center gap-2.5">
                         <span>{doc.name}</span>
-                        <span className="badge-ledger badge-confirmed">Active</span>
+                        <span className="badge-ledger badge-confirmed rounded-full text-xs px-2.5 py-0.5 font-semibold">Active</span>
                       </div>
-                      <div className="text-xs text-[var(--muted)]">
+                      <div className="text-sm font-medium text-[var(--clay)] mt-0.5">
                         {doc.role}
                       </div>
-                      <div className="text-[11px] font-mono-ledger text-[var(--muted)]">
+                      <div className="text-xs sm:text-sm font-mono-ledger text-[var(--muted)] mt-0.5">
                         License: {doc.licenseNumber} · Starting Fee: {formatCurrency(doc.price)}
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 font-mono-ledger text-xs">
+                  <div className="flex items-center gap-3 font-mono-ledger text-sm">
                     <button
                       onClick={() =>
                         updateDoctor(doc.id, {
                           price: doc.price + 5,
                         })
                       }
-                      className="px-2.5 py-1 border border-[var(--mist)] hover:border-[var(--clay)] text-[var(--ink)]"
+                      className="px-3.5 py-2 border border-[var(--mist)] rounded-xl hover:border-[var(--clay)] text-[var(--ink)] font-semibold transition-all shadow-2xs"
                     >
                       Fee: {formatCurrency(doc.price)} (Edit)
                     </button>
@@ -577,7 +579,7 @@ export function CenterDashboard() {
                         setTargetDoctorId(doc.id);
                         setShowAddProcedureModal(true);
                       }}
-                      className="px-2.5 py-1 border border-[var(--clay)] text-[var(--clay)] hover:bg-[var(--clay)] hover:text-white transition-colors"
+                      className="px-3.5 py-2 rounded-xl border border-[var(--clay)] text-[var(--clay)] hover:bg-[var(--clay)] hover:text-white transition-all font-semibold shadow-2xs"
                     >
                       + Procedure
                     </button>
@@ -588,53 +590,53 @@ export function CenterDashboard() {
           </div>
 
           {/* Procedures Catalog */}
-          <div className="border border-[var(--mist)] bg-[var(--surface)] p-6 space-y-4">
-            <div className="flex justify-between items-center pb-2 border-b border-[var(--mist)]">
+          <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 md:p-8 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[var(--mist)] gap-3">
               <div>
-                <h3 className="font-bold text-base text-[var(--ink)]">
+                <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
                   Procedures & Pricing
                 </h3>
-                <p className="text-xs text-[var(--muted)] font-mono-ledger">
-                  Standard consultation durations and transparent fees
+                <p className="text-sm text-[var(--muted)] font-mono-ledger mt-0.5">
+                  Standard consultation durations and transparent fees published on patient portal
                 </p>
               </div>
 
               <button
                 onClick={() => setShowAddProcedureModal(true)}
-                className="bg-[var(--clay)] text-white px-3.5 py-1.5 font-mono-ledger text-xs font-semibold hover:opacity-95 flex items-center gap-1.5"
+                className="bg-[var(--clay)] text-white px-5 py-2.5 rounded-xl font-mono-ledger text-sm font-semibold hover:opacity-95 flex items-center gap-1.5 shadow-xs transition-all self-start sm:self-auto"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-4 h-4" />
                 <span>Add Procedure</span>
               </button>
             </div>
 
-            <div className="divide-y divide-[var(--mist)] border border-[var(--mist)]">
+            <div className="divide-y divide-[var(--mist)] border border-[var(--mist)] rounded-2xl overflow-hidden bg-white/40 dark:bg-black/20">
               {clinicDoctors[0]?.services.map((svc) => (
-                <div key={svc.id} className="p-3.5 flex items-center justify-between text-xs">
+                <div key={svc.id} className="p-4 flex items-center justify-between text-sm hover:bg-[var(--paper)]/50 transition-colors">
                   <div>
-                    <div className="font-semibold text-[var(--ink)]">
+                    <div className="font-bold text-base text-[var(--ink)]">
                       {svc.name}
                     </div>
                     {svc.description && (
-                      <div className="text-xs text-[var(--muted)] font-sans-ledger mt-0.5">
+                      <div className="text-sm text-[var(--muted)] font-sans-ledger mt-0.5">
                         {svc.description}
                       </div>
                     )}
-                    <div className="text-[11px] font-mono-ledger text-[var(--muted)]">
+                    <div className="text-xs font-mono-ledger text-[var(--muted)] mt-1">
                       Duration: {svc.duration}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono-ledger text-sm font-bold text-[var(--ink)]">
+                  <div className="flex items-center gap-4">
+                    <span className="font-mono-ledger text-base sm:text-lg font-bold text-[var(--ink)]">
                       {formatCurrency(svc.price)}
                     </span>
                     <button
                       onClick={() => removeProcedure(clinicDoctors[0].id, svc.id)}
-                      className="text-[var(--muted)] hover:text-[var(--clay)]"
+                      className="text-[var(--muted)] hover:text-[var(--clay)] p-1.5 rounded-lg hover:bg-[var(--paper)] transition-all"
                       title="Remove procedure"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -646,109 +648,109 @@ export function CenterDashboard() {
 
       {/* VIEW 4: CENTER PROFILE */}
       {activeTab === "onboarding" && (
-        <div className="border border-[var(--mist)] bg-[var(--surface)] p-6 space-y-5 max-w-3xl">
-          <div className="pb-2 border-b border-[var(--mist)]">
-            <h3 className="font-bold text-base text-[var(--ink)]">
+        <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 md:p-8 shadow-sm space-y-6 max-w-3xl">
+          <div className="pb-3 border-b border-[var(--mist)]">
+            <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
               Practice Profile & Accreditation
             </h3>
-            <p className="text-xs text-[var(--muted)] font-mono-ledger">
-              Clinic parameters registered with state health authority
+            <p className="text-sm text-[var(--muted)] font-mono-ledger mt-0.5">
+              Clinic parameters registered with state health authority (Singapore MOH / Malaysia KKM / Thailand MOPH)
             </p>
           </div>
 
-          <form onSubmit={handleProfileSave} className="space-y-4 font-sans-ledger text-xs">
+          <form onSubmit={handleProfileSave} className="space-y-4 font-sans-ledger text-sm">
             <div>
-              <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-1">
+              <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2 tracking-wider">
                 Facility Name
               </label>
               <input
                 type="text"
                 value={profileForm.name}
                 onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                className="w-full p-2 border border-[var(--mist)] bg-[var(--surface)] text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
+                className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-1">
+                <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2 tracking-wider">
                   Practice Category
                 </label>
                 <input
                   type="text"
                   value={profileForm.category}
                   onChange={(e) => setProfileForm({ ...profileForm, category: e.target.value })}
-                  className="w-full p-2 border border-[var(--mist)] bg-[var(--surface)] text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
+                  className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-1">
+                <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2 tracking-wider">
                   License Number
                 </label>
                 <input
                   type="text"
                   value={profileForm.licenseNumber}
                   onChange={(e) => setProfileForm({ ...profileForm, licenseNumber: e.target.value })}
-                  className="w-full p-2 border border-[var(--mist)] bg-[var(--surface)] font-mono-ledger text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
+                  className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--surface)] font-mono-ledger text-sm text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-1">
+              <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2 tracking-wider">
                 Physical Address
               </label>
               <input
                 type="text"
                 value={profileForm.address}
                 onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
-                className="w-full p-2 border border-[var(--mist)] bg-[var(--surface)] text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
+                className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-1">
+                <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2 tracking-wider">
                   Contact Email
                 </label>
                 <input
                   type="email"
                   value={profileForm.email}
                   onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                  className="w-full p-2 border border-[var(--mist)] bg-[var(--surface)] text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
+                  className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-1">
+                <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2 tracking-wider">
                   Clinic Phone Hotline
                 </label>
                 <input
                   type="text"
                   value={profileForm.phone}
                   onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                  className="w-full p-2 border border-[var(--mist)] bg-[var(--surface)] font-mono-ledger text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
+                  className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--surface)] font-mono-ledger text-sm text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-1">
+              <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2 tracking-wider">
                 Operating Hours
               </label>
               <input
                 type="text"
                 value={profileForm.operatingHours}
                 onChange={(e) => setProfileForm({ ...profileForm, operatingHours: e.target.value })}
-                className="w-full p-2 border border-[var(--mist)] bg-[var(--surface)] font-mono-ledger text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
+                className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--surface)] font-mono-ledger text-sm text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
               />
             </div>
 
-            <div className="pt-2">
+            <div className="pt-3">
               <button
                 type="submit"
-                className="bg-[var(--clay)] text-white px-6 py-2.5 font-mono-ledger text-xs font-semibold hover:opacity-95"
+                className="bg-[var(--clay)] text-white px-7 py-3 rounded-xl font-mono-ledger text-sm font-semibold hover:opacity-95 shadow-sm transition-all"
               >
                 Save Practice Details
               </button>
@@ -759,23 +761,23 @@ export function CenterDashboard() {
 
       {/* MODAL: ADD DOCTOR */}
       {showAddDoctorModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--surface)] border border-[var(--mist)] p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex justify-between items-center pb-2 border-b border-[var(--mist)]">
-              <h3 className="font-bold text-base text-[var(--ink)]">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="rounded-3xl bg-[var(--surface)] border border-white/70 dark:border-white/10 p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5">
+            <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
+              <h3 className="font-bold text-lg sm:text-xl text-[var(--ink)]">
                 Add Doctor to Practice
               </h3>
               <button
                 onClick={() => setShowAddDoctorModal(false)}
-                className="text-[var(--muted)] hover:text-[var(--ink)]"
+                className="text-[var(--muted)] hover:text-[var(--ink)] p-1 rounded-full hover:bg-[var(--paper)] transition-colors"
               >
-                <XCircle className="w-4 h-4" />
+                <XCircle className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateDoctor} className="space-y-3 font-sans-ledger text-xs">
+            <form onSubmit={handleCreateDoctor} className="space-y-4 text-sm">
               <div>
-                <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
                   Full Name
                 </label>
                 <input
@@ -784,12 +786,12 @@ export function CenterDashboard() {
                   placeholder="e.g. Dr. Ieva Balčiūnaitė"
                   value={newDocName}
                   onChange={(e) => setNewDocName(e.target.value)}
-                  className="w-full p-2 border border-[var(--mist)] bg-[var(--surface)] text-[var(--ink)]"
+                  className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
                   Specialty
                 </label>
                 <input
@@ -798,13 +800,13 @@ export function CenterDashboard() {
                   placeholder="Dentist · Periodontology Specialist"
                   value={newDocRole}
                   onChange={(e) => setNewDocRole(e.target.value)}
-                  className="w-full p-2 border border-[var(--mist)] bg-[var(--surface)] text-[var(--ink)]"
+                  className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
                     License ID
                   </label>
                   <input
@@ -812,11 +814,11 @@ export function CenterDashboard() {
                     required
                     value={newDocLicense}
                     onChange={(e) => setNewDocLicense(e.target.value)}
-                    className="w-full p-2 border border-[var(--mist)] bg-[var(--surface)] font-mono-ledger text-[var(--ink)]"
+                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] font-mono-ledger text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
                     Starting Fee ({branding.localization.currency.symbol})
                   </label>
                   <input
@@ -824,35 +826,35 @@ export function CenterDashboard() {
                     required
                     value={newDocPrice}
                     onChange={(e) => setNewDocPrice(e.target.value)}
-                    className="w-full p-2 border border-[var(--mist)] bg-[var(--surface)] font-mono-ledger text-[var(--ink)]"
+                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] font-mono-ledger text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
                   Bio / Qualifications
                 </label>
                 <textarea
-                  rows={2}
+                  rows={3}
                   placeholder="Specialization background..."
                   value={newDocBio}
                   onChange={(e) => setNewDocBio(e.target.value)}
-                  className="w-full p-2 border border-[var(--mist)] bg-[var(--surface)] text-[var(--ink)]"
+                  className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
                 />
               </div>
 
-              <div className="flex gap-2 pt-2 border-t border-[var(--mist)] font-mono-ledger text-xs">
+              <div className="flex gap-3 pt-3 border-t border-[var(--mist)] text-sm">
                 <button
                   type="button"
                   onClick={() => setShowAddDoctorModal(false)}
-                  className="flex-1 py-2 border border-[var(--mist)] text-[var(--muted)]"
+                  className="flex-1 py-3 rounded-xl border border-[var(--mist)] text-[var(--muted)] font-semibold hover:bg-[var(--paper)] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 bg-[var(--clay)] text-white font-semibold"
+                  className="flex-1 py-3 rounded-xl bg-[var(--clay)] text-white font-semibold hover:opacity-95 shadow-sm shadow-[var(--clay)]/20"
                 >
                   Save Doctor
                 </button>
@@ -864,23 +866,23 @@ export function CenterDashboard() {
 
       {/* MODAL: ADD PROCEDURE */}
       {showAddProcedureModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--surface)] border border-[var(--mist)] p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex justify-between items-center pb-2 border-b border-[var(--mist)]">
-              <h3 className="font-bold text-base text-[var(--ink)]">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="rounded-3xl bg-[var(--surface)] border border-white/70 dark:border-white/10 p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5">
+            <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
+              <h3 className="font-bold text-lg sm:text-xl text-[var(--ink)]">
                 Add Procedure
               </h3>
               <button
                 onClick={() => setShowAddProcedureModal(false)}
-                className="text-[var(--muted)] hover:text-[var(--ink)]"
+                className="text-[var(--muted)] hover:text-[var(--ink)] p-1 rounded-full hover:bg-[var(--paper)] transition-colors"
               >
-                <XCircle className="w-4 h-4" />
+                <XCircle className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateProcedure} className="space-y-3 font-sans-ledger text-xs">
+            <form onSubmit={handleCreateProcedure} className="space-y-4 text-sm">
               <div>
-                <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
                   Procedure Name
                 </label>
                 <input
@@ -889,19 +891,19 @@ export function CenterDashboard() {
                   placeholder="e.g. Composite Veneer Restructuring"
                   value={newProcName}
                   onChange={(e) => setNewProcName(e.target.value)}
-                  className="w-full p-2 border border-[var(--mist)] bg-[var(--surface)] text-[var(--ink)]"
+                  className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
                     Duration
                   </label>
                   <select
                     value={newProcDuration}
                     onChange={(e) => setNewProcDuration(e.target.value)}
-                    className="w-full p-2 border border-[var(--mist)] bg-[var(--surface)] font-mono-ledger text-[var(--ink)]"
+                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm font-semibold text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
                   >
                     <option value="30 min">30 min</option>
                     <option value="45 min">45 min</option>
@@ -910,7 +912,7 @@ export function CenterDashboard() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-1">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
                     Price ({branding.localization.currency.symbol})
                   </label>
                   <input
@@ -918,35 +920,35 @@ export function CenterDashboard() {
                     required
                     value={newProcPrice}
                     onChange={(e) => setNewProcPrice(e.target.value)}
-                    className="w-full p-2 border border-[var(--mist)] bg-[var(--surface)] font-mono-ledger text-[var(--ink)]"
+                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] font-mono-ledger text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
                   Description
                 </label>
                 <textarea
-                  rows={2}
+                  rows={3}
                   placeholder="Procedure details..."
                   value={newProcDesc}
                   onChange={(e) => setNewProcDesc(e.target.value)}
-                  className="w-full p-2 border border-[var(--mist)] bg-[var(--surface)] text-[var(--ink)]"
+                  className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
                 />
               </div>
 
-              <div className="flex gap-2 pt-2 border-t border-[var(--mist)] font-mono-ledger text-xs">
+              <div className="flex gap-3 pt-3 border-t border-[var(--mist)] text-sm">
                 <button
                   type="button"
                   onClick={() => setShowAddProcedureModal(false)}
-                  className="flex-1 py-2 border border-[var(--mist)] text-[var(--muted)]"
+                  className="flex-1 py-3 rounded-xl border border-[var(--mist)] text-[var(--muted)] font-semibold hover:bg-[var(--paper)] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 bg-[var(--clay)] text-white font-semibold"
+                  className="flex-1 py-3 rounded-xl bg-[var(--clay)] text-white font-semibold hover:opacity-95 shadow-sm shadow-[var(--clay)]/20"
                 >
                   Save Procedure
                 </button>
@@ -958,32 +960,32 @@ export function CenterDashboard() {
 
       {/* MODAL: DECLINE BOOKING */}
       {declineBookingModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--surface)] border border-[var(--mist)] p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex justify-between items-center pb-2 border-b border-[var(--mist)]">
-              <h3 className="font-bold text-base text-[var(--ink)]">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="rounded-3xl bg-[var(--surface)] border border-white/70 dark:border-white/10 p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5">
+            <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
+              <h3 className="font-bold text-lg sm:text-xl text-[var(--ink)]">
                 Decline Booking {declineBookingModal.reference}
               </h3>
               <button
                 onClick={() => setDeclineBookingModal(null)}
-                className="text-[var(--muted)] hover:text-[var(--ink)]"
+                className="text-[var(--muted)] hover:text-[var(--ink)] p-1 rounded-full hover:bg-[var(--paper)] transition-colors"
               >
-                <XCircle className="w-4 h-4" />
+                <XCircle className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="text-xs text-[var(--muted)] font-sans-ledger">
+            <div className="text-sm text-[var(--muted)]">
               Patient <span className="font-semibold text-[var(--ink)]">{declineBookingModal.patientName}</span> will receive immediate cancellation notification.
             </div>
 
             <div>
-              <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
                 Decline Reason
               </label>
               <select
                 value={declineReason}
                 onChange={(e) => setDeclineReason(e.target.value)}
-                className="w-full p-2 border border-[var(--mist)] bg-[var(--surface)] text-xs font-sans-ledger text-[var(--ink)]"
+                className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm font-semibold text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
               >
                 <option value="Practitioner unavailable for emergency">Practitioner unavailable for emergency</option>
                 <option value="Slot double-booked offline">Slot double-booked offline</option>
@@ -992,16 +994,16 @@ export function CenterDashboard() {
               </select>
             </div>
 
-            <div className="flex gap-2 pt-2 border-t border-[var(--mist)] font-mono-ledger text-xs">
+            <div className="flex gap-3 pt-3 border-t border-[var(--mist)] text-sm">
               <button
                 onClick={() => setDeclineBookingModal(null)}
-                className="flex-1 py-2 border border-[var(--mist)] text-[var(--muted)]"
+                className="flex-1 py-3 rounded-xl border border-[var(--mist)] text-[var(--muted)] font-semibold hover:bg-[var(--paper)] transition-colors"
               >
                 Back
               </button>
               <button
                 onClick={executeDeclineBooking}
-                className="flex-1 py-2 bg-[var(--clay)] text-white font-semibold"
+                className="flex-1 py-3 rounded-xl bg-[var(--clay)] text-white font-semibold hover:opacity-95 shadow-sm shadow-[var(--clay)]/20"
               >
                 Confirm Decline
               </button>
