@@ -32,21 +32,21 @@ export function Navbar() {
     pathname.startsWith("/admin");
 
   return (
-    <nav className="sticky top-0 z-50 w-full bg-[var(--surface)]/95 backdrop-blur-md border-b border-[var(--mist)] transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+    <header className="sticky top-0 z-50 w-full pt-2 sm:pt-3 pb-2 px-3 sm:px-6 lg:px-8 bg-[var(--paper)]/80 backdrop-blur-md transition-colors">
+      <nav className="max-w-7xl mx-auto bg-[var(--surface)]/90 dark:bg-[#1B1F18]/90 backdrop-blur-xl border border-[var(--mist)] dark:border-white/10 rounded-2xl sm:rounded-full px-4 sm:px-6 py-2.5 shadow-sm transition-all">
+        <div className="flex items-center justify-between h-11">
           {/* Brand Logo */}
           <div className="flex items-center gap-8">
             <MedcinLogo size="md" />
 
             {/* Public Website Navigation Links */}
             {!isDashboardRoute && (
-              <div className="hidden md:flex items-center gap-7 text-xs font-mono-ledger">
+              <div className="hidden md:flex items-center gap-2 text-xs font-mono-ledger">
                 {branding.navigation.links.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="text-[var(--ink)] hover:text-[var(--clay)] transition-colors py-1"
+                    className="text-[var(--ink)] hover:text-[var(--clay)] hover:bg-[var(--paper)] rounded-full px-3 py-1.5 transition-all"
                   >
                     {link.label}
                   </Link>
@@ -56,7 +56,7 @@ export function Navbar() {
 
             {/* Dashboard Contextual Breadcrumb */}
             {isDashboardRoute && (
-              <div className="hidden sm:flex items-center gap-2 font-mono-ledger text-xs text-[var(--muted)]">
+              <div className="hidden sm:flex items-center gap-2 font-mono-ledger text-xs text-[var(--muted)] px-3 py-1 bg-[var(--paper)] rounded-full border border-[var(--mist)]">
                 <span>/</span>
                 <span className="font-semibold text-[var(--clay)] uppercase">
                   {pathname.startsWith("/patient")
@@ -74,7 +74,7 @@ export function Navbar() {
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 border border-[var(--mist)] text-[var(--ink)] bg-[var(--paper)] hover:border-[var(--clay)] transition-colors"
+              className="p-2 border border-[var(--mist)] rounded-full text-[var(--ink)] bg-[var(--paper)] hover:border-[var(--clay)] transition-all shadow-xs"
               title={`Switch to ${theme === "light" ? "Dark" : "Light"} mode`}
               aria-label="Toggle color theme"
             >
@@ -89,21 +89,21 @@ export function Navbar() {
             <div className="relative">
               <button
                 onClick={() => setLoginMenuOpen(!loginMenuOpen)}
-                className="flex items-center gap-1.5 px-3 py-1.5 border border-[var(--mist)] text-[var(--ink)] font-mono-ledger text-xs hover:border-[var(--clay)] hover:text-[var(--clay)] transition-colors font-medium bg-[var(--surface)]"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 border border-[var(--mist)] rounded-full text-[var(--ink)] font-mono-ledger text-xs hover:border-[var(--clay)] hover:text-[var(--clay)] transition-colors font-medium bg-[var(--paper)]"
               >
                 <span>Sign In</span>
                 <ChevronDown className="w-3 h-3 text-[var(--muted)]" />
               </button>
 
               {loginMenuOpen && (
-                <div className="absolute right-0 mt-1 w-56 bg-[var(--surface)] border border-[var(--mist)] shadow-xl py-1 z-50">
+                <div className="absolute right-0 mt-2 w-56 bg-[var(--surface)] border border-[var(--mist)] shadow-xl rounded-2xl p-1.5 z-50 overflow-hidden">
                   <div className="px-3 py-1.5 border-b border-[var(--mist)] font-mono-ledger text-[10px] text-[var(--muted)] uppercase tracking-wider">
                     Sign in to your account
                   </div>
                   <Link
                     href="/login?role=patient"
                     onClick={() => setLoginMenuOpen(false)}
-                    className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-[var(--paper)] transition-colors text-[var(--ink)]"
+                    className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-[var(--paper)] rounded-xl transition-colors text-[var(--ink)]"
                   >
                     <User className="w-3.5 h-3.5 text-[var(--clay)]" />
                     <span>Patient Account</span>
@@ -111,7 +111,7 @@ export function Navbar() {
                   <Link
                     href="/login?role=center"
                     onClick={() => setLoginMenuOpen(false)}
-                    className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-[var(--paper)] transition-colors text-[var(--ink)]"
+                    className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-[var(--paper)] rounded-xl transition-colors text-[var(--ink)]"
                   >
                     <Building2 className="w-3.5 h-3.5 text-[var(--clay)]" />
                     <span>Medical Center Account</span>
@@ -119,7 +119,7 @@ export function Navbar() {
                   <Link
                     href="/login?role=admin"
                     onClick={() => setLoginMenuOpen(false)}
-                    className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-[var(--paper)] transition-colors text-[var(--ink)] border-t border-[var(--mist)]/50"
+                    className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-[var(--paper)] rounded-xl transition-colors text-[var(--ink)] border-t border-[var(--mist)]/50"
                   >
                     <ShieldCheck className="w-3.5 h-3.5 text-[var(--clay)]" />
                     <span>Platform Admin Console</span>
@@ -131,7 +131,7 @@ export function Navbar() {
             {/* Primary Action Button */}
             <Link
               href="/patient"
-              className="px-4 py-2 font-mono-ledger text-xs font-bold bg-[var(--clay)] text-white hover:opacity-95 transition-opacity inline-flex items-center gap-1.5"
+              className="px-4 py-2 font-mono-ledger text-xs font-bold bg-[var(--clay)] text-white hover:opacity-95 transition-opacity inline-flex items-center gap-1.5 rounded-full shadow-sm"
             >
               <Calendar className="w-3.5 h-3.5" />
               <span>{branding.navigation.ctaLabel}</span>
@@ -142,65 +142,66 @@ export function Navbar() {
           <div className="flex sm:hidden items-center gap-2">
             <button
               onClick={toggleTheme}
-              className="p-1.5 border border-[var(--mist)] text-[var(--ink)] bg-[var(--paper)]"
+              className="p-2 border border-[var(--mist)] rounded-full text-[var(--ink)] bg-[var(--paper)]"
             >
               {theme === "light" ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 border border-[var(--mist)] text-[var(--ink)] bg-[var(--surface)]"
+              className="p-2 border border-[var(--mist)] rounded-xl text-[var(--ink)] bg-[var(--surface)]"
             >
               {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Mobile Drawer */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-[var(--mist)] bg-[var(--surface)] px-4 py-4 space-y-3 font-mono-ledger text-xs">
-          <div className="grid grid-cols-1 gap-1">
-            <Link
-              href="/patient"
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-2 text-[var(--ink)]"
-            >
-              Find Care Nearby
-            </Link>
-            <Link
-              href="/center"
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-2 text-[var(--ink)]"
-            >
-              For Medical Centers
-            </Link>
-            <Link
-              href="/admin"
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-2 text-[var(--ink)]"
-            >
-              Platform Administration
-            </Link>
-          </div>
+        {/* Mobile Drawer */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden mt-3 pt-3 border-t border-[var(--mist)] bg-[var(--surface)] px-2 py-3 space-y-3 font-mono-ledger text-xs rounded-2xl">
+            <div className="grid grid-cols-1 gap-1">
+              <Link
+                href="/patient"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 px-3 rounded-lg hover:bg-[var(--paper)] text-[var(--ink)]"
+              >
+                Find Care Nearby
+              </Link>
+              <Link
+                href="/center"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 px-3 rounded-lg hover:bg-[var(--paper)] text-[var(--ink)]"
+              >
+                For Medical Centers
+              </Link>
+              <Link
+                href="/admin"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2 px-3 rounded-lg hover:bg-[var(--paper)] text-[var(--ink)]"
+              >
+                Platform Administration
+              </Link>
+            </div>
 
-          <div className="pt-2 border-t border-[var(--mist)] flex gap-2">
-            <Link
-              href="/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex-1 text-center py-2.5 border border-[var(--mist)] text-[var(--ink)] font-semibold"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/signup"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex-1 text-center py-2.5 bg-[var(--clay)] text-white font-bold"
-            >
-              Register
-            </Link>
+            <div className="pt-2 border-t border-[var(--mist)] flex gap-2">
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex-1 text-center py-2.5 border border-[var(--mist)] rounded-xl text-[var(--ink)] font-semibold"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/signup"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex-1 text-center py-2.5 bg-[var(--clay)] text-white font-bold rounded-xl"
+              >
+                Register
+              </Link>
+            </div>
           </div>
-        </div>
-      )}
-    </nav>
+        )}
+      </nav>
+    </header>
   );
 }
+

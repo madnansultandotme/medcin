@@ -70,8 +70,15 @@ function LoginForm() {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-[var(--paper)] font-sans-ledger">
-      <div className="w-full max-w-md border border-[var(--mist)] bg-[var(--surface)] p-6 sm:p-8 space-y-6 shadow-sm">
+    <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8 relative min-h-[calc(100vh-4rem)] overflow-hidden font-sans-ledger">
+      {/* Background Sanctuary Image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url('/images/bg-sanctuary.jpg')` }}
+      />
+      <div className="absolute inset-0 bg-[var(--paper)]/85 dark:bg-[var(--paper)]/92 backdrop-blur-md" />
+
+      <div className="relative z-10 w-full max-w-md backdrop-blur-2xl bg-white/85 dark:bg-[#1B1F18]/90 border border-white/80 dark:border-white/10 p-8 sm:p-10 space-y-6 shadow-2xl rounded-3xl">
         {/* Header */}
         <div className="text-center space-y-2">
           <MedcinLogo size="lg" className="justify-center" />
@@ -84,7 +91,7 @@ function LoginForm() {
         </div>
 
         {loginSuccess && (
-          <div className="p-3 bg-[var(--paper)] border border-[var(--sage)] text-xs font-mono-ledger text-[var(--sage)] flex items-center gap-2">
+          <div className="p-3 bg-[var(--paper)] border border-[var(--sage)] text-xs font-mono-ledger text-[var(--sage)] flex items-center gap-2 rounded-xl">
             <CheckCircle2 className="w-4 h-4 flex-none" />
             <span>Authenticated successfully. Redirecting to workspace...</span>
           </div>
@@ -104,7 +111,7 @@ function LoginForm() {
                   type="button"
                   key={r}
                   onClick={() => handleRoleSelect(r)}
-                  className={`p-2 border text-center font-mono-ledger text-xs transition-all flex flex-col items-center gap-1 ${
+                  className={`p-2.5 border text-center font-mono-ledger text-xs transition-all flex flex-col items-center gap-1.5 rounded-xl ${
                     isSelected
                       ? "border-[var(--clay)] bg-[var(--paper)] text-[var(--clay)] font-bold shadow-xs"
                       : "border-[var(--mist)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--muted)] hover:text-[var(--ink)]"
@@ -133,7 +140,7 @@ function LoginForm() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-[var(--surface)] border border-[var(--mist)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] font-mono-ledger"
+                className="w-full pl-9 pr-3 py-2.5 bg-[var(--surface)] border border-[var(--mist)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] font-mono-ledger rounded-xl"
               />
             </div>
           </div>
@@ -158,7 +165,7 @@ function LoginForm() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-[var(--surface)] border border-[var(--mist)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] font-mono-ledger"
+                className="w-full pl-9 pr-3 py-2.5 bg-[var(--surface)] border border-[var(--mist)] text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] font-mono-ledger rounded-xl"
               />
             </div>
           </div>
@@ -169,7 +176,7 @@ function LoginForm() {
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="accent-[var(--clay)]"
+                className="accent-[var(--clay)] rounded"
               />
               <span>Remember this session</span>
             </label>
@@ -177,15 +184,15 @@ function LoginForm() {
 
           <button
             type="submit"
-            className="w-full bg-[var(--clay)] text-white font-mono-ledger text-xs font-bold py-2.5 hover:opacity-95 transition-opacity"
+            className="w-full bg-[var(--clay)] text-white font-mono-ledger text-xs font-bold py-3 hover:opacity-95 transition-opacity rounded-xl shadow-md"
           >
             Sign In to {selectedRole === "center" ? "Clinic Workspace" : selectedRole === "admin" ? "Admin Console" : "Patient Portal"}
           </button>
         </form>
 
         {/* Footer Link */}
-        <div className="text-center pt-3 border-t border-[var(--mist)] text-xs text-[var(--muted)] font-mono-ledger">
-          <span>New to Medcin? </span>
+        <div className="text-center pt-3 border-t border-[var(--mist)]/70 text-xs text-[var(--muted)] font-mono-ledger">
+          <span>New to {branding.client.name}? </span>
           <Link href="/signup" className="text-[var(--clay)] font-bold hover:underline">
             Register here
           </Link>
