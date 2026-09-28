@@ -43,7 +43,7 @@ export function AdminDashboard() {
   const [bookingStatusFilter, setBookingStatusFilter] = useState("all");
 
   // Settings State
-  const { branding } = useBranding();
+  const { branding, formatCurrency } = useBranding();
   const [commissionInput, setCommissionInput] = useState(settings.commission);
   const [supportEmailInput, setSupportEmailInput] = useState(settings.supportEmail);
   const [payoutScheduleInput, setPayoutScheduleInput] = useState(settings.payoutSchedule);
@@ -122,7 +122,7 @@ export function AdminDashboard() {
     if (!resolvingDispute) return;
     const note =
       resolutionAction === "refund_patient"
-        ? `Patient full refund granted (€${resolvingDispute.amount}). Note: ${resolutionNote || "Claim validated."}`
+        ? `Patient full refund granted (${formatCurrency(resolvingDispute.amount)}). Note: ${resolutionNote || "Claim validated."}`
         : resolutionAction === "uphold_clinic"
         ? `Claim dismissed; clinic no-show surcharge upheld. Note: ${resolutionNote || "Policy terms verified."}`
         : `50/50 split settlement arbitrated. Note: ${resolutionNote || "Mutual agreement."}`;
@@ -143,38 +143,41 @@ export function AdminDashboard() {
   return (
     <div className="space-y-6">
       {/* Platform Console Header */}
-      <div className="border border-[var(--mist)] bg-[var(--surface)] p-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="rounded-3xl border border-[var(--mist)] bg-[var(--surface)] p-6 md:p-8 shadow-sm backdrop-blur-md">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[var(--clay)]" />
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[var(--clay)] animate-pulse" />
               <span className="font-mono-ledger text-xs uppercase text-[var(--muted)] tracking-wider">
-                Platform Operations & Governance
+                {branding.client.name} · Cross-Border Governance & Oversight
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-[var(--paper)] border border-[var(--mist)] text-[10px] font-mono-ledger text-[var(--sage)]">
+                {branding.localization.targetRegion || "Southeast Asia"}
               </span>
             </div>
-            <h2 className="text-xl font-bold text-[var(--ink)] tracking-tight mt-1">
-              Operations Console
+            <h2 className="text-2xl font-bold text-[var(--ink)] tracking-tight">
+              Platform Operations Console
             </h2>
-            <p className="text-xs text-[var(--muted)] font-mono-ledger">
-              Facility vetting, multi-center transaction audit, and dispute resolution
+            <p className="text-xs text-[var(--muted)] font-mono-ledger mt-1">
+              Cross-border medical vetting, multi-center transaction audit, and regional dispute resolution across Singapore, Thailand & Malaysia
             </p>
           </div>
 
           {/* Metric Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono-ledger text-xs">
-            <div className="border border-[var(--mist)] p-2 bg-[var(--paper)] text-right">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono-ledger text-xs">
+            <div className="rounded-2xl border border-[var(--mist)] p-3 bg-[var(--paper)] text-right shadow-2xs">
               <span className="text-[10px] text-[var(--muted)] block uppercase">Gross Booking Vol.</span>
-              <span className="text-base font-bold text-[var(--ink)]">€{totalGBV.toLocaleString()}</span>
+              <span className="text-base font-bold text-[var(--ink)]">{formatCurrency(totalGBV)}</span>
             </div>
-            <div className="border border-[var(--mist)] p-2 bg-[var(--paper)] text-right">
+            <div className="rounded-2xl border border-[var(--mist)] p-3 bg-[var(--paper)] text-right shadow-2xs">
               <span className="text-[10px] text-[var(--muted)] block uppercase">Network Comm. ({settings.commission})</span>
-              <span className="text-base font-bold text-[var(--sage)]">€{platformRevenue}</span>
+              <span className="text-base font-bold text-[var(--sage)]">{formatCurrency(Number(platformRevenue))}</span>
             </div>
-            <div className="border border-[var(--mist)] p-2 bg-[var(--paper)] text-right">
+            <div className="rounded-2xl border border-[var(--mist)] p-3 bg-[var(--paper)] text-right shadow-2xs">
               <span className="text-[10px] text-[var(--muted)] block uppercase">Pending Vetting</span>
               <span className="text-base font-bold text-[var(--amber)]">{pendingCenters.length}</span>
             </div>
-            <div className="border border-[var(--mist)] p-2 bg-[var(--paper)] text-right">
+            <div className="rounded-2xl border border-[var(--mist)] p-3 bg-[var(--paper)] text-right shadow-2xs">
               <span className="text-[10px] text-[var(--muted)] block uppercase">Open Disputes</span>
               <span className="text-base font-bold text-[var(--clay)]">
                 {disputes.filter((d) => d.status === "open").length}
@@ -184,10 +187,10 @@ export function AdminDashboard() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-1 border border-[var(--mist)] p-1 bg-[var(--paper)] font-mono-ledger text-xs mt-4 overflow-x-auto">
+        <div className="flex gap-1.5 border border-[var(--mist)] p-1.5 bg-[var(--paper)] font-mono-ledger text-xs mt-6 overflow-x-auto rounded-full">
           <button
             onClick={() => setActiveTab("centers")}
-            className={`px-3.5 py-1.5 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-4 py-2 transition-all whitespace-nowrap flex items-center gap-2 rounded-full ${
               activeTab === "centers"
                 ? "bg-[var(--surface)] text-[var(--clay)] font-semibold shadow-xs"
                 : "text-[var(--muted)] hover:text-[var(--ink)]"
@@ -199,7 +202,7 @@ export function AdminDashboard() {
 
           <button
             onClick={() => setActiveTab("globalbookings")}
-            className={`px-3.5 py-1.5 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-4 py-2 transition-all whitespace-nowrap flex items-center gap-2 rounded-full ${
               activeTab === "globalbookings"
                 ? "bg-[var(--surface)] text-[var(--clay)] font-semibold shadow-xs"
                 : "text-[var(--muted)] hover:text-[var(--ink)]"
@@ -211,7 +214,7 @@ export function AdminDashboard() {
 
           <button
             onClick={() => setActiveTab("disputes")}
-            className={`px-3.5 py-1.5 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-4 py-2 transition-all whitespace-nowrap flex items-center gap-2 rounded-full ${
               activeTab === "disputes"
                 ? "bg-[var(--surface)] text-[var(--clay)] font-semibold shadow-xs"
                 : "text-[var(--muted)] hover:text-[var(--ink)]"
@@ -223,7 +226,7 @@ export function AdminDashboard() {
 
           <button
             onClick={() => setActiveTab("settings")}
-            className={`px-3.5 py-1.5 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-4 py-2 transition-all whitespace-nowrap flex items-center gap-2 rounded-full ${
               activeTab === "settings"
                 ? "bg-[var(--surface)] text-[var(--clay)] font-semibold shadow-xs"
                 : "text-[var(--muted)] hover:text-[var(--ink)]"
@@ -442,10 +445,10 @@ export function AdminDashboard() {
                         <div className="text-[10px] text-[var(--muted)]">{b.time}</div>
                       </td>
                       <td className="p-3 text-right font-mono-ledger font-bold text-[var(--ink)]">
-                        €{b.price}.00
+                        {formatCurrency(b.price)}
                       </td>
                       <td className="p-3 text-right font-mono-ledger text-[var(--sage)] font-semibold">
-                        €{comm}
+                        {formatCurrency(Number(comm))}
                       </td>
                       <td className="p-3 text-center">
                         <span
@@ -513,7 +516,7 @@ export function AdminDashboard() {
                         {disp.title}
                       </div>
                       <div className="text-xs text-[var(--muted)] font-mono-ledger">
-                        Reported by: <span className="font-semibold text-[var(--ink)]">{disp.reporter}</span> · Claim Amount: €{disp.amount}.00
+                        Reported by: <span className="font-semibold text-[var(--ink)]">{disp.reporter}</span> · Claim Amount: {formatCurrency(disp.amount)}
                       </div>
                     </div>
 
@@ -737,7 +740,7 @@ export function AdminDashboard() {
             </div>
 
             <div className="p-3 bg-[var(--paper)] border border-[var(--mist)] text-xs font-mono-ledger text-[var(--muted)]">
-              Disputed sum: <span className="font-bold text-[var(--clay)]">€{resolvingDispute.amount}.00</span> · Reporter: {resolvingDispute.reporter}
+              Disputed sum: <span className="font-bold text-[var(--clay)]">{formatCurrency(resolvingDispute.amount)}</span> · Reporter: {resolvingDispute.reporter}
             </div>
 
             <div>
@@ -749,7 +752,7 @@ export function AdminDashboard() {
                 onChange={(e) => setResolutionAction(e.target.value as any)}
                 className="w-full p-2 border border-[var(--mist)] bg-[var(--surface)] text-xs font-mono-ledger text-[var(--ink)]"
               >
-                <option value="refund_patient">Grant Full Patient Refund (€{resolvingDispute.amount})</option>
+                <option value="refund_patient">Grant Full Patient Refund ({formatCurrency(resolvingDispute.amount)})</option>
                 <option value="uphold_clinic">Uphold Clinic Fee (Deny Claim)</option>
                 <option value="split">Arbitrate 50% Split Remittance</option>
               </select>

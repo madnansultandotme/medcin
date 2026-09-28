@@ -128,7 +128,7 @@ interface MedcinStoreContextType {
 
   // Bookings
   bookings: Booking[];
-  createBooking: (newBooking: Omit<Booking, "id" | "reference" | "createdAt">) => Booking;
+  createBooking: (newBooking: Omit<Booking, "id" | "reference" | "createdAt" | "status"> & { status?: Booking["status"] }) => Booking;
   updateBookingStatus: (id: string, status: Booking["status"], reason?: string) => void;
   rescheduleBooking: (id: string, newDate: string, newTime: string) => void;
 
@@ -723,9 +723,10 @@ export function MedcinProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const createBooking = (newBookingData: Omit<Booking, "id" | "reference" | "createdAt">): Booking => {
+  const createBooking = (newBookingData: Omit<Booking, "id" | "reference" | "createdAt" | "status"> & { status?: Booking["status"] }): Booking => {
     const randomRef = Math.floor(1000 + Math.random() * 9000);
     const newBooking: Booking = {
+      status: "confirmed",
       ...newBookingData,
       id: `b-${Date.now()}`,
       reference: `MED-${randomRef}`,

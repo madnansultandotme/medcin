@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useMedcinStore, Doctor, Booking } from "@/lib/store";
+import { useBranding } from "@/lib/branding";
 import {
   Building2,
   Stethoscope,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 
 export function CenterDashboard() {
+  const { branding, formatCurrency } = useBranding();
   const {
     centers,
     updateCenterProfile,
@@ -52,8 +54,8 @@ export function CenterDashboard() {
   // Form states for adding doctor
   const [newDocName, setNewDocName] = useState("");
   const [newDocRole, setNewDocRole] = useState("Dentist · Restorative Surgery");
-  const [newDocLicense, setNewDocLicense] = useState("LT-DENT-8840");
-  const [newDocPrice, setNewDocPrice] = useState("45");
+  const [newDocLicense, setNewDocLicense] = useState("SG-MOH-9420");
+  const [newDocPrice, setNewDocPrice] = useState("85");
   const [newDocBio, setNewDocBio] = useState("");
 
   // Form states for adding procedure
@@ -161,20 +163,20 @@ export function CenterDashboard() {
   return (
     <div className="space-y-6">
       {/* Clinic Operations Header */}
-      <div className="border border-[var(--mist)] bg-[var(--surface)] p-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-[var(--mist)] flex items-center justify-center font-mono-ledger text-base font-bold text-[var(--ink)] border border-[var(--mist)]">
-              VD
+      <div className="rounded-3xl border border-[var(--mist)] bg-[var(--surface)] p-6 md:p-8 shadow-sm backdrop-blur-md">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-[var(--paper)] flex items-center justify-center font-mono-ledger text-base font-bold text-[var(--clay)] border border-[var(--mist)] shadow-2xs">
+              <Building2 className="w-6 h-6 text-[var(--clay)]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-[var(--ink)] tracking-tight">
+                <h2 className="text-2xl font-bold text-[var(--ink)] tracking-tight">
                   {currentCenter.name}
                 </h2>
-                <span className="badge-ledger badge-confirmed">Accredited Facility</span>
+                <span className="badge-ledger badge-confirmed rounded-full px-2.5 py-0.5">MOH Accredited</span>
               </div>
-              <p className="text-xs text-[var(--muted)] font-mono-ledger">
+              <p className="text-xs text-[var(--muted)] font-mono-ledger mt-0.5">
                 {currentCenter.category} · {currentCenter.address} · License: {currentCenter.licenseNumber}
               </p>
             </div>
@@ -182,15 +184,15 @@ export function CenterDashboard() {
 
           {/* Quick Metrics */}
           <div className="flex items-center gap-3 font-mono-ledger text-xs">
-            <div className="border border-[var(--mist)] p-2 bg-[var(--paper)] text-right">
+            <div className="rounded-2xl border border-[var(--mist)] p-3 bg-[var(--paper)] text-right shadow-2xs">
               <span className="text-[10px] text-[var(--muted)] block">PENDING INBOX</span>
               <span className="text-base font-bold text-[var(--amber)]">{pendingCount}</span>
             </div>
-            <div className="border border-[var(--mist)] p-2 bg-[var(--paper)] text-right">
+            <div className="rounded-2xl border border-[var(--mist)] p-3 bg-[var(--paper)] text-right shadow-2xs">
               <span className="text-[10px] text-[var(--muted)] block">CONFIRMED VISITS</span>
               <span className="text-base font-bold text-[var(--sage)]">{confirmedCount}</span>
             </div>
-            <div className="border border-[var(--mist)] p-2 bg-[var(--paper)] text-right">
+            <div className="rounded-2xl border border-[var(--mist)] p-3 bg-[var(--paper)] text-right shadow-2xs">
               <span className="text-[10px] text-[var(--muted)] block">DOCTORS ON DUTY</span>
               <span className="text-base font-bold text-[var(--ink)]">{clinicDoctors.length}</span>
             </div>
@@ -198,10 +200,10 @@ export function CenterDashboard() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-1 border border-[var(--mist)] p-1 bg-[var(--paper)] font-mono-ledger text-xs mt-4 overflow-x-auto">
+        <div className="flex gap-1.5 border border-[var(--mist)] p-1.5 bg-[var(--paper)] font-mono-ledger text-xs mt-6 overflow-x-auto rounded-full">
           <button
             onClick={() => setActiveTab("inbox")}
-            className={`px-3 py-1.5 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-4 py-2 transition-all whitespace-nowrap flex items-center gap-2 rounded-full ${
               activeTab === "inbox"
                 ? "bg-[var(--surface)] text-[var(--clay)] font-semibold shadow-xs"
                 : "text-[var(--muted)] hover:text-[var(--ink)]"
@@ -213,7 +215,7 @@ export function CenterDashboard() {
 
           <button
             onClick={() => setActiveTab("availability")}
-            className={`px-3 py-1.5 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-4 py-2 transition-all whitespace-nowrap flex items-center gap-2 rounded-full ${
               activeTab === "availability"
                 ? "bg-[var(--surface)] text-[var(--clay)] font-semibold shadow-xs"
                 : "text-[var(--muted)] hover:text-[var(--ink)]"
@@ -225,7 +227,7 @@ export function CenterDashboard() {
 
           <button
             onClick={() => setActiveTab("doctors")}
-            className={`px-3 py-1.5 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-4 py-2 transition-all whitespace-nowrap flex items-center gap-2 rounded-full ${
               activeTab === "doctors"
                 ? "bg-[var(--surface)] text-[var(--clay)] font-semibold shadow-xs"
                 : "text-[var(--muted)] hover:text-[var(--ink)]"
@@ -237,7 +239,7 @@ export function CenterDashboard() {
 
           <button
             onClick={() => setActiveTab("onboarding")}
-            className={`px-3 py-1.5 transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-4 py-2 transition-all whitespace-nowrap flex items-center gap-2 rounded-full ${
               activeTab === "onboarding"
                 ? "bg-[var(--surface)] text-[var(--clay)] font-semibold shadow-xs"
                 : "text-[var(--muted)] hover:text-[var(--ink)]"
@@ -344,7 +346,7 @@ export function CenterDashboard() {
                         <Calendar className="w-3.5 h-3.5" />
                         <span>{b.date} at {b.time}</span>
                         <span>·</span>
-                        <span className="font-bold text-[var(--sage)]">€{b.price}.00</span>
+                        <span className="font-bold text-[var(--sage)]">{formatCurrency(b.price)}</span>
                       </div>
 
                       {b.patientNotes && (
@@ -554,7 +556,7 @@ export function CenterDashboard() {
                         {doc.role}
                       </div>
                       <div className="text-[11px] font-mono-ledger text-[var(--muted)]">
-                        License: {doc.licenseNumber} · Starting Fee: €{doc.price}
+                        License: {doc.licenseNumber} · Starting Fee: {formatCurrency(doc.price)}
                       </div>
                     </div>
                   </div>
@@ -568,7 +570,7 @@ export function CenterDashboard() {
                       }
                       className="px-2.5 py-1 border border-[var(--mist)] hover:border-[var(--clay)] text-[var(--ink)]"
                     >
-                      Fee: €{doc.price} (Edit)
+                      Fee: {formatCurrency(doc.price)} (Edit)
                     </button>
                     <button
                       onClick={() => {
@@ -625,7 +627,7 @@ export function CenterDashboard() {
 
                   <div className="flex items-center gap-3">
                     <span className="font-mono-ledger text-sm font-bold text-[var(--ink)]">
-                      €{svc.price}.00
+                      {formatCurrency(svc.price)}
                     </span>
                     <button
                       onClick={() => removeProcedure(clinicDoctors[0].id, svc.id)}
@@ -815,7 +817,7 @@ export function CenterDashboard() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-1">
-                    Starting Fee (€)
+                    Starting Fee ({branding.localization.currency.symbol})
                   </label>
                   <input
                     type="number"
@@ -909,7 +911,7 @@ export function CenterDashboard() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-mono-ledger uppercase text-[var(--muted)] mb-1">
-                    Price (€)
+                    Price ({branding.localization.currency.symbol})
                   </label>
                   <input
                     type="number"
