@@ -258,16 +258,25 @@ export function AdminDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {pendingCenters.map((c) => (
                   <div key={c.id} className="rounded-2xl border border-[var(--mist)] bg-[var(--paper)] p-5 space-y-3.5 shadow-2xs">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-bold text-base sm:text-lg text-[var(--ink)]">
-                          {c.name}
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-white border border-[var(--mist)] p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
+                          {c.logo ? (
+                            <img src={c.logo} alt={c.name} className="w-full h-full object-contain" />
+                          ) : (
+                            <Building className="w-5 h-5 text-[var(--clay)]" />
+                          )}
                         </div>
-                        <div className="text-sm text-[var(--muted)]">
-                          {c.category} · {c.submittedTime || "Submitted recently"}
+                        <div>
+                          <div className="font-bold text-base sm:text-lg text-[var(--ink)]">
+                            {c.name}
+                          </div>
+                          <div className="text-sm text-[var(--muted)]">
+                            {c.category} · {c.submittedTime || "Submitted recently"}
+                          </div>
                         </div>
                       </div>
-                      <span className="badge-ledger badge-pending rounded-full text-xs px-2.5 py-0.5 font-semibold">Pending Review</span>
+                      <span className="badge-ledger badge-pending rounded-full text-xs px-2.5 py-0.5 font-semibold shrink-0">Pending Review</span>
                     </div>
 
                     <div className="text-sm font-sans-ledger text-[var(--muted)] space-y-1">
@@ -326,22 +335,31 @@ export function AdminDashboard() {
             <div className="divide-y divide-[var(--mist)] border border-[var(--mist)] rounded-2xl overflow-hidden bg-white/40 dark:bg-black/20">
               {filteredCenters.map((c) => (
                 <div key={c.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[var(--paper)]/50 transition-colors">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2.5">
-                      <span className="font-bold text-base sm:text-lg text-[var(--ink)]">{c.name}</span>
-                      <span
-                        className={`badge-ledger rounded-full text-xs font-semibold px-2.5 py-0.5 ${
-                          c.status === "active" ? "badge-confirmed" : "badge-pending"
-                        }`}
-                      >
-                        {c.status === "active" ? "Accredited & Active" : "Pending"}
-                      </span>
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-xl bg-white border border-[var(--mist)] p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
+                      {c.logo ? (
+                        <img src={c.logo} alt={c.name} className="w-full h-full object-contain" />
+                      ) : (
+                        <Building className="w-5 h-5 text-[var(--clay)]" />
+                      )}
                     </div>
-                    <div className="text-sm text-[var(--muted)]">
-                      {c.category} · {c.address}
-                    </div>
-                    <div className="text-xs font-mono-ledger text-[var(--muted)]">
-                      Email: {c.email} · Phone: {c.phone} · License: {c.licenseNumber}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2.5">
+                        <span className="font-bold text-base sm:text-lg text-[var(--ink)]">{c.name}</span>
+                        <span
+                          className={`badge-ledger rounded-full text-xs font-semibold px-2.5 py-0.5 ${
+                            c.status === "active" ? "badge-confirmed" : "badge-pending"
+                          }`}
+                        >
+                          {c.status === "active" ? "Accredited & Active" : "Pending"}
+                        </span>
+                      </div>
+                      <div className="text-sm text-[var(--muted)]">
+                        {c.category} · {c.address}
+                      </div>
+                      <div className="text-xs font-mono-ledger text-[var(--muted)]">
+                        Email: {c.email} · Phone: {c.phone} · License: {c.licenseNumber}
+                      </div>
                     </div>
                   </div>
 

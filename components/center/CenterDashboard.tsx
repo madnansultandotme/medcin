@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useMedcinStore, Doctor, Booking } from "@/lib/store";
 import { useBranding } from "@/lib/branding";
 import {
@@ -15,6 +15,11 @@ import {
   Calendar,
   XCircle,
   Search,
+  Camera,
+  Upload,
+  Image as ImageIcon,
+  ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 
 export function CenterDashboard() {
@@ -36,6 +41,7 @@ export function CenterDashboard() {
     slotStates,
     toggleSlot,
     copySlotsToRestOfWeek,
+    addToast,
   } = useMedcinStore();
 
   const [activeTab, setActiveTab] = useState<"onboarding" | "doctors" | "availability" | "inbox">("inbox");
@@ -74,7 +80,39 @@ export function CenterDashboard() {
     phone: currentCenter.phone,
     licenseNumber: currentCenter.licenseNumber,
     operatingHours: currentCenter.operatingHours || "Mon-Fri 08:30 – 19:30, Sat 09:00 – 16:00",
+    logo: currentCenter.logo || "/images/centers/center-novena-logo.jpg",
+    coverImage: currentCenter.coverImage || "/images/centers/center-novena.jpg",
+    amenities: currentCenter.amenities || [
+      "Wheelchair Accessible",
+      "On-site Diagnostics",
+      "Multilingual Interpreters",
+      "Complimentary Valet",
+      "Direct MOH Integration",
+    ],
   });
+
+  useEffect(() => {
+    if (currentCenter) {
+      setProfileForm({
+        name: currentCenter.name,
+        category: currentCenter.category,
+        address: currentCenter.address,
+        email: currentCenter.email,
+        phone: currentCenter.phone,
+        licenseNumber: currentCenter.licenseNumber,
+        operatingHours: currentCenter.operatingHours || "Mon-Fri 08:30 – 19:30, Sat 09:00 – 16:00",
+        logo: currentCenter.logo || "/images/centers/center-novena-logo.jpg",
+        coverImage: currentCenter.coverImage || "/images/centers/center-novena.jpg",
+        amenities: currentCenter.amenities || [
+          "Wheelchair Accessible",
+          "On-site Diagnostics",
+          "Multilingual Interpreters",
+          "Complimentary Valet",
+          "Direct MOH Integration",
+        ],
+      });
+    }
+  }, [currentCenter]);
 
   const centerBookings = bookings.filter((b) =>
     b.clinicName.toLowerCase().includes("dental")
@@ -100,6 +138,11 @@ export function CenterDashboard() {
   const handleProfileSave = (e: React.FormEvent) => {
     e.preventDefault();
     updateCenterProfile(profileForm);
+    addToast({
+      type: "success",
+      title: "Practice Profile Saved",
+      message: "Clinic branding assets, facility photos, and licensing details updated.",
+    });
   };
 
   const handleCreateDoctor = (e: React.FormEvent) => {
@@ -166,15 +209,26 @@ export function CenterDashboard() {
       <div className="rounded-3xl border border-[var(--mist)] bg-[var(--surface)] p-6 md:p-8 shadow-sm backdrop-blur-md">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-[var(--paper)] flex items-center justify-center font-mono-ledger text-base font-bold text-[var(--clay)] border border-[var(--mist)] shadow-2xs">
-              <Building2 className="w-6 h-6 text-[var(--clay)]" />
+            <div className="w-16 h-16 rounded-2xl bg-white dark:bg-[#141712] border border-[var(--mist)] flex items-center justify-center overflow-hidden shadow-xs relative flex-none p-1.5">
+              {currentCenter.logo ? (
+                <img
+                  src={currentCenter.logo}
+                  alt={currentCenter.name}
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLElement).style.display = "none";
+                  }}
+                />
+              ) : (
+                <Building2 className="w-7 h-7 text-[var(--clay)]" />
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-2xl font-bold text-[var(--ink)] tracking-tight">
                   {currentCenter.name}
                 </h2>
-                <span className="badge-ledger badge-confirmed rounded-full px-2.5 py-0.5">MOH Accredited</span>
+                <span className="badge-ledger badge-confirmed rounded-full px-2.5 py-0.5 text-xs font-semibold">MOH Accredited</span>
               </div>
               <p className="text-xs text-[var(--muted)] font-mono-ledger mt-0.5">
                 {currentCenter.category} · {currentCenter.address} · License: {currentCenter.licenseNumber}
@@ -546,8 +600,19 @@ export function CenterDashboard() {
               {clinicDoctors.map((doc) => (
                 <div key={doc.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-5 hover:bg-[var(--paper)]/50 transition-colors">
                   <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-[var(--mist)]/40 flex items-center justify-center font-mono-ledger font-bold text-base text-[var(--ink)] border border-[var(--mist)]">
-                      {doc.initials}
+                    <div className="w-14 h-14 rounded-2xl bg-[var(--mist)]/40 flex items-center justify-center font-mono-ledger font-bold text-base text-[var(--ink)] border border-[var(--mist)] overflow-hidden relative flex-none">
+                      {doc.image ? (
+                        <img
+                          src={doc.image}
+                          alt={doc.name}
+                          className="w-full h-full object-cover object-top"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        doc.initials
+                      )}
                     </div>
                     <div>
                       <div className="font-bold text-base sm:text-lg text-[var(--ink)] flex items-center gap-2.5">
@@ -648,111 +713,385 @@ export function CenterDashboard() {
 
       {/* VIEW 4: CENTER PROFILE */}
       {activeTab === "onboarding" && (
-        <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 md:p-8 shadow-sm space-y-6 max-w-3xl">
-          <div className="pb-3 border-b border-[var(--mist)]">
-            <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
-              Practice Profile & Accreditation
-            </h3>
-            <p className="text-sm text-[var(--muted)] font-mono-ledger mt-0.5">
-              Clinic parameters registered with state health authority (Singapore MOH / Malaysia KKM / Thailand MOPH)
-            </p>
+        <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 md:p-8 shadow-sm space-y-8 max-w-4xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[var(--mist)] gap-3">
+            <div>
+              <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
+                Practice Profile & Facility Branding
+              </h3>
+              <p className="text-sm text-[var(--muted)] font-mono-ledger mt-0.5">
+                Manage clinic credentials, logo emblem, facility imagery, and statutory parameters for patient discovery
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="badge-ledger badge-confirmed rounded-full text-xs font-semibold px-3 py-1 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-[var(--sage)]" />
+                <span>MOH Singapore Licensed</span>
+              </span>
+            </div>
           </div>
 
-          <form onSubmit={handleProfileSave} className="space-y-4 font-sans-ledger text-sm">
-            <div>
-              <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2 tracking-wider">
-                Facility Name
-              </label>
-              <input
-                type="text"
-                value={profileForm.name}
-                onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2 tracking-wider">
-                  Practice Category
-                </label>
-                <input
-                  type="text"
-                  value={profileForm.category}
-                  onChange={(e) => setProfileForm({ ...profileForm, category: e.target.value })}
-                  className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
-                />
+          <form onSubmit={handleProfileSave} className="space-y-8">
+            {/* Visual Branding Assets: Logo & Facility Cover Photo */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b border-[var(--mist)]">
+                <ImageIcon className="w-4 h-4 text-[var(--clay)]" />
+                <h4 className="font-bold text-sm uppercase tracking-wider text-[var(--ink)] font-mono-ledger">
+                  1. Visual Assets & Clinic Branding
+                </h4>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2 tracking-wider">
-                  License Number
-                </label>
-                <input
-                  type="text"
-                  value={profileForm.licenseNumber}
-                  onChange={(e) => setProfileForm({ ...profileForm, licenseNumber: e.target.value })}
-                  className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--surface)] font-mono-ledger text-sm text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Clinic Logo Upload */}
+                <div className="p-5 rounded-2xl bg-[var(--paper)] border border-[var(--mist)] space-y-4 text-center">
+                  <span className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] tracking-wider">
+                    Clinic Emblem / Logo
+                  </span>
+                  <div className="w-24 h-24 mx-auto rounded-2xl bg-white border border-[var(--mist)] p-2 shadow-xs flex items-center justify-center overflow-hidden relative group">
+                    {profileForm.logo ? (
+                      <img
+                        src={profileForm.logo}
+                        alt="Clinic Logo Preview"
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <Building2 className="w-10 h-10 text-[var(--clay)]" />
+                    )}
+                    <label className="absolute inset-0 bg-black/40 text-white rounded-2xl opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-xs font-semibold gap-1">
+                      <Camera className="w-4 h-4" />
+                      <span>Change</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              if (reader.result) {
+                                setProfileForm((prev) => ({
+                                  ...prev,
+                                  logo: reader.result as string,
+                                }));
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="cursor-pointer inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--clay)] text-[var(--clay)] hover:bg-[var(--clay)] hover:text-white transition-all text-xs font-semibold">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload New Logo</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              if (reader.result) {
+                                setProfileForm((prev) => ({
+                                  ...prev,
+                                  logo: reader.result as string,
+                                }));
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setProfileForm((prev) => ({
+                          ...prev,
+                          logo: "/images/centers/center-novena-logo.jpg",
+                        }))
+                      }
+                      className="block mx-auto text-xs text-[var(--muted)] hover:text-[var(--clay)] hover:underline"
+                    >
+                      Reset Default Logo
+                    </button>
+                  </div>
+                </div>
+
+                {/* Facility Cover Photo Upload */}
+                <div className="md:col-span-2 p-5 rounded-2xl bg-[var(--paper)] border border-[var(--mist)] space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] tracking-wider">
+                      Facility Exterior / Reception Photo
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setProfileForm((prev) => ({
+                          ...prev,
+                          coverImage: "/images/centers/center-novena.jpg",
+                        }))
+                      }
+                      className="text-xs text-[var(--muted)] hover:text-[var(--clay)] hover:underline"
+                    >
+                      Reset Default Photo
+                    </button>
+                  </div>
+
+                  <div className="w-full h-36 rounded-2xl overflow-hidden border border-[var(--mist)] relative group bg-[var(--surface)] shadow-xs">
+                    {profileForm.coverImage ? (
+                      <img
+                        src={profileForm.coverImage}
+                        alt="Facility Cover Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs text-[var(--muted)]">
+                        No cover photo uploaded
+                      </div>
+                    )}
+                    <label className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-xs font-semibold gap-1">
+                      <Camera className="w-5 h-5" />
+                      <span>Upload New Facility Photo</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              if (reader.result) {
+                                setProfileForm((prev) => ({
+                                  ...prev,
+                                  coverImage: reader.result as string,
+                                }));
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-[var(--muted)] font-mono-ledger">
+                    <span>High-resolution reception or surgical wing photo (16:9 recommended)</span>
+                    <label className="cursor-pointer text-[var(--clay)] hover:underline font-semibold flex items-center gap-1">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Browse Photo</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              if (reader.result) {
+                                setProfileForm((prev) => ({
+                                  ...prev,
+                                  coverImage: reader.result as string,
+                                }));
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2 tracking-wider">
-                Physical Address
-              </label>
-              <input
-                type="text"
-                value={profileForm.address}
-                onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
-                className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2 tracking-wider">
-                  Contact Email
-                </label>
-                <input
-                  type="email"
-                  value={profileForm.email}
-                  onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                  className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
-                />
+            {/* Section 2: Statutory Registration & Parameters */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b border-[var(--mist)]">
+                <Building2 className="w-4 h-4 text-[var(--clay)]" />
+                <h4 className="font-bold text-sm uppercase tracking-wider text-[var(--ink)] font-mono-ledger">
+                  2. Facility & Regulatory Credentials
+                </h4>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2 tracking-wider">
-                  Clinic Phone Hotline
-                </label>
-                <input
-                  type="text"
-                  value={profileForm.phone}
-                  onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                  className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--surface)] font-mono-ledger text-sm text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-sans-ledger text-sm">
+                <div>
+                  <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-1.5 tracking-wider">
+                    Facility Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={profileForm.name}
+                    onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-1.5 tracking-wider">
+                    Practice Specialty Category
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={profileForm.category}
+                    onChange={(e) => setProfileForm({ ...profileForm, category: e.target.value })}
+                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-1.5 tracking-wider">
+                    Statutory Medical License
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={profileForm.licenseNumber}
+                    onChange={(e) => setProfileForm({ ...profileForm, licenseNumber: e.target.value })}
+                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--surface)] font-mono-ledger text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-1.5 tracking-wider">
+                    Primary Accreditation Body
+                  </label>
+                  <select
+                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                  >
+                    <option value="MOH Singapore">Ministry of Health (MOH) Singapore</option>
+                    <option value="JCI International">Joint Commission International (JCI)</option>
+                    <option value="KKM Malaysia">Ministry of Health (KKM) Malaysia</option>
+                    <option value="MOPH Thailand">Ministry of Public Health (MOPH) Thailand</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-1.5 tracking-wider">
+                    Physical Address & Floor
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={profileForm.address}
+                    onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
+                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                  />
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2 tracking-wider">
-                Operating Hours
-              </label>
-              <input
-                type="text"
-                value={profileForm.operatingHours}
-                onChange={(e) => setProfileForm({ ...profileForm, operatingHours: e.target.value })}
-                className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--surface)] font-mono-ledger text-sm text-[var(--ink)] focus:outline-none focus:border-[var(--clay)]"
-              />
+            {/* Section 3: Communication & Operating Schedule */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b border-[var(--mist)]">
+                <Clock className="w-4 h-4 text-[var(--clay)]" />
+                <h4 className="font-bold text-sm uppercase tracking-wider text-[var(--ink)] font-mono-ledger">
+                  3. Contact Hotline, Hours & Facility Amenities
+                </h4>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-sans-ledger text-sm">
+                <div>
+                  <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-1.5 tracking-wider">
+                    Contact Email
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={profileForm.email}
+                    onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-1.5 tracking-wider">
+                    Clinic Phone Hotline
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={profileForm.phone}
+                    onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--surface)] font-mono-ledger text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-1.5 tracking-wider">
+                    Weekly Operating Hours
+                  </label>
+                  <input
+                    type="text"
+                    value={profileForm.operatingHours}
+                    onChange={(e) => setProfileForm({ ...profileForm, operatingHours: e.target.value })}
+                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--surface)] font-mono-ledger text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                  />
+                </div>
+
+                <div className="sm:col-span-2 space-y-2">
+                  <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-1.5 tracking-wider">
+                    Facility Amenities & Features
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      "Wheelchair Accessible",
+                      "On-site Diagnostics",
+                      "Multilingual Interpreters",
+                      "Complimentary Valet",
+                      "VIP Recovery Suites",
+                      "Direct MOH Integration",
+                      "Emergency Pharmacy",
+                    ].map((amenity) => {
+                      const isSelected = profileForm.amenities?.includes(amenity);
+                      return (
+                        <button
+                          key={amenity}
+                          type="button"
+                          onClick={() => {
+                            const updated = isSelected
+                              ? profileForm.amenities?.filter((a) => a !== amenity)
+                              : [...(profileForm.amenities || []), amenity];
+                            setProfileForm({ ...profileForm, amenities: updated });
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                            isSelected
+                              ? "bg-[var(--clay)] text-white border-[var(--clay)] shadow-xs"
+                              : "bg-[var(--surface)] text-[var(--muted)] border-[var(--mist)] hover:border-[var(--clay)]"
+                          }`}
+                        >
+                          {isSelected ? "✓ " : "+ "}
+                          {amenity}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="pt-3">
+            {/* Save Button */}
+            <div className="pt-4 border-t border-[var(--mist)] flex justify-between items-center">
+              <span className="text-xs text-[var(--muted)] font-mono-ledger">
+                Live changes sync immediately to directory listing and patient workspace.
+              </span>
               <button
                 type="submit"
-                className="bg-[var(--clay)] text-white px-7 py-3 rounded-xl font-mono-ledger text-sm font-semibold hover:opacity-95 shadow-sm transition-all"
+                className="bg-[var(--clay)] text-white px-8 py-3.5 rounded-xl font-mono-ledger text-sm font-semibold hover:opacity-95 shadow-sm shadow-[var(--clay)]/20 transition-all flex items-center gap-2"
               >
-                Save Practice Details
+                <Check className="w-4 h-4 stroke-[3]" />
+                <span>Save Practice Details</span>
               </button>
             </div>
           </form>

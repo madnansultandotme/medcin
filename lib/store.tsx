@@ -27,6 +27,7 @@ export interface Doctor {
   licenseNumber: string;
   active: boolean;
   avatarBg?: string;
+  image?: string;
   bio?: string;
   services: ServiceItem[];
 }
@@ -66,6 +67,29 @@ export interface Center {
   submittedTime?: string;
   operatingHours?: string;
   amenities?: string[];
+  logo?: string;
+  coverImage?: string;
+}
+
+export interface PatientProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  city: string;
+  country: string;
+  address?: string;
+  photo?: string;
+  dob?: string;
+  gender?: string;
+  nationality?: string;
+  passportNumber?: string;
+  emergencyContact?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  bloodType?: string;
+  allergies?: string;
+  medicalNotes?: string;
 }
 
 export interface Dispute {
@@ -138,6 +162,10 @@ interface MedcinStoreContextType {
   rejectCenter: (id: string) => void;
   updateCenterProfile: (profile: Partial<Center>) => void;
 
+  // Patient Profile
+  patientProfile: PatientProfile;
+  updatePatientProfile: (updates: Partial<PatientProfile>) => void;
+
   // Disputes
   disputes: Dispute[];
   resolveDispute: (id: string, resolutionNote?: string) => void;
@@ -185,6 +213,7 @@ const INITIAL_DOCTORS: Doctor[] = [
     initials: "KT",
     licenseNumber: "SMC-MED-59281",
     active: true,
+    image: "/images/doctors/doctor-1.jpg",
     bio: "MBBS (Singapore), MRCP (UK), Dip. Dermatology. Specializing in clinical laser therapeutics, dermoscopic pigment analysis, non-invasive facial rejuvenation, and preventive skin barrier health.",
     services: [
       { id: "s1", name: "Comprehensive Dermatological Consultation", duration: "30 min", price: 120, description: "Digital dermoscopic mole mapping, acne evaluation, and skin barrier diagnostics." },
@@ -205,6 +234,7 @@ const INITIAL_DOCTORS: Doctor[] = [
     initials: "SP",
     licenseNumber: "TMC-THA-44910",
     active: true,
+    image: "/images/doctors/doctor-2.jpg",
     bio: "Board-certified anti-aging and integrative cellular physician. Over 14 years specializing in biological age biomarker screening, metabolic optimization, and restorative neuromuscular therapies.",
     services: [
       { id: "s4", name: "Deep Tissue Neuromuscular Release", duration: "60 min", price: 95, description: "Therapeutic deep myofascial release with medical-grade herbal balms." },
@@ -225,6 +255,7 @@ const INITIAL_DOCTORS: Doctor[] = [
     initials: "FA",
     licenseNumber: "MMC-PHYS-33921",
     active: true,
+    image: "/images/doctors/doctor-3.jpg",
     bio: "BSc Physiotherapy (Honours), Sports Physiotherapy Fellow. Certified in kinetic biomechanical motion tracking, spinal disc decompression, and ACL postoperative rehabilitation.",
     services: [
       { id: "s7", name: "Biomechanical Motion & Posture Assessment", duration: "45 min", price: 85, description: "Dynamic gait analysis, spinal alignment assessment, and custom kinetic prescription." },
@@ -244,6 +275,7 @@ const INITIAL_DOCTORS: Doctor[] = [
     initials: "CL",
     licenseNumber: "SDC-DENT-88421",
     active: true,
+    image: "/images/doctors/doctor-4.jpg",
     bio: "BDS (Singapore), Advanced Aesthetic Restorations. Specializes in 3D digital smile simulations, porcelain veneers, airflow guided biofilm therapy, and clear aligner orthodontics.",
     services: [
       { id: "s9", name: "Airflow Guided Biofilm Dental Cleaning", duration: "30 min", price: 90, description: "Comfortable air-polishing plaque removal, ultrasonic scaling, and remineralization." },
@@ -263,6 +295,7 @@ const INITIAL_DOCTORS: Doctor[] = [
     initials: "NS",
     licenseNumber: "TMC-PHYS-77312",
     active: true,
+    image: "/images/doctors/doctor-5.jpg",
     bio: "Certified in traditional Thai medical manipulation, somatic nervous system downregulation, and myofascial kinetic balancing with 12 years clinical resort experience.",
     services: [
       { id: "s11", name: "Traditional Clinical Somatic Bodywork", duration: "60 min", price: 75, description: "Meridian energy compression, assisted yogic stretches, and warm herbal compress." },
@@ -386,6 +419,8 @@ const INITIAL_CENTERS: Center[] = [
     status: "active",
     operatingHours: "Mon-Fri 08:30 – 18:30, Sat 09:00 – 14:00",
     amenities: ["Wheelchair Accessible", "Novena MRT Link", "Private Recovery Suites", "On-site High-Res Ultrasound"],
+    logo: "/images/centers/center-novena-logo.jpg",
+    coverImage: "/images/centers/center-novena.jpg",
   },
   {
     id: "c-2",
@@ -399,6 +434,8 @@ const INITIAL_CENTERS: Center[] = [
     status: "active",
     operatingHours: "Mon-Sun 09:00 – 21:00",
     amenities: ["JCI Accredited Facility", "Valet Parking", "Herbal Infusion Lounge", "Multilingual Concierge"],
+    logo: "/images/centers/center-novena-logo.jpg",
+    coverImage: "/images/hero-bangkok.jpg",
   },
   {
     id: "c-3",
@@ -412,6 +449,8 @@ const INITIAL_CENTERS: Center[] = [
     status: "active",
     operatingHours: "Mon-Sat 08:00 – 20:00",
     amenities: ["Kinetic Motion Lab", "Spinal Decompression Beds", "Shower Suites", "Gym Turf Integration"],
+    logo: "/images/centers/center-novena-logo.jpg",
+    coverImage: "/images/hero-malaysia.jpg",
   },
   {
     id: "c-4",
@@ -426,8 +465,31 @@ const INITIAL_CENTERS: Center[] = [
     submittedTime: "Submitted yesterday",
     operatingHours: "Mon-Sun 10:00 – 22:00",
     amenities: ["Laguna Shuttle", "Organic Herbal Apothecary", "Private Salt Cabanas"],
+    logo: "/images/centers/center-novena-logo.jpg",
+    coverImage: "/images/hero-singapore.jpg",
   },
 ];
+
+const INITIAL_PATIENT_PROFILE: PatientProfile = {
+  id: "p-1",
+  name: "Marcus Wei",
+  email: "marcus.wei@example.sg",
+  phone: "+65 9123 4567",
+  city: "Novena",
+  country: "Singapore",
+  address: "12 Sinaran Drive, #14-02 Novena Medical Suites, Singapore",
+  photo: "/images/profiles/patient-marcus.jpg",
+  dob: "1988-11-14",
+  gender: "Male",
+  nationality: "Singaporean",
+  passportNumber: "S****456A",
+  emergencyContact: "+65 9876 5432 (Chloe Tan, Spouse)",
+  emergencyContactName: "Chloe Tan (Spouse)",
+  emergencyContactPhone: "+65 9876 5432",
+  bloodType: "O+",
+  allergies: "Penicillin, Latex",
+  medicalNotes: "Active marathon runner. Regular preventive checkups for sports recovery and dermatological care.",
+};
 
 const INITIAL_DISPUTES: Dispute[] = [
   {
@@ -500,6 +562,7 @@ export function MedcinProvider({ children }: { children: React.ReactNode }) {
   const [doctors, setDoctors] = useState<Doctor[]>(INITIAL_DOCTORS);
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
   const [centers, setCenters] = useState<Center[]>(INITIAL_CENTERS);
+  const [patientProfile, setPatientProfile] = useState<PatientProfile>(INITIAL_PATIENT_PROFILE);
   const [disputes, setDisputes] = useState<Dispute[]>(INITIAL_DISPUTES);
   const [slotStates, setSlotStates] = useState<Record<string, "available" | "blocked" | "booked">>(INITIAL_SLOT_STATES);
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
@@ -517,14 +580,14 @@ export function MedcinProvider({ children }: { children: React.ReactNode }) {
     patientPhone: string;
     patientNotes: string;
   }>({
-    doctor: INITIAL_DOCTORS[1],
-    serviceId: "s4",
-    day: "Mon 29",
-    time: "10:30",
-    patientName: "Jonas Kazlauskas",
-    patientEmail: "jonas@example.com",
-    patientPhone: "+370 600 12345",
-    patientNotes: "First visit for chronic muscle tension.",
+    doctor: INITIAL_DOCTORS[0],
+    serviceId: "s1",
+    day: "Mon 29 Sep",
+    time: "09:00",
+    patientName: "Marcus Wei",
+    patientEmail: "marcus.wei@example.sg",
+    patientPhone: "+65 9123 4567",
+    patientNotes: "First visit for preventive skin health assessment.",
   });
 
   const [settings, setSettings] = useState<PlatformSettings>({
@@ -546,11 +609,33 @@ export function MedcinProvider({ children }: { children: React.ReactNode }) {
   // LocalStorage persistence on client
   useEffect(() => {
     try {
+      const savedDoctors = localStorage.getItem("medcin_doctors");
+      if (savedDoctors) {
+        const parsed = JSON.parse(savedDoctors) as Doctor[];
+        const merged = parsed.map((doc) => {
+          const init = INITIAL_DOCTORS.find((d) => d.id === doc.id);
+          return { ...doc, image: doc.image || init?.image };
+        });
+        setDoctors(merged);
+      }
+
       const savedBookings = localStorage.getItem("medcin_bookings");
       if (savedBookings) setBookings(JSON.parse(savedBookings));
 
       const savedCenters = localStorage.getItem("medcin_centers");
-      if (savedCenters) setCenters(JSON.parse(savedCenters));
+      if (savedCenters) {
+        const parsed = JSON.parse(savedCenters) as Center[];
+        const merged = parsed.map((c) => {
+          const init = INITIAL_CENTERS.find((item) => item.id === c.id);
+          return { ...c, logo: c.logo || init?.logo, coverImage: c.coverImage || init?.coverImage };
+        });
+        setCenters(merged);
+      }
+
+      const savedProfile = localStorage.getItem("medcin_patient_profile");
+      if (savedProfile) {
+        setPatientProfile(JSON.parse(savedProfile));
+      }
 
       const savedDisputes = localStorage.getItem("medcin_disputes");
       if (savedDisputes) setDisputes(JSON.parse(savedDisputes));
@@ -821,7 +906,20 @@ export function MedcinProvider({ children }: { children: React.ReactNode }) {
     addToast({
       type: "success",
       title: "Center Profile Saved",
-      message: "Clinical specifications and license details updated.",
+      message: "Clinical specifications, photo/logo, and license details updated.",
+    });
+  };
+
+  const updatePatientProfile = (updates: Partial<PatientProfile>) => {
+    setPatientProfile((prev) => {
+      const updated = { ...prev, ...updates };
+      saveToStorage("medcin_patient_profile", updated);
+      return updated;
+    });
+    addToast({
+      type: "success",
+      title: "Patient Profile Saved",
+      message: "Personal credentials, medical notes, and photo updated.",
     });
   };
 
@@ -925,6 +1023,8 @@ export function MedcinProvider({ children }: { children: React.ReactNode }) {
         approveCenter,
         rejectCenter,
         updateCenterProfile,
+        patientProfile,
+        updatePatientProfile,
         disputes,
         resolveDispute,
         settings,
