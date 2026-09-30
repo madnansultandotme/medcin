@@ -20,24 +20,24 @@
   "theme": {
     "colors": {
       "light": {
-        "ink": "#1A2621",
-        "paper": "#F8F6F0",
+        "ink": "#102A43",
+        "paper": "#FFFFFF",
         "surface": "#FFFFFF",
-        "mist": "#E2DDD2",
-        "clay": "#B5713F",
-        "sage": "#4D8259",
-        "amber": "#C4822B",
-        "muted": "#66695E"
+        "mist": "#D7E7F5",
+        "clay": "#1769AA",
+        "sage": "#2F80B7",
+        "amber": "#4B91C5",
+        "muted": "#5C7185"
       },
       "dark": {
-        "ink": "#ECEBE2",
-        "paper": "#141712",
-        "surface": "#1B1F18",
-        "mist": "#2F3529",
-        "clay": "#C47C49",
-        "sage": "#5C996B",
-        "amber": "#D49339",
-        "muted": "#929785"
+        "ink": "#EAF5FF",
+        "paper": "#081B2D",
+        "surface": "#102A43",
+        "mist": "#244766",
+        "clay": "#55A9E6",
+        "sage": "#72BCE8",
+        "amber": "#8AC9F0",
+        "muted": "#A1B8CB"
       }
     },
     "typography": {
@@ -47,7 +47,7 @@
     "borderRadius": {
       "card": "4px",
       "button": "2px",
-      "badge": "2px"
+      "badge": "9999px"
     }
   },
   "localization": {

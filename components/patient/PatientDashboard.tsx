@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMedcinStore, Doctor, Booking } from "@/lib/store";
 import { useBranding } from "@/lib/branding";
 import {
@@ -19,27 +20,115 @@ import {
   Info,
   SlidersHorizontal,
   Globe2,
+  Stethoscope,
+  Building2,
 } from "lucide-react";
 
 export function PatientDashboard() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     doctors,
+    centers,
     bookings,
     createBooking,
     updateBookingStatus,
     rescheduleBooking,
     activeBookingDraft,
     setActiveBookingDraft,
+    patientProfile,
     addToast,
   } = useMedcinStore();
 
   const { branding, formatCurrency } = useBranding();
 
+  // Download receipt function
+  const downloadReceipt = (booking: Booking) => {
+    const receiptText = `
+=====================================
+    ${branding.client.name}
+    MEDICAL APPOINTMENT RECEIPT
+=====================================
+
+Booking Reference: ${booking.reference}
+Date Issued: ${new Date().toLocaleDateString()}
+
+-------------------------------------
+PATIENT INFORMATION
+-------------------------------------
+Name:     ${booking.patientName}
+Email:    ${booking.patientEmail}
+Phone:    ${booking.patientPhone}
+
+-------------------------------------
+APPOINTMENT DETAILS
+-------------------------------------
+Doctor:   ${booking.doctorName}
+          ${booking.doctorRole}
+
+Clinic:   ${booking.clinicName}
+Address:  ${booking.clinicAddress}
+
+Service:  ${booking.serviceName}
+Duration: ${booking.duration}
+
+Date:     ${booking.date}
+Time:     ${booking.time}
+
+-------------------------------------
+PAYMENT SUMMARY
+-------------------------------------
+Service Fee:              ${formatCurrency(booking.price)}
+Payment Method:           ${booking.paymentMethod}
+Status:                   ${booking.status.toUpperCase()}
+
+-------------------------------------
+NOTES
+-------------------------------------
+${booking.patientNotes || 'No additional notes'}
+
+-------------------------------------
+This is a computer-generated receipt
+and does not require a signature.
+
+For inquiries, contact:
+${branding.contact.email}
+${branding.contact.supportPhone}
+=====================================
+    `.trim();
+
+    const blob = new Blob([receiptText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `receipt-${booking.reference}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    addToast({
+      type: "success",
+      title: "Receipt Downloaded",
+      message: `Receipt ${booking.reference}.txt saved to your device.`,
+    });
+  };
+
   const [activeTab, setActiveTab] = useState<"search" | "book" | "confirm" | "mybookings">("search");
+  const [viewMode, setViewMode] = useState<"doctors" | "centers">("doctors");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedCity, setSelectedCity] = useState("All");
   const [sortBy, setSortBy] = useState<"rating" | "price-asc" | "price-desc">("rating");
+
+  // Check URL params to auto-open booking tab
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "book" && activeBookingDraft.doctor) {
+      setActiveTab("book");
+      setBookingStep(1); // Start at step 1
+    }
+  }, [searchParams, activeBookingDraft]);
 
   // Booking Flow Steps: 1: Procedure, 2: Slot, 3: Patient Details, 4: Review & Confirm
   const [bookingStep, setBookingStep] = useState<1 | 2 | 3 | 4>(1);
@@ -79,6 +168,26 @@ export function PatientDashboard() {
       return 0;
     });
 
+  // Filter Centers
+  const filteredCenters = centers
+    .filter((center) => {
+      const matchCat = selectedCategory === "All" || center.category === selectedCategory;
+      const matchCity =
+        selectedCity === "All" ||
+        center.address.toLowerCase().includes(selectedCity.toLowerCase());
+      const matchSearch =
+        searchTerm === "" ||
+        center.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        center.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        center.address.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchCat && matchCity && matchSearch;
+    })
+    .sort((a, b) => {
+      // Sort centers by doctor count or alphabetically
+      if (sortBy === "rating") return b.doctorCount - a.doctorCount;
+      return a.name.localeCompare(b.name);
+    });
+
   const handleStartBooking = (doc: Doctor, svcId?: string) => {
     setActiveBookingDraft((prev) => ({
       ...prev,
@@ -95,9 +204,9 @@ export function PatientDashboard() {
       selectedDoctor.services[0];
 
     const newBooking = createBooking({
-      patientName: activeBookingDraft.patientName || "Marcus Wei",
-      patientEmail: activeBookingDraft.patientEmail || "marcus.wei@example.sg",
-      patientPhone: activeBookingDraft.patientPhone || "+65 9123 4567",
+      patientName: activeBookingDraft.patientName || patientProfile.name || "Marcus Wei",
+      patientEmail: activeBookingDraft.patientEmail || patientProfile.email || "marcus.wei@example.sg",
+      patientPhone: activeBookingDraft.patientPhone || patientProfile.phone || "+65 9123 4567",
       patientNotes: activeBookingDraft.patientNotes,
       doctorId: selectedDoctor.id,
       doctorName: selectedDoctor.name,
@@ -139,20 +248,36 @@ export function PatientDashboard() {
       <div className="backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 md:p-8 rounded-3xl shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-[var(--clay)]/10 text-[var(--clay)] border border-[var(--clay)]/20 flex items-center justify-center font-mono-ledger text-lg font-bold shadow-xs">
-              MW
+            <div className="w-14 h-14 rounded-2xl bg-[var(--clay)]/10 text-[var(--clay)] border border-[var(--clay)]/20 flex items-center justify-center font-mono-ledger text-lg font-bold shadow-xs overflow-hidden">
+              {patientProfile.photo ? (
+                <img
+                  src={patientProfile.photo}
+                  alt={patientProfile.name || "Patient"}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Fallback to initials if image fails to load
+                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                    const parent = e.currentTarget.parentElement;
+                    if (parent) {
+                      parent.innerHTML = patientProfile.initials || "MW";
+                    }
+                  }}
+                />
+              ) : (
+                patientProfile.initials || "MW"
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2.5">
                 <h2 className="text-2xl sm:text-3xl font-bold text-[var(--ink)] tracking-tight">
-                  Marcus Wei
+                  {patientProfile.name || "Marcus Wei"}
                 </h2>
                 <span className="badge-ledger badge-confirmed font-mono-ledger text-xs px-3 py-1 rounded-full font-semibold">
                   Patient Workspace
                 </span>
               </div>
               <p className="text-sm text-[var(--muted)] font-mono-ledger mt-1">
-                marcus.wei@example.sg · +65 9123 4567 · Novena, Singapore
+                {patientProfile.email || "marcus.wei@example.sg"} · {patientProfile.phone || "+65 9123 4567"} · {patientProfile.location || "Novena, Singapore"}
               </p>
             </div>
           </div>
@@ -167,7 +292,7 @@ export function PatientDashboard() {
                   : "text-[var(--muted)] hover:text-[var(--ink)]"
               }`}
             >
-              Find Doctors
+              Find Care
             </button>
             <button
               onClick={() => setActiveTab("book")}
@@ -302,14 +427,45 @@ export function PatientDashboard() {
 
           {/* Right Directory Feed */}
           <div className="lg:col-span-3 space-y-4">
-            {/* Search Input Bar */}
-            <div className="backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-4 rounded-2xl shadow-sm flex items-center gap-3">
+            {/* View Mode Toggle and Search Bar */}
+            <div className="space-y-3">
+              {/* View Mode Toggle */}
+              <div className="backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-2 rounded-2xl shadow-sm inline-flex gap-2">
+                <button
+                  onClick={() => setViewMode("doctors")}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${
+                    viewMode === "doctors"
+                      ? "bg-[var(--clay)] text-white shadow-xs"
+                      : "text-[var(--muted)] hover:text-[var(--ink)]"
+                  }`}
+                >
+                  <Stethoscope className="w-4 h-4" />
+                  Doctors ({filteredDoctors.length})
+                </button>
+                <button
+                  onClick={() => setViewMode("centers")}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${
+                    viewMode === "centers"
+                      ? "bg-[var(--clay)] text-white shadow-xs"
+                      : "text-[var(--muted)] hover:text-[var(--ink)]"
+                  }`}
+                >
+                  <Building2 className="w-4 h-4" />
+                  Centers ({filteredCenters.length})
+                </button>
+              </div>
+
+              {/* Search Input Bar */}
+              <div className="backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-4 rounded-2xl shadow-sm flex items-center gap-3">
               <Search className="w-5 h-5 text-[var(--muted)] ml-1 shrink-0" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search practitioner by name, specialty, or clinic in Singapore, Bangkok, KL..."
+                placeholder={viewMode === "doctors" 
+                  ? "Search practitioner by name, specialty, or clinic..." 
+                  : "Search medical centers by name, category, or location..."
+                }
                 className="w-full bg-transparent text-sm font-sans-ledger text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none"
               />
               {searchTerm && (
@@ -321,30 +477,41 @@ export function PatientDashboard() {
                 </button>
               )}
             </div>
+            </div>
 
             {/* Doctor Cards List */}
-            <div className="space-y-4">
-              {filteredDoctors.length === 0 ? (
-                <div className="backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-12 text-center rounded-3xl">
-                  <div className="text-base font-bold text-[var(--ink)]">
-                    No practitioners matching criteria
+            {viewMode === "doctors" && (
+              <div className="space-y-4">
+                {filteredDoctors.length === 0 ? (
+                  <div className="backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-12 text-center rounded-3xl">
+                    <div className="text-base font-bold text-[var(--ink)]">
+                      No practitioners matching criteria
+                    </div>
+                    <p className="text-sm text-[var(--muted)] font-mono-ledger mt-1">
+                      Try broadening your specialty selection or choosing all ASEAN Hubs.
+                    </p>
                   </div>
-                  <p className="text-sm text-[var(--muted)] font-mono-ledger mt-1">
-                    Try broadening your specialty selection or choosing all ASEAN Hubs.
-                  </p>
-                </div>
-              ) : (
+                ) : (
                 filteredDoctors.map((doc) => (
                   <div
                     key={doc.id}
-                    className="backdrop-blur-xl bg-white/85 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 sm:p-7 rounded-3xl shadow-sm hover:shadow-md hover:border-[var(--clay)] transition-all space-y-4"
+                    onClick={() => router.push(`/doctors/${doc.id}`)}
+                    className="backdrop-blur-xl bg-white/85 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 sm:p-7 rounded-3xl shadow-sm hover:shadow-md hover:border-[var(--clay)] transition-all space-y-4 cursor-pointer"
                   >
                     <div className="flex flex-col sm:flex-row justify-between gap-5">
                       {/* Doctor Info */}
                       <div className="flex items-start gap-4">
-                        <div className="w-16 h-16 rounded-2xl bg-[var(--paper)] border border-[var(--mist)] flex items-center justify-center font-mono-ledger text-lg font-bold text-[var(--clay)] flex-none shadow-xs">
-                          {doc.initials}
-                        </div>
+                        {doc.image ? (
+                          <img
+                            src={doc.image}
+                            alt={doc.name}
+                            className="w-16 h-16 rounded-2xl object-cover border border-[var(--mist)] flex-none shadow-xs"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 rounded-2xl bg-[var(--paper)] border border-[var(--mist)] flex items-center justify-center font-mono-ledger text-lg font-bold text-[var(--clay)] flex-none shadow-xs">
+                            {doc.initials}
+                          </div>
+                        )}
                         <div className="space-y-1.5">
                           <div className="flex flex-wrap items-center gap-2.5">
                             <h3 className="font-bold text-lg sm:text-xl text-[var(--ink)]">
@@ -428,6 +595,119 @@ export function PatientDashboard() {
                 ))
               )}
             </div>
+            )}
+
+            {/* Center Cards List */}
+            {viewMode === "centers" && (
+              <div className="space-y-4">
+                {filteredCenters.length === 0 ? (
+                  <div className="backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-12 text-center rounded-3xl">
+                    <div className="text-base font-bold text-[var(--ink)]">
+                      No medical centers matching criteria
+                    </div>
+                    <p className="text-sm text-[var(--muted)] font-mono-ledger mt-1">
+                      Try broadening your specialty selection or choosing all ASEAN Hubs.
+                    </p>
+                  </div>
+                ) : (
+                  filteredCenters.map((center) => (
+                    <div
+                      key={center.id}
+                      onClick={() => router.push(`/centers/${center.id}`)}
+                      className="backdrop-blur-xl bg-white/85 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 sm:p-7 rounded-3xl shadow-sm hover:shadow-md hover:border-[var(--clay)] transition-all space-y-4 cursor-pointer"
+                    >
+                      <div className="flex flex-col sm:flex-row justify-between gap-5">
+                        {/* Center Info */}
+                        <div className="flex items-start gap-4">
+                          {center.logo ? (
+                            <img
+                              src={center.logo}
+                              alt={center.name}
+                              className="w-16 h-16 rounded-2xl object-cover border border-[var(--mist)] flex-none shadow-xs"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--sage-light)] to-[var(--sage)] border border-[var(--mist)] flex items-center justify-center flex-none shadow-xs">
+                              <Building2 className="w-8 h-8 text-white" />
+                            </div>
+                          )}
+                          <div className="space-y-1.5 flex-1">
+                            <div className="flex flex-wrap items-center gap-2.5">
+                              <h3 className="font-bold text-lg sm:text-xl text-[var(--ink)]">
+                                {center.name}
+                              </h3>
+                              {center.status === "active" && (
+                                <span className="badge-ledger badge-confirmed font-mono-ledger text-xs px-2.5 py-0.5 rounded-full font-semibold">
+                                  Verified
+                                </span>
+                              )}
+                              {center.status === "pending" && (
+                                <span className="badge-ledger badge-pending font-mono-ledger text-xs px-2.5 py-0.5 rounded-full font-semibold">
+                                  Pending
+                                </span>
+                              )}
+                              <span className="badge-ledger badge-category px-2.5 py-0.5 rounded-full font-mono-ledger text-xs font-semibold">
+                                {center.category}
+                              </span>
+                            </div>
+
+                            <div className="text-xs sm:text-sm font-sans-ledger text-[var(--muted)] flex items-center gap-1.5">
+                              <MapPin className="w-3.5 h-3.5 flex-none text-[var(--clay)]" />
+                              <span>{center.address}</span>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--clay)]">
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5" />
+                                <span>{center.operatingHours}</span>
+                              </div>
+                              <div className="flex items-center gap-1 font-semibold">
+                                <Stethoscope className="w-3.5 h-3.5" />
+                                {center.doctorCount} Professional{center.doctorCount !== 1 ? "s" : ""}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Center Stats */}
+                        <div className="sm:text-right space-y-1 flex-none">
+                          <div className="text-xs text-[var(--muted)] font-mono-ledger">
+                            License
+                          </div>
+                          <div className="text-xs font-mono-ledger font-semibold text-[var(--ink)]">
+                            {center.licenseNumber}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Amenities Preview */}
+                      {center.amenities && center.amenities.length > 0 && (
+                        <div className="mt-4 pt-3.5 border-t border-[var(--mist)]/70">
+                          <div className="text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] tracking-wider mb-2.5">
+                            Amenities & Services
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {center.amenities.slice(0, 4).map((amenity, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--paper)] border border-[var(--mist)] rounded-full text-xs font-medium text-[var(--clay)]"
+                              >
+                                <Check className="w-3 h-3 text-[var(--sage)]" />
+                                {amenity}
+                              </span>
+                            ))}
+                            {center.amenities.length > 4 && (
+                              <span className="inline-flex items-center px-3 py-1.5 bg-[var(--paper)] border border-[var(--mist)] rounded-full text-xs font-medium text-[var(--muted)]">
+                                +{center.amenities.length - 4} more
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -711,7 +991,7 @@ export function PatientDashboard() {
                   </label>
                   <input
                     type="text"
-                    value={activeBookingDraft.patientName || "Marcus Wei"}
+                    value={activeBookingDraft.patientName || patientProfile.name || "Marcus Wei"}
                     onChange={(e) =>
                       setActiveBookingDraft((prev) => ({ ...prev, patientName: e.target.value }))
                     }
@@ -823,7 +1103,7 @@ export function PatientDashboard() {
                 <div className="p-4 flex justify-between items-center">
                   <span className="text-[var(--muted)]">Patient</span>
                   <span className="font-semibold text-[var(--ink)]">
-                    {activeBookingDraft.patientName || "Marcus Wei"} ({activeBookingDraft.patientPhone || "+65 9123 4567"})
+                    {activeBookingDraft.patientName || patientProfile.name || "Marcus Wei"} ({activeBookingDraft.patientPhone || patientProfile.phone || "+65 9123 4567"})
                   </span>
                 </div>
                 <div className="p-4 bg-[var(--paper)] flex justify-between items-center text-base">
@@ -1037,13 +1317,7 @@ export function PatientDashboard() {
                           Cancel
                         </button>
                         <button
-                          onClick={() =>
-                            addToast({
-                              type: "info",
-                              title: "PDF Receipt",
-                              message: `Generated invoice slip for ${b.reference}.`,
-                            })
-                          }
+                          onClick={() => downloadReceipt(b)}
                           className="p-2.5 border border-[var(--mist)] rounded-xl text-[var(--muted)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-all"
                           title="Download receipt slip"
                         >
@@ -1072,7 +1346,7 @@ export function PatientDashboard() {
                 .filter((b) => b.status === "completed" || b.status === "cancelled")
                 .map((b) => (
                   <div key={b.id} className="p-4 flex items-center justify-between text-sm hover:bg-[var(--paper)]/50 transition-colors">
-                    <div>
+                    <div className="flex-1">
                       <div className="font-bold text-[var(--ink)]">
                         {b.serviceName}
                       </div>
@@ -1092,6 +1366,15 @@ export function PatientDashboard() {
                       >
                         {b.status === "completed" ? "Completed" : "Cancelled"}
                       </span>
+                      {b.status === "completed" && (
+                        <button
+                          onClick={() => downloadReceipt(b)}
+                          className="p-2 border border-[var(--mist)] rounded-lg text-[var(--muted)] hover:text-[var(--sage)] hover:border-[var(--sage)] transition-all"
+                          title="Download receipt"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

@@ -2,14 +2,14 @@
 @import "tailwindcss";
 
 :root {
-  --ink: #1F2A22;
-  --paper: #F1F0E7;
+  --ink: #102A43;
+  --paper: #FFFFFF;
   --surface: #FFFFFF;
-  --mist: #DFDBCE;
-  --clay: #B5713F;
-  --sage: #5C8C63;
-  --amber: #C98A34;
-  --muted: #6B6B5E;
+  --mist: #D7E7F5;
+  --clay: #1769AA;
+  --sage: #2F80B7;
+  --amber: #4B91C5;
+  --muted: #5C7185;
   
   --font-d: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-m: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -21,10 +21,10 @@
 :root[data-theme="dark"],
 .dark {
   --ink: #EDECE4;
-  --paper: #171A15;
-  --surface: #1F231C;
-  --mist: #333628;
-  --muted: #9A9A88;
+  --paper: #081B2D;
+  --surface: #102A43;
+  --mist: #244766;
+  --muted: #A1B8CB;
   --background: var(--paper);
   --foreground: var(--ink);
 }
@@ -57,7 +57,7 @@ body {
   font-size: 11px;
   font-weight: 500;
   padding: 3px 8px;
-  border-radius: 2px;
+  border-radius: 9999px;
   display: inline-flex;
   align-items: center;
   gap: 4px;

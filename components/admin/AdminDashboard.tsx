@@ -15,6 +15,11 @@ import {
   Search,
   Download,
   Plus,
+  Stethoscope,
+  MapPin,
+  Star,
+  Users,
+  Activity,
 } from "lucide-react";
 
 export function AdminDashboard() {
@@ -23,6 +28,7 @@ export function AdminDashboard() {
     approveCenter,
     rejectCenter,
     bookings,
+    doctors,
     disputes,
     resolveDispute,
     settings,
@@ -32,11 +38,15 @@ export function AdminDashboard() {
     addToast,
   } = useMedcinStore();
 
-  const [activeTab, setActiveTab] = useState<"centers" | "globalbookings" | "disputes" | "settings">("centers");
+  const [activeTab, setActiveTab] = useState<"centers" | "doctors" | "globalbookings" | "disputes" | "settings">("centers");
 
   // Center Directory Search
   const [centerSearch, setCenterSearch] = useState("");
   const [centerFilter, setCenterFilter] = useState<"all" | "active" | "pending">("all");
+
+  // Doctor Directory Search & Filter
+  const [doctorSearch, setDoctorSearch] = useState("");
+  const [doctorCategoryFilter, setDoctorCategoryFilter] = useState("all");
 
   // Global Bookings Search & Filter
   const [bookingSearch, setBookingSearch] = useState("");
@@ -64,6 +74,81 @@ export function AdminDashboard() {
     });
   };
 
+  // Download individual booking receipt
+  const downloadBookingReceipt = (booking: Booking) => {
+    const receiptText = `
+=====================================
+    ${branding.client.name}
+    ADMINISTRATIVE BOOKING RECEIPT
+=====================================
+
+Booking Reference: ${booking.reference}
+Date Issued: ${new Date().toLocaleDateString()}
+Export Type: Platform Admin Export
+
+-------------------------------------
+PATIENT INFORMATION
+-------------------------------------
+Name:     ${booking.patientName}
+Email:    ${booking.patientEmail}
+Phone:    ${booking.patientPhone}
+
+-------------------------------------
+APPOINTMENT DETAILS
+-------------------------------------
+Doctor:   ${booking.doctorName}
+          ${booking.doctorRole}
+
+Clinic:   ${booking.clinicName}
+Address:  ${booking.clinicAddress}
+
+Service:  ${booking.serviceName}
+Duration: ${booking.duration}
+
+Date:     ${booking.date}
+Time:     ${booking.time}
+
+-------------------------------------
+FINANCIAL SUMMARY
+-------------------------------------
+Service Fee:              ${formatCurrency(booking.price)}
+Platform Commission (${settings.commission}): ${formatCurrency((booking.price * (parseInt(settings.commission, 10) || 8)) / 100)}
+Payment Method:           ${booking.paymentMethod}
+Status:                   ${booking.status.toUpperCase()}
+
+-------------------------------------
+NOTES
+-------------------------------------
+${booking.patientNotes || 'No additional notes'}
+
+Booking Created: ${new Date(booking.createdAt).toLocaleString()}
+
+-------------------------------------
+This is an administrative export for
+internal records and audit purposes.
+
+Platform Support:
+${settings.supportEmail}
+=====================================
+    `.trim();
+
+    const blob = new Blob([receiptText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `admin-receipt-${booking.reference}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    addToast({
+      type: "success",
+      title: "Receipt Exported",
+      message: `Admin receipt ${booking.reference}.txt downloaded.`,
+    });
+  };
+
   // Dispute resolution modal
   const [resolvingDispute, setResolvingDispute] = useState<Dispute | null>(null);
   const [resolutionNote, setResolutionNote] = useState("");
@@ -71,6 +156,23 @@ export function AdminDashboard() {
 
   const pendingCenters = centers.filter((c) => c.status === "pending");
   const activeCenters = centers.filter((c) => c.status === "active");
+
+  // Doctor filtering
+  const filteredDoctors = doctors
+    .filter((d) => {
+      if (doctorCategoryFilter === "all") return true;
+      return d.category === doctorCategoryFilter;
+    })
+    .filter(
+      (d) =>
+        d.name.toLowerCase().includes(doctorSearch.toLowerCase()) ||
+        d.role.toLowerCase().includes(doctorSearch.toLowerCase()) ||
+        d.clinic.toLowerCase().includes(doctorSearch.toLowerCase()) ||
+        d.location.toLowerCase().includes(doctorSearch.toLowerCase())
+    );
+
+  const activeDoctors = doctors.filter((d) => d.active);
+  const totalDoctors = doctors.length;
 
   const filteredCenters = centers
     .filter((c) => {
@@ -133,10 +235,55 @@ export function AdminDashboard() {
   };
 
   const handleExportCSV = () => {
+    // Create CSV content
+    const headers = [
+      'Reference',
+      'Patient Name',
+      'Patient Phone',
+      'Patient Email',
+      'Doctor',
+      'Clinic',
+      'Service',
+      'Date',
+      'Time',
+      'Duration',
+      'Price',
+      'Status',
+      'Created At'
+    ].join(',');
+
+    const rows = filteredBookings.map(b => [
+      b.reference,
+      `"${b.patientName}"`,
+      b.patientPhone,
+      b.patientEmail,
+      `"${b.doctorName}"`,
+      `"${b.clinicName}"`,
+      `"${b.serviceName}"`,
+      b.date,
+      b.time,
+      b.duration,
+      b.price,
+      b.status,
+      b.createdAt
+    ].join(',')).join('\n');
+
+    const csvContent = `${headers}\n${rows}`;
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `medcin-bookings-export-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
     addToast({
       type: "success",
       title: "Ledger Exported",
-      message: `Exported ${filteredBookings.length} records to audit CSV.`,
+      message: `Exported ${filteredBookings.length} records to CSV file.`,
     });
   };
 
@@ -198,6 +345,18 @@ export function AdminDashboard() {
           >
             <Building className="w-4 h-4" />
             <span>Centers Directory {pendingCenters.length > 0 ? `(${pendingCenters.length} Pending)` : ""}</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("doctors")}
+            className={`px-5 py-2.5 transition-all whitespace-nowrap flex items-center gap-2 rounded-full text-sm ${
+              activeTab === "doctors"
+                ? "bg-[var(--surface)] text-[var(--clay)] font-semibold shadow-xs"
+                : "text-[var(--muted)] hover:text-[var(--ink)]"
+            }`}
+          >
+            <Stethoscope className="w-4 h-4" />
+            <span>Doctors Network ({totalDoctors})</span>
           </button>
 
           <button
@@ -376,7 +535,201 @@ export function AdminDashboard() {
         </div>
       )}
 
-      {/* VIEW 2: GLOBAL BOOKINGS LEDGER */}
+      {/* VIEW 2: DOCTORS NETWORK */}
+      {activeTab === "doctors" && (
+        <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 shadow-sm p-6 sm:p-8 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--mist)]">
+            <div>
+              <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
+                Healthcare Provider Network
+              </h3>
+              <p className="text-sm text-[var(--muted)] font-mono-ledger mt-1">
+                All registered practitioners across Singapore, Thailand & Malaysia
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="badge-ledger badge-confirmed font-mono-ledger text-xs px-4 py-1.5 rounded-full font-semibold">
+                {activeDoctors.length} Active · {totalDoctors} Total
+              </span>
+            </div>
+          </div>
+
+          {/* Search and Filter Bar */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
+              <input
+                type="text"
+                placeholder="Search doctor name, clinic, specialty, or location..."
+                value={doctorSearch}
+                onChange={(e) => setDoctorSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2.5 text-sm border border-[var(--mist)] bg-[var(--paper)] text-[var(--ink)] font-sans-ledger focus:outline-none focus:border-[var(--clay)] rounded-xl"
+              />
+            </div>
+
+            <select
+              value={doctorCategoryFilter}
+              onChange={(e) => setDoctorCategoryFilter(e.target.value)}
+              className="py-2.5 px-4 border border-[var(--mist)] text-sm rounded-xl bg-[var(--surface)] text-[var(--ink)] font-semibold focus:outline-none focus:border-[var(--clay)]"
+            >
+              <option value="all">All Specialties</option>
+              <option value="Dental">Dental</option>
+              <option value="Massage">Massage Therapy</option>
+              <option value="Physio">Physiotherapy</option>
+              <option value="Dermatology">Dermatology</option>
+              <option value="Acupuncture">Acupuncture</option>
+            </select>
+          </div>
+
+          {/* Doctors Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {filteredDoctors.length === 0 ? (
+              <div className="col-span-2 p-12 text-center text-sm font-mono-ledger text-[var(--muted)]">
+                No doctors found matching current filters.
+              </div>
+            ) : (
+              filteredDoctors.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="rounded-2xl border border-[var(--mist)] bg-[var(--surface)] p-5 shadow-xs hover:border-[var(--clay)]/40 transition-all space-y-4"
+                >
+                  {/* Doctor Header */}
+                  <div className="flex items-start gap-4">
+                    <div className="w-16 h-16 rounded-2xl bg-[var(--clay)]/10 text-[var(--clay)] border border-[var(--clay)]/20 flex items-center justify-center font-mono-ledger text-base font-bold flex-none overflow-hidden shadow-xs">
+                      {doc.image ? (
+                        <img
+                          src={doc.image}
+                          alt={doc.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        doc.initials
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <h4 className="font-bold text-base text-[var(--ink)]">
+                          {doc.name}
+                        </h4>
+                        <span
+                          className={`badge-ledger text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+                            doc.active ? "badge-confirmed" : "badge-pending"
+                          }`}
+                        >
+                          {doc.active ? "Active" : "Inactive"}
+                        </span>
+                        <div className="flex items-center gap-1 text-[var(--amber)] text-xs font-mono-ledger font-medium">
+                          <Star className="w-3.5 h-3.5 fill-current" />
+                          <span className="font-bold">{doc.rating}</span>
+                          <span className="text-[var(--muted)]">({doc.reviewsCount})</span>
+                        </div>
+                      </div>
+
+                      <div className="text-sm font-medium text-[var(--clay)] mb-1">
+                        {doc.role}
+                      </div>
+
+                      <div className="text-xs text-[var(--muted)] font-mono-ledger space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <Building className="w-3.5 h-3.5 flex-none" />
+                          <span className="truncate">{doc.clinic}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 flex-none" />
+                          <span className="truncate">{doc.location}</span>
+                        </div>
+                        <div>License: {doc.licenseNumber}</div>
+                      </div>
+                    </div>
+
+                    <div className="text-right flex-none">
+                      <div className="text-xs uppercase font-semibold font-mono-ledger text-[var(--muted)] mb-0.5">
+                        Starting Fee
+                      </div>
+                      <div className="font-mono-ledger text-lg font-bold text-[var(--sage)]">
+                        {formatCurrency(doc.price)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bio (if available) */}
+                  {doc.bio && (
+                    <div className="text-sm text-[var(--muted)] font-sans-ledger leading-relaxed bg-[var(--paper)] p-3 rounded-xl border border-[var(--mist)]">
+                      {doc.bio}
+                    </div>
+                  )}
+
+                  {/* Services Summary */}
+                  <div className="pt-3 border-t border-[var(--mist)]">
+                    <div className="text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] tracking-wider mb-2 flex items-center justify-between">
+                      <span>Service Catalog</span>
+                      <span className="badge-ledger bg-[var(--paper)] border border-[var(--mist)] text-[var(--ink)] px-2 py-0.5 rounded-full normal-case">
+                        {doc.services.length} {doc.services.length === 1 ? 'procedure' : 'procedures'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2">
+                      {doc.services.slice(0, 3).map((svc) => (
+                        <div
+                          key={svc.id}
+                          className="flex justify-between items-center text-xs bg-[var(--paper)] p-2.5 rounded-lg border border-[var(--mist)] hover:border-[var(--clay)]/30 transition-colors"
+                        >
+                          <div className="flex-1 min-w-0 pr-2">
+                            <div className="font-semibold text-[var(--ink)] truncate">
+                              {svc.name}
+                            </div>
+                            <div className="text-[var(--muted)] font-mono-ledger">
+                              {svc.duration}
+                            </div>
+                          </div>
+                          <div className="font-mono-ledger font-bold text-[var(--ink)] flex-none">
+                            {formatCurrency(svc.price)}
+                          </div>
+                        </div>
+                      ))}
+                      {doc.services.length > 3 && (
+                        <div className="text-xs text-center text-[var(--muted)] font-mono-ledger py-1">
+                          + {doc.services.length - 3} more {doc.services.length - 3 === 1 ? 'procedure' : 'procedures'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Stats Footer */}
+                  <div className="pt-3 border-t border-[var(--mist)] flex items-center justify-between text-xs font-mono-ledger">
+                    <div className="flex items-center gap-4 text-[var(--muted)]">
+                      <div className="flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5" />
+                        <span>{doc.reviewsCount} patients</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Activity className="w-3.5 h-3.5" />
+                        <span className="capitalize">{doc.category}</span>
+                      </div>
+                    </div>
+                    <span className="badge-ledger bg-[var(--sage)]/10 text-[var(--sage)] border border-[var(--sage)]/20 px-2.5 py-1 rounded-full font-semibold">
+                      Verified MOH
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Summary Footer */}
+          {filteredDoctors.length > 0 && (
+            <div className="pt-4 border-t border-[var(--mist)] text-sm font-mono-ledger text-[var(--muted)] text-center">
+              Showing {filteredDoctors.length} of {totalDoctors} registered healthcare providers across the platform
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* VIEW 3: GLOBAL BOOKINGS LEDGER */}
       {activeTab === "globalbookings" && (
         <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 shadow-sm p-6 sm:p-8 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--mist)]">
@@ -436,6 +789,7 @@ export function AdminDashboard() {
                   <th className="p-4 text-right">Fee</th>
                   <th className="p-4 text-right">Commission ({settings.commission})</th>
                   <th className="p-4 text-center">Status</th>
+                  <th className="p-4 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--mist)]">
@@ -481,6 +835,15 @@ export function AdminDashboard() {
                           {b.status}
                         </span>
                       </td>
+                      <td className="p-4 text-center">
+                        <button
+                          onClick={() => downloadBookingReceipt(b)}
+                          className="p-2 border border-[var(--mist)] rounded-lg text-[var(--muted)] hover:text-[var(--clay)] hover:border-[var(--clay)] transition-all inline-flex items-center justify-center"
+                          title="Download admin receipt"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -490,7 +853,7 @@ export function AdminDashboard() {
         </div>
       )}
 
-      {/* VIEW 3: DISPUTES DESK */}
+      {/* VIEW 4: DISPUTES DESK */}
       {activeTab === "disputes" && (
         <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 shadow-sm p-6 sm:p-8 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--mist)]">
@@ -584,7 +947,7 @@ export function AdminDashboard() {
         </div>
       )}
 
-      {/* VIEW 4: PLATFORM SETTINGS */}
+      {/* VIEW 5: PLATFORM SETTINGS */}
       {activeTab === "settings" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 shadow-sm p-6 sm:p-8 space-y-6">

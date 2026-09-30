@@ -52,6 +52,7 @@ export interface Booking {
   status: "pending" | "confirmed" | "completed" | "flagged" | "cancelled";
   createdAt: string;
   cancellationReason?: string;
+  paymentMethod?: string;
 }
 
 export interface Center {
@@ -78,6 +79,8 @@ export interface PatientProfile {
   phone: string;
   city: string;
   country: string;
+  location?: string;
+  initials?: string;
   address?: string;
   photo?: string;
   dob?: string;
@@ -556,6 +559,16 @@ const INITIAL_SLOT_STATES: Record<string, "available" | "blocked" | "booked"> = 
 
 const MedcinStoreContext = createContext<MedcinStoreContextType | null>(null);
 
+const BACKEND_RESOURCES: Record<string, string> = {
+  medcin_doctors: "doctors",
+  medcin_bookings: "bookings",
+  medcin_centers: "centers",
+  medcin_patient_profile: "patient",
+  medcin_disputes: "disputes",
+  medcin_slots: "slots",
+  medcin_settings: "settings",
+};
+
 export function MedcinProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<Role>("patient");
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -608,49 +621,158 @@ export function MedcinProvider({ children }: { children: React.ReactNode }) {
 
   // LocalStorage persistence on client
   useEffect(() => {
-    try {
-      const savedDoctors = localStorage.getItem("medcin_doctors");
-      if (savedDoctors) {
-        const parsed = JSON.parse(savedDoctors) as Doctor[];
-        const merged = parsed.map((doc) => {
-          const init = INITIAL_DOCTORS.find((d) => d.id === doc.id);
-          return { ...doc, image: doc.image || init?.image };
+    console.log('[Medcin Store] Initializing - fetching from backend API...');
+    
+    // First, try to load from backend API
+    void Promise.all(
+      Object.entries(BACKEND_RESOURCES).map(async ([storageKey, resource]) => {
+        try {
+          console.log(`[Medcin Store] Fetching /api/${resource}...`);
+          const response = await fetch(`/api/${resource}`);
+          if (!response.ok) {
+            console.warn(`[Medcin Store] API ${resource} returned ${response.status}`);
+            return [storageKey, null] as const;
+          }
+          const body = (await response.json()) as { data?: unknown };
+          console.log(`[Medcin Store] Received ${resource}:`, body.data);
+          return [storageKey, body.data ?? null] as const;
+        } catch (error) {
+          console.error(`[Medcin Store] Error fetching ${resource}:`, error);
+          return [storageKey, null] as const;
+        }
+      })
+    )
+      .then((resources) => {
+        let hasBackendData = false;
+        resources.forEach(([storageKey, data]) => {
+          if (data === null || data === undefined) return;
+          hasBackendData = true;
+          
+          console.log(`[Medcin Store] Processing ${storageKey}, items:`, Array.isArray(data) ? data.length : typeof data);
+          
+          if (storageKey === "medcin_doctors") {
+            const parsed = data as Doctor[];
+            console.log(`[Medcin Store] Setting ${parsed.length} doctors from backend`);
+            setDoctors(parsed.map((doc) => ({
+              ...doc,
+              image: doc.image || INITIAL_DOCTORS.find((item) => item.id === doc.id)?.image,
+            })));
+          } else if (storageKey === "medcin_bookings") {
+            setBookings(data as Booking[]);
+          } else if (storageKey === "medcin_centers") {
+            const parsed = data as Center[];
+            setCenters(parsed.map((center) => {
+              const init = INITIAL_CENTERS.find((item) => item.id === center.id);
+              return { ...center, logo: center.logo || init?.logo, coverImage: center.coverImage || init?.coverImage };
+            }));
+          } else if (storageKey === "medcin_patient_profile") {
+            setPatientProfile(data as PatientProfile);
+          } else if (storageKey === "medcin_disputes") {
+            setDisputes(data as Dispute[]);
+          } else if (storageKey === "medcin_slots") {
+            setSlotStates(data as Record<string, "available" | "blocked" | "booked">);
+          } else if (storageKey === "medcin_settings") {
+            setSettings(data as PlatformSettings);
+          }
         });
-        setDoctors(merged);
-      }
 
-      const savedBookings = localStorage.getItem("medcin_bookings");
-      if (savedBookings) setBookings(JSON.parse(savedBookings));
+        console.log(`[Medcin Store] Backend load complete. hasBackendData: ${hasBackendData}`);
 
-      const savedCenters = localStorage.getItem("medcin_centers");
-      if (savedCenters) {
-        const parsed = JSON.parse(savedCenters) as Center[];
-        const merged = parsed.map((c) => {
-          const init = INITIAL_CENTERS.find((item) => item.id === c.id);
-          return { ...c, logo: c.logo || init?.logo, coverImage: c.coverImage || init?.coverImage };
-        });
-        setCenters(merged);
-      }
+        // If backend provided no data, fallback to localStorage
+        if (!hasBackendData) {
+          console.log('[Medcin Store] No backend data, falling back to localStorage...');
+          try {
+            const savedDoctors = localStorage.getItem("medcin_doctors");
+            if (savedDoctors) {
+              const parsed = JSON.parse(savedDoctors) as Doctor[];
+              const merged = parsed.map((doc) => {
+                const init = INITIAL_DOCTORS.find((d) => d.id === doc.id);
+                return { ...doc, image: doc.image || init?.image };
+              });
+              setDoctors(merged);
+            }
 
-      const savedProfile = localStorage.getItem("medcin_patient_profile");
-      if (savedProfile) {
-        setPatientProfile(JSON.parse(savedProfile));
-      }
+            const savedBookings = localStorage.getItem("medcin_bookings");
+            if (savedBookings) setBookings(JSON.parse(savedBookings));
 
-      const savedDisputes = localStorage.getItem("medcin_disputes");
-      if (savedDisputes) setDisputes(JSON.parse(savedDisputes));
+            const savedCenters = localStorage.getItem("medcin_centers");
+            if (savedCenters) {
+              const parsed = JSON.parse(savedCenters) as Center[];
+              const merged = parsed.map((c) => {
+                const init = INITIAL_CENTERS.find((item) => item.id === c.id);
+                return { ...c, logo: c.logo || init?.logo, coverImage: c.coverImage || init?.coverImage };
+              });
+              setCenters(merged);
+            }
 
-      const savedSlots = localStorage.getItem("medcin_slots");
-      if (savedSlots) setSlotStates(JSON.parse(savedSlots));
+            const savedProfile = localStorage.getItem("medcin_patient_profile");
+            if (savedProfile) {
+              setPatientProfile(JSON.parse(savedProfile));
+            }
 
-      const savedSettings = localStorage.getItem("medcin_settings");
-      if (savedSettings) setSettings(JSON.parse(savedSettings));
+            const savedDisputes = localStorage.getItem("medcin_disputes");
+            if (savedDisputes) setDisputes(JSON.parse(savedDisputes));
 
-      const savedTheme = localStorage.getItem("medcin_theme");
-      if (savedTheme === "dark" || savedTheme === "light") setTheme(savedTheme);
-    } catch {
-      // Ignore storage errors on SSR or incognito
-    }
+            const savedSlots = localStorage.getItem("medcin_slots");
+            if (savedSlots) setSlotStates(JSON.parse(savedSlots));
+
+            const savedSettings = localStorage.getItem("medcin_settings");
+            if (savedSettings) setSettings(JSON.parse(savedSettings));
+
+            const savedTheme = localStorage.getItem("medcin_theme");
+            if (savedTheme === "dark" || savedTheme === "light") setTheme(savedTheme);
+          } catch (error) {
+            console.error('[Medcin Store] localStorage fallback error:', error);
+          }
+        }
+      })
+      .catch((error) => {
+        console.error('[Medcin Store] Backend fetch completely failed:', error);
+        // If backend fetch fails completely, try localStorage
+        try {
+          const savedDoctors = localStorage.getItem("medcin_doctors");
+          if (savedDoctors) {
+            const parsed = JSON.parse(savedDoctors) as Doctor[];
+            const merged = parsed.map((doc) => {
+              const init = INITIAL_DOCTORS.find((d) => d.id === doc.id);
+              return { ...doc, image: doc.image || init?.image };
+            });
+            setDoctors(merged);
+          }
+
+          const savedBookings = localStorage.getItem("medcin_bookings");
+          if (savedBookings) setBookings(JSON.parse(savedBookings));
+
+          const savedCenters = localStorage.getItem("medcin_centers");
+          if (savedCenters) {
+            const parsed = JSON.parse(savedCenters) as Center[];
+            const merged = parsed.map((c) => {
+              const init = INITIAL_CENTERS.find((item) => item.id === c.id);
+              return { ...c, logo: c.logo || init?.logo, coverImage: c.coverImage || init?.coverImage };
+            });
+            setCenters(merged);
+          }
+
+          const savedProfile = localStorage.getItem("medcin_patient_profile");
+          if (savedProfile) {
+            setPatientProfile(JSON.parse(savedProfile));
+          }
+
+          const savedDisputes = localStorage.getItem("medcin_disputes");
+          if (savedDisputes) setDisputes(JSON.parse(savedDisputes));
+
+          const savedSlots = localStorage.getItem("medcin_slots");
+          if (savedSlots) setSlotStates(JSON.parse(savedSlots));
+
+          const savedSettings = localStorage.getItem("medcin_settings");
+          if (savedSettings) setSettings(JSON.parse(savedSettings));
+
+          const savedTheme = localStorage.getItem("medcin_theme");
+          if (savedTheme === "dark" || savedTheme === "light") setTheme(savedTheme);
+        } catch (error) {
+          console.error('[Medcin Store] localStorage fallback error:', error);
+        }
+      });
   }, []);
 
   const saveToStorage = (key: string, data: unknown) => {
@@ -659,6 +781,17 @@ export function MedcinProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Ignore
     }
+
+    const resource = BACKEND_RESOURCES[key];
+    if (!resource) return;
+
+    void fetch(`/api/${resource}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data }),
+    }).catch(() => {
+      // LocalStorage remains the fallback when the local API is unavailable.
+    });
   };
 
   // Sync theme

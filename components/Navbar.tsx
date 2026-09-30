@@ -95,22 +95,23 @@ export function Navbar() {
               )}
             </button>
 
-            {/* If inside dashboard: Show Switch Role / Exit Portal */}
+            {/* If inside dashboard: Show Logout Button */}
             {isDashboardRoute ? (
               <Link
                 href="/portal"
-                className="flex items-center gap-1.5 px-3.5 py-1.5 border border-[var(--mist)] rounded-full text-[var(--ink)] font-mono-ledger text-xs hover:border-[var(--clay)] hover:text-[var(--clay)] transition-colors font-medium bg-[var(--paper)]"
-                title="Switch account role or return to portal"
+                className="flex items-center gap-2 px-4 py-2 border-2 border-[var(--sage)] rounded-full text-[var(--sage)] font-sans-ledger text-sm hover:bg-[var(--sage)] hover:text-white transition-all font-semibold shadow-sm"
+                title="Logout and switch account"
               >
-                <LogOut className="w-3.5 h-3.5 text-[var(--muted)]" />
-                <span>Switch Portal</span>
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
               </Link>
             ) : (
-              /* Public: Single Clean Sign In Button leading to /portal */
+              /* Public: Sign In Button leading to /portal */
               <Link
                 href="/portal"
-                className="flex items-center gap-1.5 px-4 py-1.5 border border-[var(--mist)] rounded-full text-[var(--ink)] font-mono-ledger text-xs hover:border-[var(--clay)] hover:text-[var(--clay)] transition-colors font-medium bg-[var(--paper)]"
+                className="flex items-center gap-2 px-4 py-2 border-2 border-[var(--sage)] rounded-full text-[var(--sage)] font-sans-ledger text-sm hover:bg-[var(--sage)] hover:text-white transition-all font-semibold shadow-sm"
               >
+                <User className="w-4 h-4" />
                 <span>Sign In</span>
               </Link>
             )}
