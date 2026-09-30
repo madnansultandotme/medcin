@@ -127,8 +127,6 @@ export interface ToastNotification {
 interface MedcinStoreContextType {
   role: Role;
   setRole: (role: Role) => void;
-  theme: "light" | "dark";
-  toggleTheme: () => void;
 
   // Toast notifications
   toasts: ToastNotification[];
@@ -571,7 +569,6 @@ const BACKEND_RESOURCES: Record<string, string> = {
 
 export function MedcinProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<Role>("patient");
-  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [doctors, setDoctors] = useState<Doctor[]>(INITIAL_DOCTORS);
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
   const [centers, setCenters] = useState<Center[]>(INITIAL_CENTERS);
@@ -718,9 +715,6 @@ export function MedcinProvider({ children }: { children: React.ReactNode }) {
 
             const savedSettings = localStorage.getItem("medcin_settings");
             if (savedSettings) setSettings(JSON.parse(savedSettings));
-
-            const savedTheme = localStorage.getItem("medcin_theme");
-            if (savedTheme === "dark" || savedTheme === "light") setTheme(savedTheme);
           } catch (error) {
             console.error('[Medcin Store] localStorage fallback error:', error);
           }
@@ -766,9 +760,6 @@ export function MedcinProvider({ children }: { children: React.ReactNode }) {
 
           const savedSettings = localStorage.getItem("medcin_settings");
           if (savedSettings) setSettings(JSON.parse(savedSettings));
-
-          const savedTheme = localStorage.getItem("medcin_theme");
-          if (savedTheme === "dark" || savedTheme === "light") setTheme(savedTheme);
         } catch (error) {
           console.error('[Medcin Store] localStorage fallback error:', error);
         }
@@ -794,26 +785,13 @@ export function MedcinProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  // Sync theme
+  // Set theme to light mode only
   useEffect(() => {
     if (typeof document !== "undefined") {
-      document.documentElement.setAttribute("data-theme", theme);
-      if (theme === "dark") {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-      }
-      try {
-        localStorage.setItem("medcin_theme", theme);
-      } catch {
-        // Ignore
-      }
+      document.documentElement.setAttribute("data-theme", "light");
+      document.documentElement.classList.remove("dark");
     }
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "light" ? "dark" : "light"));
-  };
+  }, []);
 
   const addToast = (toast: Omit<ToastNotification, "id">) => {
     const id = `toast-${Date.now()}`;
@@ -1129,8 +1107,6 @@ export function MedcinProvider({ children }: { children: React.ReactNode }) {
       value={{
         role,
         setRole,
-        theme,
-        toggleTheme,
         toasts,
         addToast,
         removeToast,

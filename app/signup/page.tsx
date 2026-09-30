@@ -52,9 +52,9 @@ export default function SignupPage() {
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: `url('/images/bg-sanctuary.jpg')` }}
       />
-      <div className="absolute inset-0 bg-[var(--paper)]/85 dark:bg-[var(--paper)]/92 backdrop-blur-md" />
+      <div className="absolute inset-0 bg-[var(--paper)]/85 backdrop-blur-md" />
 
-      <div className="relative z-10 w-full max-w-lg backdrop-blur-2xl bg-white/85 dark:bg-[#1B1F18]/90 border border-white/80 dark:border-white/10 p-8 sm:p-10 space-y-6 shadow-2xl rounded-3xl">
+      <div className="relative z-10 w-full max-w-lg backdrop-blur-2xl bg-white/85/90 border border-white/80 p-8 sm:p-10 space-y-6 shadow-2xl rounded-3xl">
         {/* Header */}
         <div className="text-center space-y-2">
           <MedcinLogo size="lg" className="justify-center" />

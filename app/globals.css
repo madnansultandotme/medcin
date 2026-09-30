@@ -16,17 +16,26 @@
 
   --background: var(--paper);
   --foreground: var(--ink);
+  
+  color-scheme: light;
 }
 
-:root[data-theme="dark"],
-.dark {
-  --ink: #EDECE4;
-  --paper: #081B2D;
-  --surface: #102A43;
-  --mist: #244766;
-  --muted: #A1B8CB;
-  --background: var(--paper);
-  --foreground: var(--ink);
+/* Force light mode - override system dark mode preference */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #102A43;
+    --paper: #FFFFFF;
+    --surface: #FFFFFF;
+    --mist: #D7E7F5;
+    --clay: #1769AA;
+    --sage: #2F80B7;
+    --amber: #4B91C5;
+    --muted: #5C7185;
+    --background: var(--paper);
+    --foreground: var(--ink);
+    
+    color-scheme: light;
+  }
 }
 
 * {

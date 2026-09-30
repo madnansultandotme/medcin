@@ -197,7 +197,7 @@ export default function LandingPage() {
       {/* 1. HERO SLIDER SECTION WITH GLASSMORPHISM & ROUNDED CONTOURS */}
       <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-2 sm:pt-4 pb-6 sm:pb-10">
         <section
-          className="relative overflow-hidden rounded-3xl border border-[var(--mist)] dark:border-white/10 shadow-2xl min-h-[640px] md:min-h-[720px] flex items-center"
+          className="relative overflow-hidden rounded-3xl border border-[var(--mist)] shadow-2xl min-h-[640px] md:min-h-[720px] flex items-center"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
@@ -235,7 +235,7 @@ export default function LandingPage() {
               {/* Left Glassmorphism Text Card */}
               <div className="lg:col-span-7 space-y-6">
                 {/* Slide Pill Indicator */}
-                <div className="inline-flex items-center gap-2.5 px-4 py-2 backdrop-blur-xl bg-white/70 dark:bg-[#1B1F18]/70 border border-white/60 dark:border-white/10 rounded-full shadow-sm">
+                <div className="inline-flex items-center gap-2.5 px-4 py-2 backdrop-blur-xl bg-white/70/70 border border-white/60 rounded-full shadow-sm">
                   <span className="text-base">{heroSlides[currentSlide].flag}</span>
                   <span className="w-2 h-2 rounded-full bg-[var(--clay)] animate-pulse" />
                   <span className="font-mono-ledger text-xs font-semibold uppercase tracking-wider text-[var(--clay)]">
@@ -254,7 +254,7 @@ export default function LandingPage() {
                 </p>
 
                 {/* Slide Highlights Glass Banner */}
-                <div className="backdrop-blur-xl bg-white/50 dark:bg-[#1B1F18]/60 border border-white/60 dark:border-white/10 p-3.5 max-w-xl rounded-2xl flex items-center justify-between text-xs font-mono-ledger shadow-xs">
+                <div className="backdrop-blur-xl bg-white/50/60 border border-white/60 p-3.5 max-w-xl rounded-2xl flex items-center justify-between text-xs font-mono-ledger shadow-xs">
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4 text-[var(--sage)]" />
                     <span className="text-[var(--ink)] font-semibold">
@@ -278,7 +278,7 @@ export default function LandingPage() {
 
                   <Link
                     href="/signup"
-                    className="backdrop-blur-xl bg-white/70 dark:bg-[#1B1F18]/70 border border-white/80 dark:border-white/15 text-[var(--ink)] px-6 py-3.5 font-semibold hover:border-[var(--clay)] hover:text-[var(--clay)] transition-all shadow-xs rounded-xl"
+                    className="backdrop-blur-xl bg-white/70/70 border border-white/80 text-[var(--ink)] px-6 py-3.5 font-semibold hover:border-[var(--clay)] hover:text-[var(--clay)] transition-all shadow-xs rounded-xl"
                   >
                     Register Your Practice
                   </Link>
@@ -290,14 +290,14 @@ export default function LandingPage() {
                     <button
                       onClick={handlePrevSlide}
                       aria-label="Previous slide"
-                      className="w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-xl bg-white/70 dark:bg-[#1B1F18]/70 border border-white/70 dark:border-white/10 hover:border-[var(--clay)] text-[var(--ink)] transition-colors shadow-xs"
+                      className="w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-xl bg-white/70/70 border border-white/70 hover:border-[var(--clay)] text-[var(--ink)] transition-colors shadow-xs"
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
                     <button
                       onClick={handleNextSlide}
                       aria-label="Next slide"
-                      className="w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-xl bg-white/70 dark:bg-[#1B1F18]/70 border border-white/70 dark:border-white/10 hover:border-[var(--clay)] text-[var(--ink)] transition-colors shadow-xs"
+                      className="w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-xl bg-white/70/70 border border-white/70 hover:border-[var(--clay)] text-[var(--ink)] transition-colors shadow-xs"
                     >
                       <ChevronRight className="w-4 h-4" />
                     </button>
@@ -327,7 +327,7 @@ export default function LandingPage() {
 
               {/* Right Floating Glassmorphism Search Console */}
               <div className="lg:col-span-5">
-                <div className="backdrop-blur-2xl bg-white/85 dark:bg-[#1B1F18]/85 border border-white/80 dark:border-white/15 p-6 sm:p-7 shadow-[0_16px_40px_rgba(0,0,0,0.12)] space-y-5 rounded-3xl">
+                <div className="backdrop-blur-2xl bg-white/85/85 border border-white/80 p-6 sm:p-7 shadow-[0_16px_40px_rgba(0,0,0,0.12)] space-y-5 rounded-3xl">
                   {/* Header */}
                   <div className="border-b border-[var(--mist)]/70 pb-3">
                     <div className="flex items-center justify-between">
@@ -359,7 +359,7 @@ export default function LandingPage() {
                         className={`py-2 px-2 border text-center transition-all flex items-center justify-center gap-1 rounded-xl ${
                           selectedCountryTab === "SG"
                             ? "border-[var(--clay)] bg-[var(--clay)] text-white font-bold"
-                            : "border-[var(--mist)] bg-white/50 dark:bg-black/20 text-[var(--ink)] hover:border-[var(--clay)]"
+                            : "border-[var(--mist)] bg-white/50 text-[var(--ink)] hover:border-[var(--clay)]"
                         }`}
                       >
                         <span>🇸🇬</span>
@@ -375,7 +375,7 @@ export default function LandingPage() {
                         className={`py-2 px-2 border text-center transition-all flex items-center justify-center gap-1 rounded-xl ${
                           selectedCountryTab === "TH"
                             ? "border-[var(--clay)] bg-[var(--clay)] text-white font-bold"
-                            : "border-[var(--mist)] bg-white/50 dark:bg-black/20 text-[var(--ink)] hover:border-[var(--clay)]"
+                            : "border-[var(--mist)] bg-white/50 text-[var(--ink)] hover:border-[var(--clay)]"
                         }`}
                       >
                         <span>🇹🇭</span>
@@ -391,7 +391,7 @@ export default function LandingPage() {
                         className={`py-2 px-2 border text-center transition-all flex items-center justify-center gap-1 rounded-xl ${
                           selectedCountryTab === "MY"
                             ? "border-[var(--clay)] bg-[var(--clay)] text-white font-bold"
-                            : "border-[var(--mist)] bg-white/50 dark:bg-black/20 text-[var(--ink)] hover:border-[var(--clay)]"
+                            : "border-[var(--mist)] bg-white/50 text-[var(--ink)] hover:border-[var(--clay)]"
                         }`}
                       >
                         <span>🇲🇾</span>
@@ -408,7 +408,7 @@ export default function LandingPage() {
                       <select
                         value={selectedSpecialty}
                         onChange={(e) => setSelectedSpecialty(e.target.value)}
-                        className="w-full p-2.5 border border-[var(--mist)] bg-white/80 dark:bg-[#141712]/80 text-xs font-mono-ledger text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] backdrop-blur-md rounded-xl"
+                        className="w-full p-2.5 border border-[var(--mist)] bg-white/80/80 text-xs font-mono-ledger text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] backdrop-blur-md rounded-xl"
                       >
                         <option value="All">All Specialties (ASEAN Directory)</option>
                         <option value="Aesthetics">Medical Aesthetics & Longevity</option>
@@ -426,7 +426,7 @@ export default function LandingPage() {
                       <select
                         value={selectedCity}
                         onChange={(e) => setSelectedCity(e.target.value)}
-                        className="w-full p-2.5 border border-[var(--mist)] bg-white/80 dark:bg-[#141712]/80 text-xs font-mono-ledger text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] backdrop-blur-md rounded-xl"
+                        className="w-full p-2.5 border border-[var(--mist)] bg-white/80/80 text-xs font-mono-ledger text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] backdrop-blur-md rounded-xl"
                       >
                         <option value="Singapore">Singapore (Novena · Orchard)</option>
                         <option value="Bangkok">Bangkok (Sukhumvit · Sathorn)</option>
@@ -463,7 +463,7 @@ export default function LandingPage() {
 
             {/* Regional Floating Stats Ribbon */}
             <div className="pt-12 grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="backdrop-blur-xl bg-white/60 dark:bg-[#1B1F18]/70 border border-white/60 dark:border-white/10 p-4 shadow-sm rounded-2xl">
+              <div className="backdrop-blur-xl bg-white/60/70 border border-white/60 p-4 shadow-sm rounded-2xl">
                 <div className="text-[10px] font-mono-ledger uppercase text-[var(--muted)]">
                   Accredited Clinics
                 </div>
@@ -475,7 +475,7 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              <div className="backdrop-blur-xl bg-white/60 dark:bg-[#1B1F18]/70 border border-white/60 dark:border-white/10 p-4 shadow-sm rounded-2xl">
+              <div className="backdrop-blur-xl bg-white/60/70 border border-white/60 p-4 shadow-sm rounded-2xl">
                 <div className="text-[10px] font-mono-ledger uppercase text-[var(--muted)]">
                   Booking Transparency
                 </div>
@@ -487,7 +487,7 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              <div className="backdrop-blur-xl bg-white/60 dark:bg-[#1B1F18]/70 border border-white/60 dark:border-white/10 p-4 shadow-sm rounded-2xl">
+              <div className="backdrop-blur-xl bg-white/60/70 border border-white/60 p-4 shadow-sm rounded-2xl">
                 <div className="text-[10px] font-mono-ledger uppercase text-[var(--muted)]">
                   Calendar Confirmation
                 </div>
@@ -499,7 +499,7 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              <div className="backdrop-blur-xl bg-white/60 dark:bg-[#1B1F18]/70 border border-white/60 dark:border-white/10 p-4 shadow-sm rounded-2xl">
+              <div className="backdrop-blur-xl bg-white/60/70 border border-white/60 p-4 shadow-sm rounded-2xl">
                 <div className="text-[10px] font-mono-ledger uppercase text-[var(--muted)]">
                   Patient Satisfaction
                 </div>
@@ -667,7 +667,7 @@ export default function LandingPage() {
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                    <div className="absolute top-3 right-3 backdrop-blur-md bg-white/90 dark:bg-black/80 px-2.5 py-1 rounded-full font-mono-ledger text-[10px] font-bold text-[var(--amber)] flex items-center gap-1 shadow-sm">
+                    <div className="absolute top-3 right-3 backdrop-blur-md bg-white/90 px-2.5 py-1 rounded-full font-mono-ledger text-[10px] font-bold text-[var(--amber)] flex items-center gap-1 shadow-sm">
                       <Star className="w-3 h-3 fill-current" />
                       <span>{c.rating}</span>
                     </div>
@@ -716,7 +716,7 @@ export default function LandingPage() {
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url('/images/bg-sanctuary.jpg')` }}
         />
-        <div className="absolute inset-0 bg-[var(--paper)]/90 dark:bg-[var(--paper)]/94 backdrop-blur-md" />
+        <div className="absolute inset-0 bg-[var(--paper)]/90 backdrop-blur-md" />
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="max-w-3xl space-y-2">
@@ -733,7 +733,7 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* For Patients */}
-            <div className="backdrop-blur-2xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/80 dark:border-white/10 p-8 sm:p-10 flex flex-col justify-between space-y-6 shadow-xl rounded-3xl hover:shadow-2xl transition-all">
+            <div className="backdrop-blur-2xl bg-white/80/85 border border-white/80 p-8 sm:p-10 flex flex-col justify-between space-y-6 shadow-xl rounded-3xl hover:shadow-2xl transition-all">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="badge-ledger badge-confirmed font-mono-ledger">Patient Workspace</span>
@@ -781,7 +781,7 @@ export default function LandingPage() {
             </div>
 
             {/* For Medical Centers */}
-            <div className="backdrop-blur-2xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/80 dark:border-white/10 p-8 sm:p-10 flex flex-col justify-between space-y-6 shadow-xl rounded-3xl hover:shadow-2xl transition-all">
+            <div className="backdrop-blur-2xl bg-white/80/85 border border-white/80 p-8 sm:p-10 flex flex-col justify-between space-y-6 shadow-xl rounded-3xl hover:shadow-2xl transition-all">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="badge-ledger badge-flagged font-mono-ledger">Clinic Operations</span>
@@ -842,7 +842,7 @@ export default function LandingPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/70 backdrop-blur-xs" />
 
         <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
-          <div className="backdrop-blur-2xl bg-white/90 dark:bg-[#141712]/92 border border-white/60 dark:border-white/10 p-10 sm:p-14 rounded-3xl shadow-2xl space-y-6">
+          <div className="backdrop-blur-2xl bg-white/90/92 border border-white/60 p-10 sm:p-14 rounded-3xl shadow-2xl space-y-6">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-[var(--paper)] border border-[var(--mist)] rounded-full font-mono-ledger text-xs text-[var(--clay)] font-semibold shadow-xs">
               <span>🇸🇬 🇹🇭 🇲🇾</span>
               <span>Singapore · Thailand · Malaysia</span>

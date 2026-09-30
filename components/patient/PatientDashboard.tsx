@@ -245,7 +245,7 @@ ${branding.contact.supportPhone}
   return (
     <div className="space-y-6">
       {/* Patient Workspace Header */}
-      <div className="backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 md:p-8 rounded-3xl shadow-sm">
+      <div className="backdrop-blur-xl bg-white/80/85 border border-white/70 p-6 md:p-8 rounded-3xl shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-[var(--clay)]/10 text-[var(--clay)] border border-[var(--clay)]/20 flex items-center justify-center font-mono-ledger text-lg font-bold shadow-xs overflow-hidden">
@@ -323,7 +323,7 @@ ${branding.contact.supportPhone}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Left Filter Rail */}
           <div className="lg:col-span-1 space-y-4">
-            <div className="backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 rounded-3xl shadow-sm space-y-5">
+            <div className="backdrop-blur-xl bg-white/80/85 border border-white/70 p-6 rounded-3xl shadow-sm space-y-5">
               <div className="flex items-center justify-between pb-3 border-b border-[var(--mist)] text-sm">
                 <span className="font-bold text-[var(--ink)] uppercase tracking-wider text-xs font-mono-ledger">Specialties & Filters</span>
                 {(selectedCategory !== "All" || selectedCity !== "All" || searchTerm) && (
@@ -430,7 +430,7 @@ ${branding.contact.supportPhone}
             {/* View Mode Toggle and Search Bar */}
             <div className="space-y-3">
               {/* View Mode Toggle */}
-              <div className="backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-2 rounded-2xl shadow-sm inline-flex gap-2">
+              <div className="backdrop-blur-xl bg-white/80/85 border border-white/70 p-2 rounded-2xl shadow-sm inline-flex gap-2">
                 <button
                   onClick={() => setViewMode("doctors")}
                   className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${
@@ -456,7 +456,7 @@ ${branding.contact.supportPhone}
               </div>
 
               {/* Search Input Bar */}
-              <div className="backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-4 rounded-2xl shadow-sm flex items-center gap-3">
+              <div className="backdrop-blur-xl bg-white/80/85 border border-white/70 p-4 rounded-2xl shadow-sm flex items-center gap-3">
               <Search className="w-5 h-5 text-[var(--muted)] ml-1 shrink-0" />
               <input
                 type="text"
@@ -483,7 +483,7 @@ ${branding.contact.supportPhone}
             {viewMode === "doctors" && (
               <div className="space-y-4">
                 {filteredDoctors.length === 0 ? (
-                  <div className="backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-12 text-center rounded-3xl">
+                  <div className="backdrop-blur-xl bg-white/80/85 border border-white/70 p-12 text-center rounded-3xl">
                     <div className="text-base font-bold text-[var(--ink)]">
                       No practitioners matching criteria
                     </div>
@@ -496,7 +496,7 @@ ${branding.contact.supportPhone}
                   <div
                     key={doc.id}
                     onClick={() => router.push(`/doctors/${doc.id}`)}
-                    className="backdrop-blur-xl bg-white/85 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 sm:p-7 rounded-3xl shadow-sm hover:shadow-md hover:border-[var(--clay)] transition-all space-y-4 cursor-pointer"
+                    className="backdrop-blur-xl bg-white/85/85 border border-white/70 p-6 sm:p-7 rounded-3xl shadow-sm hover:shadow-md hover:border-[var(--clay)] transition-all space-y-4 cursor-pointer"
                   >
                     <div className="flex flex-col sm:flex-row justify-between gap-5">
                       {/* Doctor Info */}
@@ -601,7 +601,7 @@ ${branding.contact.supportPhone}
             {viewMode === "centers" && (
               <div className="space-y-4">
                 {filteredCenters.length === 0 ? (
-                  <div className="backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-12 text-center rounded-3xl">
+                  <div className="backdrop-blur-xl bg-white/80/85 border border-white/70 p-12 text-center rounded-3xl">
                     <div className="text-base font-bold text-[var(--ink)]">
                       No medical centers matching criteria
                     </div>
@@ -614,7 +614,7 @@ ${branding.contact.supportPhone}
                     <div
                       key={center.id}
                       onClick={() => router.push(`/centers/${center.id}`)}
-                      className="backdrop-blur-xl bg-white/85 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 sm:p-7 rounded-3xl shadow-sm hover:shadow-md hover:border-[var(--clay)] transition-all space-y-4 cursor-pointer"
+                      className="backdrop-blur-xl bg-white/85/85 border border-white/70 p-6 sm:p-7 rounded-3xl shadow-sm hover:shadow-md hover:border-[var(--clay)] transition-all space-y-4 cursor-pointer"
                     >
                       <div className="flex flex-col sm:flex-row justify-between gap-5">
                         {/* Center Info */}
@@ -716,7 +716,7 @@ ${branding.contact.supportPhone}
       {activeTab === "book" && (
         <div className="max-w-3xl mx-auto space-y-6">
           {/* Stepper Progress Bar */}
-          <div className="backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-3 rounded-2xl shadow-sm">
+          <div className="backdrop-blur-xl bg-white/80/85 border border-white/70 p-3 rounded-2xl shadow-sm">
             <div className="grid grid-cols-4 gap-2 text-center font-mono-ledger text-xs">
               {[
                 { num: 1, label: "1. Procedure" },
@@ -742,7 +742,7 @@ ${branding.contact.supportPhone}
           </div>
 
           {/* Selected Doctor Summary Card */}
-          <div className="backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-5 rounded-3xl shadow-sm flex items-center justify-between">
+          <div className="backdrop-blur-xl bg-white/80/85 border border-white/70 p-5 rounded-3xl shadow-sm flex items-center justify-between">
             <div className="flex items-center gap-3.5">
               <div className="w-12 h-12 rounded-2xl bg-[var(--clay)]/10 text-[var(--clay)] border border-[var(--clay)]/20 flex items-center justify-center font-mono-ledger font-bold text-sm shadow-xs">
                 {selectedDoctor.initials}
@@ -770,7 +770,7 @@ ${branding.contact.supportPhone}
 
           {/* STEP 1: SELECT PROCEDURE */}
           {bookingStep === 1 && (
-            <div className="backdrop-blur-xl bg-white/85 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 sm:p-8 rounded-3xl shadow-sm space-y-5">
+            <div className="backdrop-blur-xl bg-white/85/85 border border-white/70 p-6 sm:p-8 rounded-3xl shadow-sm space-y-5">
               <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
                 <h3 className="font-bold text-lg text-[var(--ink)]">
                   Select Procedure / Consultation
@@ -847,7 +847,7 @@ ${branding.contact.supportPhone}
 
           {/* STEP 2: SELECT DATE & TIME SLOT */}
           {bookingStep === 2 && (
-            <div className="backdrop-blur-xl bg-white/85 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 sm:p-8 rounded-3xl shadow-sm space-y-6">
+            <div className="backdrop-blur-xl bg-white/85/85 border border-white/70 p-6 sm:p-8 rounded-3xl shadow-sm space-y-6">
               <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
                 <h3 className="font-bold text-lg text-[var(--ink)]">
                   Pick Appointment Date & Time
@@ -974,7 +974,7 @@ ${branding.contact.supportPhone}
 
           {/* STEP 3: PATIENT INFORMATION */}
           {bookingStep === 3 && (
-            <div className="backdrop-blur-xl bg-white/85 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 sm:p-8 rounded-3xl shadow-sm space-y-6">
+            <div className="backdrop-blur-xl bg-white/85/85 border border-white/70 p-6 sm:p-8 rounded-3xl shadow-sm space-y-6">
               <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
                 <h3 className="font-bold text-lg text-[var(--ink)]">
                   Patient Contact & Clinical Notes
@@ -995,7 +995,7 @@ ${branding.contact.supportPhone}
                     onChange={(e) =>
                       setActiveBookingDraft((prev) => ({ ...prev, patientName: e.target.value }))
                     }
-                    className="w-full p-3.5 border border-[var(--mist)] bg-white/80 dark:bg-[#141712]/80 rounded-xl text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                    className="w-full p-3.5 border border-[var(--mist)] bg-white/80/80 rounded-xl text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
                   />
                 </div>
 
@@ -1010,7 +1010,7 @@ ${branding.contact.supportPhone}
                       onChange={(e) =>
                         setActiveBookingDraft((prev) => ({ ...prev, patientEmail: e.target.value }))
                       }
-                      className="w-full p-3.5 border border-[var(--mist)] bg-white/80 dark:bg-[#141712]/80 rounded-xl text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                      className="w-full p-3.5 border border-[var(--mist)] bg-white/80/80 rounded-xl text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
                     />
                   </div>
                   <div>
@@ -1023,7 +1023,7 @@ ${branding.contact.supportPhone}
                       onChange={(e) =>
                         setActiveBookingDraft((prev) => ({ ...prev, patientPhone: e.target.value }))
                       }
-                      className="w-full p-3.5 border border-[var(--mist)] bg-white/80 dark:bg-[#141712]/80 rounded-xl text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                      className="w-full p-3.5 border border-[var(--mist)] bg-white/80/80 rounded-xl text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
                     />
                   </div>
                 </div>
@@ -1039,7 +1039,7 @@ ${branding.contact.supportPhone}
                       setActiveBookingDraft((prev) => ({ ...prev, patientNotes: e.target.value }))
                     }
                     placeholder="Briefly state reason for visit or existing medications..."
-                    className="w-full p-3.5 border border-[var(--mist)] bg-white/80 dark:bg-[#141712]/80 rounded-xl text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 font-sans-ledger"
+                    className="w-full p-3.5 border border-[var(--mist)] bg-white/80/80 rounded-xl text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 font-sans-ledger"
                   />
                 </div>
               </div>
@@ -1064,7 +1064,7 @@ ${branding.contact.supportPhone}
 
           {/* STEP 4: REVIEW & CONFIRM */}
           {bookingStep === 4 && (
-            <div className="backdrop-blur-xl bg-white/85 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 sm:p-8 rounded-3xl shadow-sm space-y-6">
+            <div className="backdrop-blur-xl bg-white/85/85 border border-white/70 p-6 sm:p-8 rounded-3xl shadow-sm space-y-6">
               <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
                 <h3 className="font-bold text-lg text-[var(--ink)]">
                   Review Appointment Summary
@@ -1074,7 +1074,7 @@ ${branding.contact.supportPhone}
                 </span>
               </div>
 
-              <div className="border border-[var(--mist)] divide-y divide-[var(--mist)] text-sm rounded-2xl overflow-hidden bg-white/50 dark:bg-black/20">
+              <div className="border border-[var(--mist)] divide-y divide-[var(--mist)] text-sm rounded-2xl overflow-hidden bg-white/50">
                 <div className="p-4 flex justify-between items-center">
                   <span className="text-[var(--muted)]">Physician</span>
                   <span className="font-bold text-[var(--ink)]">
@@ -1149,7 +1149,7 @@ ${branding.contact.supportPhone}
       {/* VIEW 3: CONFIRMATION SUCCESS */}
       {activeTab === "confirm" && latestBooking && (
         <div className="max-w-2xl mx-auto space-y-6">
-          <div className="backdrop-blur-xl bg-white/85 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-8 sm:p-10 rounded-3xl text-center space-y-5 shadow-xl">
+          <div className="backdrop-blur-xl bg-white/85/85 border border-white/70 p-8 sm:p-10 rounded-3xl text-center space-y-5 shadow-xl">
             <div className="w-16 h-16 border-2 border-[var(--sage)] rounded-full flex items-center justify-center mx-auto text-[var(--sage)] bg-[var(--sage)]/10 shadow-sm">
               <Check className="w-9 h-9 stroke-[3]" />
             </div>
@@ -1239,7 +1239,7 @@ ${branding.contact.supportPhone}
       {/* VIEW 4: MY BOOKINGS */}
       {activeTab === "mybookings" && (
         <div className="space-y-6">
-          <div className="backdrop-blur-xl bg-white/85 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 sm:p-8 rounded-3xl shadow-sm space-y-5">
+          <div className="backdrop-blur-xl bg-white/85/85 border border-white/70 p-6 sm:p-8 rounded-3xl shadow-sm space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[var(--mist)] gap-3">
               <div>
                 <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
@@ -1331,7 +1331,7 @@ ${branding.contact.supportPhone}
           </div>
 
           {/* Past History Table */}
-          <div className="backdrop-blur-xl bg-white/85 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 sm:p-8 rounded-3xl shadow-sm space-y-5">
+          <div className="backdrop-blur-xl bg-white/85/85 border border-white/70 p-6 sm:p-8 rounded-3xl shadow-sm space-y-5">
             <div className="pb-3 border-b border-[var(--mist)]">
               <h3 className="font-bold text-lg text-[var(--ink)]">
                 Past Consultations History
@@ -1386,7 +1386,7 @@ ${branding.contact.supportPhone}
       {/* MODAL: RESCHEDULE */}
       {reschedulingBooking && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="backdrop-blur-2xl bg-white/95 dark:bg-[#1B1F18]/95 border border-white/80 dark:border-white/10 p-6 sm:p-8 max-w-lg w-full shadow-2xl rounded-3xl space-y-5">
+          <div className="backdrop-blur-2xl bg-white/95/95 border border-white/80 p-6 sm:p-8 max-w-lg w-full shadow-2xl rounded-3xl space-y-5">
             <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
               <h3 className="font-bold text-lg sm:text-xl text-[var(--ink)]">
                 Reschedule {reschedulingBooking.reference}
@@ -1463,7 +1463,7 @@ ${branding.contact.supportPhone}
       {/* MODAL: CANCEL */}
       {cancellingBooking && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="backdrop-blur-2xl bg-white/95 dark:bg-[#1B1F18]/95 border border-white/80 dark:border-white/10 p-6 sm:p-8 max-w-lg w-full shadow-2xl rounded-3xl space-y-5">
+          <div className="backdrop-blur-2xl bg-white/95/95 border border-white/80 p-6 sm:p-8 max-w-lg w-full shadow-2xl rounded-3xl space-y-5">
             <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
               <h3 className="font-bold text-lg sm:text-xl text-[var(--ink)]">
                 Cancel Consultation {cancellingBooking.reference}

@@ -401,7 +401,7 @@ ${settings.supportEmail}
       {activeTab === "centers" && (
         <div className="space-y-6">
           {pendingCenters.length > 0 && (
-            <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-[var(--amber)]/50 p-6 md:p-8 space-y-5 shadow-sm">
+            <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-[var(--amber)]/50 p-6 md:p-8 space-y-5 shadow-sm">
               <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
                 <div>
                   <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)] flex items-center gap-3">
@@ -466,7 +466,7 @@ ${settings.supportEmail}
           )}
 
           {/* Active Network Directory */}
-          <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 md:p-8 space-y-5 shadow-sm">
+          <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 p-6 md:p-8 space-y-5 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-[var(--mist)]">
               <div>
                 <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
@@ -491,7 +491,7 @@ ${settings.supportEmail}
               </div>
             </div>
 
-            <div className="divide-y divide-[var(--mist)] border border-[var(--mist)] rounded-2xl overflow-hidden bg-white/40 dark:bg-black/20">
+            <div className="divide-y divide-[var(--mist)] border border-[var(--mist)] rounded-2xl overflow-hidden bg-white/40">
               {filteredCenters.map((c) => (
                 <div key={c.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[var(--paper)]/50 transition-colors">
                   <div className="flex items-center gap-3.5">
@@ -537,7 +537,7 @@ ${settings.supportEmail}
 
       {/* VIEW 2: DOCTORS NETWORK */}
       {activeTab === "doctors" && (
-        <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 shadow-sm p-6 sm:p-8 space-y-6">
+        <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--mist)]">
             <div>
               <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
@@ -731,7 +731,7 @@ ${settings.supportEmail}
 
       {/* VIEW 3: GLOBAL BOOKINGS LEDGER */}
       {activeTab === "globalbookings" && (
-        <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 shadow-sm p-6 sm:p-8 space-y-6">
+        <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--mist)]">
             <div>
               <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
@@ -855,7 +855,7 @@ ${settings.supportEmail}
 
       {/* VIEW 4: DISPUTES DESK */}
       {activeTab === "disputes" && (
-        <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 shadow-sm p-6 sm:p-8 space-y-6">
+        <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--mist)]">
             <div>
               <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
@@ -950,7 +950,7 @@ ${settings.supportEmail}
       {/* VIEW 5: PLATFORM SETTINGS */}
       {activeTab === "settings" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 shadow-sm p-6 sm:p-8 space-y-6">
+          <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6">
             <div className="pb-4 border-b border-[var(--mist)]">
               <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
                 Financial Settings
@@ -1010,7 +1010,7 @@ ${settings.supportEmail}
           </div>
 
           {/* Service Taxonomies */}
-          <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 shadow-sm p-6 sm:p-8 space-y-6">
+          <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6">
             <div className="pb-4 border-b border-[var(--mist)]">
               <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
                 Medical Specialties
@@ -1058,7 +1058,7 @@ ${settings.supportEmail}
           </div>
 
           {/* Client Branding & Multi-Tenant White-Label Configuration */}
-          <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 shadow-sm p-6 sm:p-8 space-y-6 md:col-span-2">
+          <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6 md:col-span-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[var(--mist)] gap-3">
               <div>
                 <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
@@ -1107,7 +1107,7 @@ ${settings.supportEmail}
       {/* MODAL: ARBITRATE DISPUTE */}
       {resolvingDispute && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="rounded-3xl bg-[var(--surface)] border border-white/70 dark:border-white/10 p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5">
+          <div className="rounded-3xl bg-[var(--surface)] border border-white/70 p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5">
             <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
               <h3 className="font-bold text-lg sm:text-xl text-[var(--ink)]">
                 Arbitrate Dispute {resolvingDispute.bookingRef}

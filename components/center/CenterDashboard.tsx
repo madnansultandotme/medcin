@@ -209,7 +209,7 @@ export function CenterDashboard() {
       <div className="rounded-3xl border border-[var(--mist)] bg-[var(--surface)] p-6 md:p-8 shadow-sm backdrop-blur-md">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-white dark:bg-[#141712] border border-[var(--mist)] flex items-center justify-center overflow-hidden shadow-xs relative flex-none p-1.5">
+            <div className="w-16 h-16 rounded-2xl bg-white border border-[var(--mist)] flex items-center justify-center overflow-hidden shadow-xs relative flex-none p-1.5">
               {currentCenter.logo ? (
                 <img
                   src={currentCenter.logo}
@@ -307,7 +307,7 @@ export function CenterDashboard() {
 
       {/* VIEW 1: BOOKINGS INBOX */}
       {activeTab === "inbox" && (
-        <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 md:p-8 shadow-sm space-y-6">
+        <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 p-6 md:p-8 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--mist)]">
             <div>
               <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
@@ -350,7 +350,7 @@ export function CenterDashboard() {
           </div>
 
           {/* Table Feed */}
-          <div className="divide-y divide-[var(--mist)] border border-[var(--mist)] rounded-2xl overflow-hidden bg-white/40 dark:bg-black/20">
+          <div className="divide-y divide-[var(--mist)] border border-[var(--mist)] rounded-2xl overflow-hidden bg-white/40">
             {filteredInbox.length === 0 ? (
               <div className="p-12 text-center text-sm font-mono-ledger text-[var(--muted)]">
                 No bookings found matching current filters.
@@ -463,7 +463,7 @@ export function CenterDashboard() {
 
       {/* VIEW 2: AVAILABILITY SCHEDULER */}
       {activeTab === "availability" && (
-        <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 md:p-8 shadow-sm space-y-6">
+        <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 p-6 md:p-8 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--mist)]">
             <div>
               <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
@@ -576,7 +576,7 @@ export function CenterDashboard() {
       {/* VIEW 3: DOCTORS & CATALOG */}
       {activeTab === "doctors" && (
         <div className="space-y-6">
-          <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 md:p-8 shadow-sm space-y-5">
+          <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 p-6 md:p-8 shadow-sm space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[var(--mist)] gap-3">
               <div>
                 <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
@@ -596,7 +596,7 @@ export function CenterDashboard() {
               </button>
             </div>
 
-            <div className="divide-y divide-[var(--mist)] border border-[var(--mist)] rounded-2xl overflow-hidden bg-white/40 dark:bg-black/20">
+            <div className="divide-y divide-[var(--mist)] border border-[var(--mist)] rounded-2xl overflow-hidden bg-white/40">
               {clinicDoctors.map((doc) => (
                 <div key={doc.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-5 hover:bg-[var(--paper)]/50 transition-colors">
                   <div className="flex items-start gap-4">
@@ -655,7 +655,7 @@ export function CenterDashboard() {
           </div>
 
           {/* Procedures Catalog */}
-          <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 md:p-8 shadow-sm space-y-5">
+          <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 p-6 md:p-8 shadow-sm space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[var(--mist)] gap-3">
               <div>
                 <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
@@ -675,7 +675,7 @@ export function CenterDashboard() {
               </button>
             </div>
 
-            <div className="divide-y divide-[var(--mist)] border border-[var(--mist)] rounded-2xl overflow-hidden bg-white/40 dark:bg-black/20">
+            <div className="divide-y divide-[var(--mist)] border border-[var(--mist)] rounded-2xl overflow-hidden bg-white/40">
               {clinicDoctors[0]?.services.map((svc) => (
                 <div key={svc.id} className="p-4 flex items-center justify-between text-sm hover:bg-[var(--paper)]/50 transition-colors">
                   <div>
@@ -713,7 +713,7 @@ export function CenterDashboard() {
 
       {/* VIEW 4: CENTER PROFILE */}
       {activeTab === "onboarding" && (
-        <div className="rounded-3xl backdrop-blur-xl bg-white/80 dark:bg-[#1B1F18]/85 border border-white/70 dark:border-white/10 p-6 md:p-8 shadow-sm space-y-8 max-w-4xl">
+        <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 p-6 md:p-8 shadow-sm space-y-8 max-w-4xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[var(--mist)] gap-3">
             <div>
               <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
@@ -1101,7 +1101,7 @@ export function CenterDashboard() {
       {/* MODAL: ADD DOCTOR */}
       {showAddDoctorModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="rounded-3xl bg-[var(--surface)] border border-white/70 dark:border-white/10 p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5">
+          <div className="rounded-3xl bg-[var(--surface)] border border-white/70 p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5">
             <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
               <h3 className="font-bold text-lg sm:text-xl text-[var(--ink)]">
                 Add Doctor to Practice
@@ -1206,7 +1206,7 @@ export function CenterDashboard() {
       {/* MODAL: ADD PROCEDURE */}
       {showAddProcedureModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="rounded-3xl bg-[var(--surface)] border border-white/70 dark:border-white/10 p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5">
+          <div className="rounded-3xl bg-[var(--surface)] border border-white/70 p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5">
             <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
               <h3 className="font-bold text-lg sm:text-xl text-[var(--ink)]">
                 Add Procedure
@@ -1300,7 +1300,7 @@ export function CenterDashboard() {
       {/* MODAL: DECLINE BOOKING */}
       {declineBookingModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="rounded-3xl bg-[var(--surface)] border border-white/70 dark:border-white/10 p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5">
+          <div className="rounded-3xl bg-[var(--surface)] border border-white/70 p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5">
             <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
               <h3 className="font-bold text-lg sm:text-xl text-[var(--ink)]">
                 Decline Booking {declineBookingModal.reference}

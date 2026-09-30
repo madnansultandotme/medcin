@@ -7,8 +7,6 @@ import { MedcinLogo } from "./MedcinLogo";
 import { useMedcinStore } from "@/lib/store";
 import { useBranding } from "@/lib/branding";
 import {
-  Sun,
-  Moon,
   Calendar,
   Menu,
   X,
@@ -20,7 +18,7 @@ import {
 
 export function Navbar() {
   const pathname = usePathname();
-  const { theme, toggleTheme, role } = useMedcinStore();
+  const { role } = useMedcinStore();
   const { branding } = useBranding();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -40,7 +38,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full pt-2 sm:pt-3 pb-2 px-3 sm:px-6 lg:px-8 bg-[var(--paper)]/80 backdrop-blur-md transition-colors">
-      <nav className="max-w-7xl mx-auto bg-[var(--surface)]/90 dark:bg-[#1B1F18]/90 backdrop-blur-xl border border-[var(--mist)] dark:border-white/10 rounded-2xl sm:rounded-full px-4 sm:px-6 py-2.5 shadow-sm transition-all">
+      <nav className="max-w-7xl mx-auto bg-[var(--surface)]/90 backdrop-blur-xl border border-[var(--mist)] rounded-2xl sm:rounded-full px-4 sm:px-6 py-2.5 shadow-sm transition-all">
         <div className="flex items-center justify-between h-11">
           {/* Brand Logo & Navigation */}
           <div className="flex items-center gap-6 sm:gap-8">
@@ -81,20 +79,6 @@ export function Navbar() {
 
           {/* Right Actions */}
           <div className="hidden sm:flex items-center gap-3">
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="p-2 border border-[var(--mist)] rounded-full text-[var(--ink)] bg-[var(--paper)] hover:border-[var(--clay)] transition-all shadow-xs"
-              title={`Switch to ${theme === "light" ? "Dark" : "Light"} mode`}
-              aria-label="Toggle color theme"
-            >
-              {theme === "light" ? (
-                <Moon className="w-3.5 h-3.5 text-[var(--muted)]" />
-              ) : (
-                <Sun className="w-3.5 h-3.5 text-[var(--amber)]" />
-              )}
-            </button>
-
             {/* If inside dashboard: Show Logout Button */}
             {isDashboardRoute ? (
               <Link
@@ -130,12 +114,6 @@ export function Navbar() {
 
           {/* Mobile Hamburger Button */}
           <div className="flex sm:hidden items-center gap-2">
-            <button
-              onClick={toggleTheme}
-              className="p-2 border border-[var(--mist)] rounded-full text-[var(--ink)] bg-[var(--paper)]"
-            >
-              {theme === "light" ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
-            </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 border border-[var(--mist)] rounded-xl text-[var(--ink)] bg-[var(--surface)]"
