@@ -24,8 +24,8 @@ class AppTheme {
         onError: Colors.white,
       ),
       
-      // Typography
-      textTheme: GoogleFonts.ibmPlexSansTextTheme(ThemeData.light().textTheme).copyWith(
+      // Typography - Build TextTheme from scratch to avoid material_ui conflicts
+      textTheme: TextTheme(
         displayLarge: GoogleFonts.ibmPlexSans(
           fontSize: 32,
           fontWeight: FontWeight.bold,

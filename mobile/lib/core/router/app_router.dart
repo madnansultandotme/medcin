@@ -22,13 +22,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: AppRoutes.splash,
     debugLogDiagnostics: true,
     redirect: (context, state) {
-      final isAuthenticated = authState.when(
-        initial: () => false,
-        loading: () => false,
-        authenticated: (_) => true,
-        unauthenticated: () => false,
-        error: (_, __) => false,
-      );
+      final isAuthenticated = authState.isAuthenticated;
 
       final isSplash = state.matchedLocation == AppRoutes.splash;
       final isAuthRoute = state.matchedLocation == AppRoutes.login ||

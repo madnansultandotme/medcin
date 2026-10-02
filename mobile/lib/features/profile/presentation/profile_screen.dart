@@ -13,13 +13,7 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
     
-    final user = authState.when(
-      authenticated: (user) => user,
-      initial: () => null,
-      loading: () => null,
-      unauthenticated: () => null,
-      error: (_, __) => null,
-    );
+    final user = authState.user;
 
     if (user == null) {
       return const Scaffold(

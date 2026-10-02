@@ -14,6 +14,12 @@ final allDoctorsProvider = FutureProvider<List<Doctor>>((ref) async {
   return repository.getAllDoctors();
 });
 
+/// Synchronous doctors provider (loads from cache/Hive immediately)
+final doctorsProvider = Provider<List<Doctor>>((ref) {
+  final repository = ref.read(doctorRepositoryProvider) as LocalDoctorRepository;
+  return repository.getCachedDoctors();
+});
+
 /// Provider for searching doctors with filters
 final searchDoctorsProvider = FutureProvider.family<List<Doctor>, DoctorSearchParams>(
   (ref, params) async {

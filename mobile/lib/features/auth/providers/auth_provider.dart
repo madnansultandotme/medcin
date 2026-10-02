@@ -1,19 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../domain/repositories/auth_repository.dart';
-import '../data/repositories/local_auth_repository.dart';
 import '../domain/models/user_model.dart';
 import 'auth_state.dart';
 import 'auth_state_notifier.dart';
 
-/// Auth repository provider
-final authRepositoryProvider = Provider<IAuthRepository>((ref) {
-  return LocalAuthRepository();
-});
-
-/// Auth state provider
-final authStateProvider = StateNotifierProvider<AuthStateNotifier, AuthState>((ref) {
-  return AuthStateNotifier(ref.read(authRepositoryProvider));
-});
+export 'auth_state_notifier.dart';
 
 /// Current user provider
 final currentUserProvider = Provider<UserModel?>((ref) {

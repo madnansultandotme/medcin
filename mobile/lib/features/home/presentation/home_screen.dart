@@ -16,13 +16,7 @@ class HomeScreen extends ConsumerWidget {
     final authState = ref.watch(authStateProvider);
     final doctors = ref.watch(doctorsProvider);
     
-    final userName = authState.when(
-      authenticated: (user) => user.name,
-      initial: () => 'Guest',
-      loading: () => 'Guest',
-      unauthenticated: () => 'Guest',
-      error: (_, __) => 'Guest',
-    );
+    final userName = authState.user?.name ?? 'Guest';
 
     return Scaffold(
       body: SafeArea(

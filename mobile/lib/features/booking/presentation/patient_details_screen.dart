@@ -39,16 +39,11 @@ class _PatientDetailsScreenState extends ConsumerState<PatientDetailsScreen> {
     // Pre-fill with user data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authState = ref.read(authStateProvider);
-      authState.when(
-        authenticated: (user) {
-          _nameController.text = user.name;
-          _emailController.text = user.email;
-        },
-        initial: () {},
-        loading: () {},
-        unauthenticated: () {},
-        error: (_, __) {},
-      );
+      final user = authState.user;
+      if (user != null) {
+        _nameController.text = user.name;
+        _emailController.text = user.email;
+      }
     });
   }
 

@@ -121,7 +121,7 @@ class _DoctorDetailScreenState extends ConsumerState<DoctorDetailScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        doctor.bio,
+                        doctor.bio ?? '',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: AppColors.textSecondary,
                               height: 1.5,

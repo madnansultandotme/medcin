@@ -126,7 +126,7 @@ class _ServiceSelectionScreenState extends ConsumerState<ServiceSelectionScreen>
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    service.description,
+                                    service.description ?? '',
                                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                           color: AppColors.textSecondary,
                                         ),

@@ -81,4 +81,17 @@ class LocalDoctorRepository implements IDoctorRepository {
     
     return doctors;
   }
+  
+  /// Get cached doctors synchronously from Hive box
+  List<Doctor> getCachedDoctors() {
+    final List<Doctor> doctors = [];
+    for (var value in _box.values) {
+      try {
+        doctors.add(Doctor.fromJson(Map<String, dynamic>.from(value as Map)));
+      } catch (e) {
+        print('Error parsing cached doctor: $e');
+      }
+    }
+    return doctors;
+  }
 }
