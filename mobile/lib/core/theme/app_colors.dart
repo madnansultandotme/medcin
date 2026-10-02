@@ -10,11 +10,14 @@ class AppColors {
   // Text Colors
   static const Color ink = Color(0xFF102A43);
   static const Color muted = Color(0xFF5C7185);
+  static const Color textPrimary = Color(0xFF102A43);
+  static const Color textSecondary = Color(0xFF5C7185);
 
   // Background Colors
   static const Color paper = Color(0xFFFFFFFF);
-  static const Color surface = Color(0xFFFFFFFF);
+  static const Color surface = Color(0xFFF8FAFB);
   static const Color mist = Color(0xFFD7E7F5);
+  static const Color border = Color(0xFFD7E7F5);
 
   // Status Colors
   static const Color success = sage;
