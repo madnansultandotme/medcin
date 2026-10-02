@@ -114,44 +114,19 @@ class ProfileScreen extends ConsumerWidget {
                   icon: Icons.person_outline,
                   title: 'Personal Information',
                   subtitle: 'Update your details',
-                  onTap: () => _showComingSoon(context),
+                  onTap: () => _showComingSoon(context, 'Personal Information'),
                 ),
                 _MenuItem(
                   icon: Icons.lock_outline,
                   title: 'Change Password',
                   subtitle: 'Update your password',
-                  onTap: () => _showComingSoon(context),
+                  onTap: () => _showComingSoon(context, 'Change Password'),
                 ),
                 _MenuItem(
                   icon: Icons.notifications_outlined,
                   title: 'Notifications',
                   subtitle: 'Manage notification preferences',
-                  onTap: () => _showComingSoon(context),
-                ),
-              ],
-            ),
-            
-            _buildSection(
-              context,
-              title: 'Medical',
-              items: [
-                _MenuItem(
-                  icon: Icons.medical_information_outlined,
-                  title: 'Medical Records',
-                  subtitle: 'View your medical history',
-                  onTap: () => _showComingSoon(context),
-                ),
-                _MenuItem(
-                  icon: Icons.family_restroom,
-                  title: 'Family Members',
-                  subtitle: 'Manage family profiles',
-                  onTap: () => _showComingSoon(context),
-                ),
-                _MenuItem(
-                  icon: Icons.medication_outlined,
-                  title: 'Prescriptions',
-                  subtitle: 'View your prescriptions',
-                  onTap: () => _showComingSoon(context),
+                  onTap: () => _showComingSoon(context, 'Notifications'),
                 ),
               ],
             ),
@@ -164,7 +139,7 @@ class ProfileScreen extends ConsumerWidget {
                   icon: Icons.help_outline,
                   title: 'Help & Support',
                   subtitle: 'Get help and FAQs',
-                  onTap: () => _showComingSoon(context),
+                  onTap: () => _showComingSoon(context, 'Help & Support'),
                 ),
                 _MenuItem(
                   icon: Icons.info_outline,
@@ -176,7 +151,7 @@ class ProfileScreen extends ConsumerWidget {
                   icon: Icons.privacy_tip_outlined,
                   title: 'Privacy Policy',
                   subtitle: 'Read our privacy policy',
-                  onTap: () => _showComingSoon(context),
+                  onTap: () => _showComingSoon(context, 'Privacy Policy'),
                 ),
               ],
             ),
@@ -250,11 +225,11 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  void _showComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('This feature is coming soon!'),
-        backgroundColor: AppColors.clay,
+  void _showComingSoon(BuildContext context, String featureName) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => _ComingSoonScreen(featureName: featureName),
       ),
     );
   }
@@ -330,4 +305,81 @@ class _MenuItem {
     required this.subtitle,
     required this.onTap,
   });
+}
+
+
+/// Coming Soon screen for features that are not yet implemented
+class _ComingSoonScreen extends StatelessWidget {
+  final String featureName;
+  
+  const _ComingSoonScreen({required this.featureName});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(featureName),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Coming soon icon
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.rocket_launch_outlined,
+                  size: 64,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 32),
+              
+              // Title
+              Text(
+                'Coming Soon!',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.clay,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              
+              // Description
+              Text(
+                'We\'re working hard to bring you this feature. Stay tuned for updates!',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 48),
+              
+              // Go back button
+              FilledButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Go Back'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.clay,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

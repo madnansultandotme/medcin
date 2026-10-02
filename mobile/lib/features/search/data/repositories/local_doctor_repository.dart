@@ -11,7 +11,9 @@ class LocalDoctorRepository implements IDoctorRepository {
     final List<Doctor> doctors = [];
     for (var value in _box.values) {
       try {
-        doctors.add(Doctor.fromJson(Map<String, dynamic>.from(value as Map)));
+        // Convert dynamic map to Map<String, dynamic> recursively
+        final jsonMap = _convertToJsonMap(value);
+        doctors.add(Doctor.fromJson(jsonMap));
       } catch (e) {
         print('Error parsing doctor: $e');
       }
@@ -25,7 +27,8 @@ class LocalDoctorRepository implements IDoctorRepository {
     if (data == null) return null;
     
     try {
-      return Doctor.fromJson(Map<String, dynamic>.from(data as Map));
+      final jsonMap = _convertToJsonMap(data);
+      return Doctor.fromJson(jsonMap);
     } catch (e) {
       print('Error parsing doctor by ID: $e');
       return null;
@@ -87,11 +90,40 @@ class LocalDoctorRepository implements IDoctorRepository {
     final List<Doctor> doctors = [];
     for (var value in _box.values) {
       try {
-        doctors.add(Doctor.fromJson(Map<String, dynamic>.from(value as Map)));
+        final jsonMap = _convertToJsonMap(value);
+        doctors.add(Doctor.fromJson(jsonMap));
       } catch (e) {
         print('Error parsing cached doctor: $e');
       }
     }
     return doctors;
+  }
+  
+  /// Helper method to convert dynamic map to Map<String, dynamic> recursively
+  Map<String, dynamic> _convertToJsonMap(dynamic data) {
+    if (data is Map) {
+      return Map<String, dynamic>.fromEntries(
+        data.entries.map((entry) {
+          dynamic value = entry.value;
+          
+          // Recursively convert nested maps
+          if (value is Map) {
+            value = _convertToJsonMap(value);
+          }
+          // Recursively convert lists
+          else if (value is List) {
+            value = value.map((item) {
+              if (item is Map) {
+                return _convertToJsonMap(item);
+              }
+              return item;
+            }).toList();
+          }
+          
+          return MapEntry(entry.key.toString(), value);
+        }),
+      );
+    }
+    return {};
   }
 }

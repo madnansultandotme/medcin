@@ -264,68 +264,33 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen>
             ),
             if (status == 'upcoming') ...[
               const SizedBox(height: 16),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  // Stack vertically on narrow screens
-                  if (constraints.maxWidth < 320) {
-                    return Column(
-                      children: [
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: () => _cancelAppointment(appointment),
-                            icon: const Icon(Icons.cancel_outlined, size: 18),
-                            label: const Text('Cancel'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.error,
-                              side: const BorderSide(color: AppColors.error),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton.icon(
-                            onPressed: () => _rescheduleAppointment(appointment),
-                            icon: const Icon(Icons.edit_calendar, size: 18),
-                            label: const Text('Reschedule'),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.clay,
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  }
-                  
-                  // Side by side on wider screens
-                  return Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _cancelAppointment(appointment),
-                          icon: const Icon(Icons.cancel_outlined, size: 18),
-                          label: const Text('Cancel'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.error,
-                            side: const BorderSide(color: AppColors.error),
-                          ),
-                        ),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _cancelAppointment(appointment),
+                      icon: const Icon(Icons.cancel_outlined, size: 18),
+                      label: const Text('Cancel'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.error,
+                        side: const BorderSide(color: AppColors.error),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: () => _rescheduleAppointment(appointment),
-                          icon: const Icon(Icons.edit_calendar, size: 18),
-                          label: const Text('Reschedule'),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.clay,
-                          ),
-                        ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () => _rescheduleAppointment(appointment),
+                      icon: const Icon(Icons.edit_calendar, size: 18),
+                      label: const Text('Reschedule'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.clay,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                    ],
-                  );
-                },
+                    ),
+                  ),
+                ],
               ),
             ],
           ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
@@ -395,23 +396,26 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: () => context.go('${AppRoutes.doctorDetail}/${doctor.id}'),
+        onTap: () => context.go(AppRoutes.doctorDetailWithId(doctor.id)),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 32,
-                backgroundColor: AppColors.clay.withOpacity(0.1),
-                child: Text(
-                  doctor.name[0].toUpperCase(),
-                  style: const TextStyle(
-                    color: AppColors.clay,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+              // Doctor image or initials
+              ClipRRect(
+                borderRadius: BorderRadius.circular(32),
+                child: doctor.image != null && doctor.image!.isNotEmpty
+                    ? Image.network(
+                        doctor.image!,
+                        width: 64,
+                        height: 64,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return _buildInitialsAvatar(doctor);
+                        },
+                      )
+                    : _buildInitialsAvatar(doctor),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -454,6 +458,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ),
               const Icon(Icons.arrow_forward_ios, size: 16),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildInitialsAvatar(Doctor doctor) {
+    return Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        color: AppColors.clay.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(32),
+      ),
+      child: Center(
+        child: Text(
+          doctor.initials,
+          style: const TextStyle(
+            color: AppColors.clay,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
