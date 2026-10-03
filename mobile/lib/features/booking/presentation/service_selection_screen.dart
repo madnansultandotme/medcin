@@ -6,12 +6,19 @@ import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/service.dart';
 import '../../../shared/models/doctor.dart';
 import '../../../features/search/providers/doctor_provider.dart';
-import 'slot_selection_screen.dart';
+import 'patient_details_screen.dart';
 
 class ServiceSelectionScreen extends ConsumerStatefulWidget {
   final String doctorId;
+  final DateTime? preSelectedDate;
+  final String? preSelectedTime;
   
-  const ServiceSelectionScreen({super.key, required this.doctorId});
+  const ServiceSelectionScreen({
+    super.key,
+    required this.doctorId,
+    this.preSelectedDate,
+    this.preSelectedTime,
+  });
 
   @override
   ConsumerState<ServiceSelectionScreen> createState() => _ServiceSelectionScreenState();
@@ -195,21 +202,40 @@ class _ServiceSelectionScreenState extends ConsumerState<ServiceSelectionScreen>
                       (s) => s.id == _selectedServiceId,
                     );
                     
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SlotSelectionScreen(
-                          doctor: doctor,
-                          service: service,
+                    // Skip slot selection and go directly to patient details
+                    // if date/time were pre-selected from doctor detail screen
+                    if (widget.preSelectedDate != null && widget.preSelectedTime != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PatientDetailsScreen(
+                            doctor: doctor,
+                            service: service,
+                            selectedDate: widget.preSelectedDate!,
+                            selectedTime: widget.preSelectedTime!,
+                          ),
                         ),
-                      ),
-                    );
+                      );
+                    } else {
+                      // Fallback: show slot selection if no date/time provided
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PatientDetailsScreen(
+                            doctor: doctor,
+                            service: service,
+                            selectedDate: DateTime.now(),
+                            selectedTime: '10:00 AM',
+                          ),
+                        ),
+                      );
+                    }
                   },
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.clay,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: const Text('Continue to Date Selection'),
+                  child: const Text('Continue to Patient Details'),
                 ),
               ),
             )

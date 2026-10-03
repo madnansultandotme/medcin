@@ -98,7 +98,7 @@
       "licenseNumber": "SG-MOH-9420",
       "active": true,
       "bio": "15+ years specializing in cosmetic restoration and implantology. MOH-accredited with fellowship training in Toronto.",
-      "image": "/images/doctors/doctor-1.jpg",
+      "image": "https://i.pravatar.cc/150?img=1",
       "services": [
         {
           "id": "s1-1",
@@ -144,7 +144,7 @@
       "licenseNumber": "TH-MOPH-7821",
       "active": true,
       "bio": "Certified traditional Thai massage master with 20 years of practice. Expert in sports recovery and chronic pain relief.",
-      "image": "/images/doctors/doctor-2.jpg",
+      "image": "https://i.pravatar.cc/150?img=2",
       "services": [
         {
           "id": "s2-1",
@@ -190,7 +190,7 @@
       "licenseNumber": "MY-KKM-5612",
       "active": true,
       "bio": "Sports physio consultant for Malaysian national teams. Specializes in post-operative and ACL recovery.",
-      "image": "/images/doctors/doctor-3.jpg",
+      "image": "https://i.pravatar.cc/150?img=3",
       "services": [
         {
           "id": "s3-1",
@@ -236,7 +236,7 @@
       "licenseNumber": "SG-MOH-9518",
       "active": true,
       "bio": "Gentle family dentist with expertise in treating children and anxious patients. Graduated from NUS Faculty of Dentistry.",
-      "image": "/images/doctors/doctor-4.jpg",
+      "image": "https://i.pravatar.cc/150?img=4",
       "services": [
         {
           "id": "s4-1",
@@ -601,7 +601,7 @@
     "phone": "+65 9123 4567",
     "location": "Novena, Singapore",
     "initials": "MW",
-    "photo": "/images/profiles/patient-marcus.jpg",
+    "photo": "https://i.pravatar.cc/150?img=10",
     "preferredLanguage": "English",
     "emergencyContact": {
       "name": "Emily Wei",

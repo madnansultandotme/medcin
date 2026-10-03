@@ -260,9 +260,12 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
           
           return Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: InkWell(
-              onTap: () => setState(() => _selectedDate = date),
-              borderRadius: BorderRadius.circular(12),
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedDate = date;
+                });
+              },
               child: Container(
                 width: MediaQuery.of(context).size.width * 0.15,
                 padding: const EdgeInsets.all(8),
@@ -316,9 +319,12 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
       runSpacing: 12,
       children: _timeSlots.map((slot) {
         final isSelected = _selectedTimeSlot == slot;
-        return InkWell(
-          onTap: () => setState(() => _selectedTimeSlot = slot),
-          borderRadius: BorderRadius.circular(8),
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              _selectedTimeSlot = slot;
+            });
+          },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(

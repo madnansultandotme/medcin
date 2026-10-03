@@ -222,7 +222,7 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: statusBgColor,
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -275,6 +275,9 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen>
                         foregroundColor: AppColors.error,
                         side: const BorderSide(color: AppColors.error),
                         padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
@@ -287,6 +290,9 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen>
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.clay,
                         padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),

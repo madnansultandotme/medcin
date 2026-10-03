@@ -42,6 +42,12 @@ class _DoctorDetailScreenState extends ConsumerState<DoctorDetailScreen> {
           SliverAppBar(
             expandedHeight: 200,
             pinned: true,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => context.pop(),
+            ),
+            backgroundColor: AppColors.clay,
+            iconTheme: const IconThemeData(color: Colors.white),
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: BoxDecoration(
@@ -174,9 +180,9 @@ class _DoctorDetailScreenState extends ConsumerState<DoctorDetailScreen> {
           ),
         ],
       ),
-      bottomSheet: _selectedTimeSlot != null
+      bottomNavigationBar: _selectedTimeSlot != null
           ? Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
                 boxShadow: [
@@ -239,9 +245,12 @@ class _DoctorDetailScreenState extends ConsumerState<DoctorDetailScreen> {
           
           return Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: InkWell(
-              onTap: () => setState(() => _selectedDate = date),
-              borderRadius: BorderRadius.circular(12),
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedDate = date;
+                });
+              },
               child: Container(
                 width: MediaQuery.of(context).size.width * 0.15,
                 padding: const EdgeInsets.all(8),
@@ -283,10 +292,10 @@ class _DoctorDetailScreenState extends ConsumerState<DoctorDetailScreen> {
                     Text(
                       DateFormat('MMM').format(date),
                       style: TextStyle(
-                        color: isSelected
-                            ? Colors.white
-                            : AppColors.textSecondary,
-                        fontSize: 11,
+                      color: isSelected
+                          ? Colors.white
+                          : AppColors.textSecondary,
+                      fontSize: 11,
                       ),
                     ),
                   ],
@@ -305,9 +314,12 @@ class _DoctorDetailScreenState extends ConsumerState<DoctorDetailScreen> {
       runSpacing: 12,
       children: _timeSlots.map((slot) {
         final isSelected = _selectedTimeSlot == slot;
-        return InkWell(
-          onTap: () => setState(() => _selectedTimeSlot = slot),
-          borderRadius: BorderRadius.circular(8),
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              _selectedTimeSlot = slot;
+            });
+          },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
@@ -339,11 +351,22 @@ class _DoctorDetailScreenState extends ConsumerState<DoctorDetailScreen> {
   }
 
   void _showBookingConfirmation(BuildContext context, String doctorName) {
-    // Navigate to booking flow instead of showing dialog
+    // Get the doctor and navigate directly to service selection
+    // The selected date and time will be passed through the flow
+    final doctors = ref.read(doctorsProvider);
+    final doctor = doctors.firstWhere(
+      (d) => d.id == widget.doctorId,
+      orElse: () => doctors.first,
+    );
+    
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ServiceSelectionScreen(doctorId: widget.doctorId),
+        builder: (context) => ServiceSelectionScreen(
+          doctorId: widget.doctorId,
+          preSelectedDate: _selectedDate,
+          preSelectedTime: _selectedTimeSlot!,
+        ),
       ),
     );
   }
