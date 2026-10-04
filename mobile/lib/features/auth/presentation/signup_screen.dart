@@ -260,67 +260,59 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   ),
                   const SizedBox(height: 24),
                   
-                  // Social sign up buttons
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      // Stack vertically on narrow screens
-                      if (constraints.maxWidth < 360) {
-                        return Column(
-                          children: [
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: () => _handleSocialSignup('Google'),
-                                icon: const Icon(Icons.g_mobiledata, size: 28),
-                                label: const Text('Sign up with Google'),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: () => _handleSocialSignup('Apple'),
-                                icon: const Icon(Icons.apple, size: 24),
-                                label: const Text('Sign up with Apple'),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      }
-                      
-                      // Side by side on wider screens
-                      return Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () => _handleSocialSignup('Google'),
-                              icon: const Icon(Icons.g_mobiledata, size: 28),
-                              label: const Text('Google'),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                            ),
+                  // Social sign up buttons - Row layout with actual logos
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => _handleSocialSignup('Google'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            side: const BorderSide(color: AppColors.border),
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () => _handleSocialSignup('Apple'),
-                              icon: const Icon(Icons.apple, size: 24),
-                              label: const Text('Apple'),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image.network(
+                                'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg',
+                                height: 24,
+                                width: 24,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(Icons.g_mobiledata, size: 28);
+                                },
                               ),
-                            ),
+                              const SizedBox(width: 8),
+                              const Text('Google'),
+                            ],
                           ),
-                        ],
-                      );
-                    },
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => _handleSocialSignup('Apple'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            side: const BorderSide(color: AppColors.border),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image.network(
+                                'https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg',
+                                height: 24,
+                                width: 24,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(Icons.apple, size: 24);
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              const Text('Apple'),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 24),
                   

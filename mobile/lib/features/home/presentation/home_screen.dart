@@ -9,11 +9,23 @@ import '../../auth/providers/auth_provider.dart';
 import '../../search/providers/doctor_provider.dart';
 import '../../../shared/models/doctor.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  Future<void> _handleRefresh() async {
+    // Simulate refresh - in real app this would reload data from API
+    await Future.delayed(const Duration(seconds: 1));
+    // Invalidate providers to reload data
+    ref.invalidate(doctorsProvider);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
     final doctors = ref.watch(doctorsProvider);
     
@@ -21,25 +33,30 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              _buildHeader(context, userName),
-              
-              // Search bar
-              _buildSearchBar(context),
-              
-              // Categories
-              _buildCategories(context),
-              
-              // Featured Doctors
-              _buildFeaturedDoctors(context, doctors),
-              
-              // Quick Actions
-              _buildQuickActions(context),
-            ],
+        child: RefreshIndicator(
+          onRefresh: _handleRefresh,
+          color: AppColors.clay,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                _buildHeader(context, userName),
+                
+                // Search bar
+                _buildSearchBar(context),
+                
+                // Categories
+                _buildCategories(context),
+                
+                // Featured Doctors
+                _buildFeaturedDoctors(context, doctors),
+                
+                // Quick Actions
+                _buildQuickActions(context),
+              ],
+            ),
           ),
         ),
       ),
@@ -81,13 +98,19 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              CircleAvatar(
-                radius: MediaQuery.of(context).size.width * 0.06,
-                backgroundColor: Colors.white,
-                child: Icon(
-                  Icons.person,
-                  color: AppColors.clay,
-                  size: MediaQuery.of(context).size.width * 0.075,
+              GestureDetector(
+                onTap: () {
+                  // Navigate to profile screen
+                  context.go(AppRoutes.profile);
+                },
+                child: CircleAvatar(
+                  radius: MediaQuery.of(context).size.width * 0.06,
+                  backgroundColor: Colors.white,
+                  child: Icon(
+                    Icons.person,
+                    color: AppColors.clay,
+                    size: MediaQuery.of(context).size.width * 0.075,
+                  ),
                 ),
               ),
             ],
@@ -249,13 +272,20 @@ class HomeScreen extends ConsumerWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(32),
                 child: doctor.image != null && doctor.image!.isNotEmpty
-                    ? Image.network(
-                        doctor.image!,
+                    ? CachedNetworkImage(
+                        imageUrl: doctor.image!,
                         width: 64,
                         height: 64,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          // Fallback to initials if image fails to load
+                        placeholder: (context, url) => Container(
+                          width: 64,
+                          height: 64,
+                          color: AppColors.surface,
+                          child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) {
                           return _buildInitialsAvatar(doctor);
                         },
                       )
@@ -321,56 +351,28 @@ class HomeScreen extends ConsumerWidget {
                 ),
           ),
           const SizedBox(height: 16),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              // Stack vertically on very narrow screens
-              if (constraints.maxWidth < 300) {
-                return Column(
-                  children: [
-                    _buildActionCard(
-                      context,
-                      'My Appointments',
-                      Icons.calendar_today,
-                      AppColors.clay,
-                      () => context.go(AppRoutes.appointments),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildActionCard(
-                      context,
-                      'Find Doctors',
-                      Icons.search,
-                      AppColors.sage,
-                      () => context.go(AppRoutes.search),
-                    ),
-                  ],
-                );
-              }
-              
-              // Side by side on wider screens
-              return Row(
-                children: [
-                  Expanded(
-                    child: _buildActionCard(
-                      context,
-                      'My Appointments',
-                      Icons.calendar_today,
-                      AppColors.clay,
-                      () => context.go(AppRoutes.appointments),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildActionCard(
-                      context,
-                      'Find Doctors',
-                      Icons.search,
-                      AppColors.sage,
-                      () => context.go(AppRoutes.search),
-                    ),
-                  ),
-                ],
-              );
-            },
+          Row(
+            children: [
+              Expanded(
+                child: _buildActionCard(
+                  context,
+                  'My Appointments',
+                  Icons.calendar_today,
+                  AppColors.clay,
+                  () => context.go(AppRoutes.appointments),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildActionCard(
+                  context,
+                  'Find Doctors',
+                  Icons.search,
+                  AppColors.sage,
+                  () => context.go(AppRoutes.search),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -385,21 +387,33 @@ class HomeScreen extends ConsumerWidget {
     VoidCallback onTap,
   ) {
     return Card(
+      elevation: 2,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: color, size: 32),
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 28),
+              ),
               const SizedBox(height: 12),
               Text(
                 title,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
                     ),
                 textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),

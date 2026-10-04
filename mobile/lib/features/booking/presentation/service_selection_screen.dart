@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/service.dart';
@@ -48,18 +49,59 @@ class _ServiceSelectionScreenState extends ConsumerState<ServiceSelectionScreen>
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 32,
-                    backgroundColor: AppColors.clay.withOpacity(0.1),
-                    child: Text(
-                      doctor.name[0].toUpperCase(),
-                      style: const TextStyle(
-                        color: AppColors.clay,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  doctor.image != null && doctor.image!.isNotEmpty
+                      ? CircleAvatar(
+                          radius: 32,
+                          backgroundColor: AppColors.surface,
+                          child: ClipOval(
+                            child: CachedNetworkImage(
+                              imageUrl: doctor.image!,
+                              width: 64,
+                              height: 64,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => Container(
+                                width: 64,
+                                height: 64,
+                                color: AppColors.surface,
+                                child: const Center(
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              ),
+                              errorWidget: (context, url, error) {
+                                return Container(
+                                  width: 64,
+                                  height: 64,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.clay.withOpacity(0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      doctor.name[0].toUpperCase(),
+                                      style: const TextStyle(
+                                        color: AppColors.clay,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        )
+                      : CircleAvatar(
+                          radius: 32,
+                          backgroundColor: AppColors.clay.withOpacity(0.1),
+                          child: Text(
+                            doctor.name[0].toUpperCase(),
+                            style: const TextStyle(
+                              color: AppColors.clay,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(

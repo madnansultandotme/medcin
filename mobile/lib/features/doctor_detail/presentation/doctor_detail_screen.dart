@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
@@ -54,18 +55,56 @@ class _DoctorDetailScreenState extends ConsumerState<DoctorDetailScreen> {
                   gradient: AppColors.primaryGradient,
                 ),
                 child: Center(
-                  child: CircleAvatar(
-                    radius: 60,
-                    backgroundColor: Colors.white,
-                    child: Text(
-                      doctor.name[0].toUpperCase(),
-                      style: const TextStyle(
-                        color: AppColors.clay,
-                        fontSize: 48,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  child: doctor.image != null && doctor.image!.isNotEmpty
+                      ? CircleAvatar(
+                          radius: 60,
+                          backgroundColor: Colors.white,
+                          child: ClipOval(
+                            child: CachedNetworkImage(
+                              imageUrl: doctor.image!,
+                              width: 120,
+                              height: 120,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => Container(
+                                width: 120,
+                                height: 120,
+                                color: Colors.white,
+                                child: const Center(
+                                  child: CircularProgressIndicator(strokeWidth: 3),
+                                ),
+                              ),
+                              errorWidget: (context, url, error) {
+                                return Container(
+                                  width: 120,
+                                  height: 120,
+                                  color: Colors.white,
+                                  child: Center(
+                                    child: Text(
+                                      doctor.name[0].toUpperCase(),
+                                      style: const TextStyle(
+                                        color: AppColors.clay,
+                                        fontSize: 48,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        )
+                      : CircleAvatar(
+                          radius: 60,
+                          backgroundColor: Colors.white,
+                          child: Text(
+                            doctor.name[0].toUpperCase(),
+                            style: const TextStyle(
+                              color: AppColors.clay,
+                              fontSize: 48,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                 ),
               ),
             ),

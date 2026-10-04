@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:math';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/service.dart';
@@ -112,8 +113,54 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                         title: 'Doctor & Service',
                         icon: Icons.medical_services,
                         children: [
-                          _buildInfoRow('Doctor', 'Dr. ${widget.doctor.name}'),
-                          _buildInfoRow('Specialty', widget.doctor.specialization),
+                          // Doctor image and info row
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Row(
+                              children: [
+                                widget.doctor.image != null && widget.doctor.image!.isNotEmpty
+                                    ? CircleAvatar(
+                                        radius: 28,
+                                        backgroundColor: AppColors.surface,
+                                        child: ClipOval(
+                                          child: CachedNetworkImage(
+                                            imageUrl: widget.doctor.image!,
+                                            fit: BoxFit.cover,
+                                            width: 56,
+                                            height: 56,
+                                            placeholder: (context, url) => const CircularProgressIndicator(strokeWidth: 2),
+                                            errorWidget: (context, url, error) => const Icon(Icons.person, size: 28),
+                                          ),
+                                        ),
+                                      )
+                                    : const CircleAvatar(
+                                        radius: 28,
+                                        backgroundColor: AppColors.surface,
+                                        child: Icon(Icons.person, size: 28, color: AppColors.clay),
+                                      ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Dr. ${widget.doctor.name}',
+                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                      ),
+                                      Text(
+                                        widget.doctor.specialization,
+                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                              color: AppColors.textSecondary,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                           const Divider(),
                           _buildInfoRow('Service', widget.service.name),
                           _buildInfoRow('Duration', '${widget.service.duration} minutes'),
@@ -350,12 +397,11 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
   }
 
   Widget _buildProgressLine(bool isActive) {
-    return Expanded(
-      child: Container(
-        height: 2,
-        margin: const EdgeInsets.only(bottom: 20),
-        color: isActive ? AppColors.clay : AppColors.border,
-      ),
+    return Container(
+      width: 40,
+      height: 2,
+      margin: const EdgeInsets.only(bottom: 20, left: 4, right: 4),
+      color: isActive ? AppColors.clay : AppColors.border,
     );
   }
 

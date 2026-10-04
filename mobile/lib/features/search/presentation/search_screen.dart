@@ -44,6 +44,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     super.dispose();
   }
 
+  Future<void> _handleRefresh() async {
+    // Simulate refresh - in real app this would reload data from API
+    await Future.delayed(const Duration(seconds: 1));
+    // Invalidate providers to reload data
+    ref.invalidate(doctorsProvider);
+  }
+
   List<Doctor> _filterDoctors(List<Doctor> doctors) {
     return doctors.where((doctor) {
       // Search filter
@@ -365,13 +372,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       ],
                     ),
                   )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: filteredDoctors.length,
-                    itemBuilder: (context, index) {
-                      final doctor = filteredDoctors[index];
-                      return _buildDoctorCard(doctor);
-                    },
+                : RefreshIndicator(
+                    onRefresh: _handleRefresh,
+                    color: AppColors.clay,
+                    child: ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(16),
+                      itemCount: filteredDoctors.length,
+                      itemBuilder: (context, index) {
+                        final doctor = filteredDoctors[index];
+                        return _buildDoctorCard(doctor);
+                      },
+                    ),
                   ),
           ),
         ],
@@ -406,12 +418,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(32),
                 child: doctor.image != null && doctor.image!.isNotEmpty
-                    ? Image.network(
-                        doctor.image!,
+                    ? CachedNetworkImage(
+                        imageUrl: doctor.image!,
                         width: 64,
                         height: 64,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
+                        placeholder: (context, url) => Container(
+                          width: 64,
+                          height: 64,
+                          color: AppColors.surface,
+                          child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) {
                           return _buildInitialsAvatar(doctor);
                         },
                       )

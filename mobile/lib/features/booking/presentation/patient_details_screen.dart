@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/service.dart';
@@ -101,17 +103,51 @@ class _PatientDetailsScreenState extends ConsumerState<PatientDetailsScreen> {
                               ],
                             ),
                             const Divider(height: 24),
-                            Text(
-                              'Dr. ${widget.doctor.name}',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
+                            Row(
+                              children: [
+                                // Doctor image
+                                widget.doctor.image != null && widget.doctor.image!.isNotEmpty
+                                    ? CircleAvatar(
+                                        radius: 24,
+                                        backgroundColor: AppColors.surface,
+                                        child: ClipOval(
+                                          child: CachedNetworkImage(
+                                            imageUrl: widget.doctor.image!,
+                                            fit: BoxFit.cover,
+                                            width: 48,
+                                            height: 48,
+                                            placeholder: (context, url) => const CircularProgressIndicator(strokeWidth: 2),
+                                            errorWidget: (context, url, error) => const Icon(Icons.person, size: 24),
+                                          ),
+                                        ),
+                                      )
+                                    : const CircleAvatar(
+                                        radius: 24,
+                                        backgroundColor: AppColors.surface,
+                                        child: Icon(Icons.person, size: 24, color: AppColors.clay),
+                                      ),
+                                const SizedBox(width: 12),
+                                // Doctor info
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Dr. ${widget.doctor.name}',
+                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                      ),
+                                      Text(
+                                        widget.service.name,
+                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                              color: AppColors.textSecondary,
+                                            ),
+                                      ),
+                                    ],
                                   ),
-                            ),
-                            Text(
-                              widget.service.name,
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -162,16 +198,17 @@ class _PatientDetailsScreenState extends ConsumerState<PatientDetailsScreen> {
                     ),
                     const SizedBox(height: 16),
                     
-                    TextFormField(
-                      controller: _phoneController,
+                    IntlPhoneField(
                       decoration: const InputDecoration(
                         labelText: 'Phone Number',
-                        prefixIcon: Icon(Icons.phone_outlined),
-                        hintText: '+65 1234 5678',
+                        border: OutlineInputBorder(),
                       ),
-                      keyboardType: TextInputType.phone,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
+                      initialCountryCode: 'SG',
+                      onChanged: (phone) {
+                        _phoneController.text = phone.completeNumber;
+                      },
+                      validator: (phone) {
+                        if (phone == null || phone.completeNumber.isEmpty) {
                           return 'Please enter your phone number';
                         }
                         return null;
@@ -331,12 +368,11 @@ class _PatientDetailsScreenState extends ConsumerState<PatientDetailsScreen> {
   }
 
   Widget _buildProgressLine(bool isActive) {
-    return Expanded(
-      child: Container(
-        height: 2,
-        margin: const EdgeInsets.only(bottom: 20),
-        color: isActive ? AppColors.clay : AppColors.border,
-      ),
+    return Container(
+      width: 40,
+      height: 2,
+      margin: const EdgeInsets.only(bottom: 20, left: 4, right: 4),
+      color: isActive ? AppColors.clay : AppColors.border,
     );
   }
 }

@@ -40,36 +40,52 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: widget.child,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onTap,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.clay,
-        unselectedItemColor: AppColors.muted,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search_outlined),
-            activeIcon: Icon(Icons.search),
-            label: 'Search',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today_outlined),
-            activeIcon: Icon(Icons.calendar_today),
-            label: 'Appointments',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+    // Get current route to sync bottom nav
+    final location = GoRouterState.of(context).matchedLocation;
+    if (location == AppRoutes.home) _currentIndex = 0;
+    if (location == AppRoutes.search) _currentIndex = 1;
+    if (location == AppRoutes.appointments) _currentIndex = 2;
+    if (location == AppRoutes.profile) _currentIndex = 3;
+
+    return PopScope(
+      canPop: _currentIndex == 0, // Only allow pop on home screen
+      onPopInvoked: (didPop) {
+        // If we didn't pop and we're not on home, go to home
+        if (!didPop && _currentIndex != 0) {
+          _onTap(0); // Navigate to home tab
+        }
+      },
+      child: Scaffold(
+        body: widget.child,
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: _onTap,
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: AppColors.clay,
+          unselectedItemColor: AppColors.muted,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.search_outlined),
+              activeIcon: Icon(Icons.search),
+              label: 'Search',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_today_outlined),
+              activeIcon: Icon(Icons.calendar_today),
+              label: 'Appointments',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              activeIcon: Icon(Icons.person),
+              label: 'Profile',
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -5,6 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../features/auth/providers/auth_provider.dart';
+import 'personal_information_screen.dart';
+import 'notifications_screen.dart';
+import 'help_support_screen.dart';
+import 'change_password_screen.dart';
+import 'privacy_policy_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -114,19 +119,34 @@ class ProfileScreen extends ConsumerWidget {
                   icon: Icons.person_outline,
                   title: 'Personal Information',
                   subtitle: 'Update your details',
-                  onTap: () => _showComingSoon(context, 'Personal Information'),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PersonalInformationScreen(),
+                    ),
+                  ),
                 ),
                 _MenuItem(
                   icon: Icons.lock_outline,
                   title: 'Change Password',
                   subtitle: 'Update your password',
-                  onTap: () => _showComingSoon(context, 'Change Password'),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ChangePasswordScreen(),
+                    ),
+                  ),
                 ),
                 _MenuItem(
                   icon: Icons.notifications_outlined,
                   title: 'Notifications',
                   subtitle: 'Manage notification preferences',
-                  onTap: () => _showComingSoon(context, 'Notifications'),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationsScreen(),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -139,7 +159,12 @@ class ProfileScreen extends ConsumerWidget {
                   icon: Icons.help_outline,
                   title: 'Help & Support',
                   subtitle: 'Get help and FAQs',
-                  onTap: () => _showComingSoon(context, 'Help & Support'),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const HelpSupportScreen(),
+                    ),
+                  ),
                 ),
                 _MenuItem(
                   icon: Icons.info_outline,
@@ -151,7 +176,12 @@ class ProfileScreen extends ConsumerWidget {
                   icon: Icons.privacy_tip_outlined,
                   title: 'Privacy Policy',
                   subtitle: 'Read our privacy policy',
-                  onTap: () => _showComingSoon(context, 'Privacy Policy'),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PrivacyPolicyScreen(),
+                    ),
+                  ),
                 ),
               ],
             ),

@@ -215,67 +215,59 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 24),
                   
-                  // Social login buttons
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      // Stack vertically on narrow screens
-                      if (constraints.maxWidth < 360) {
-                        return Column(
-                          children: [
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: () => _handleSocialLogin('Google'),
-                                icon: const Icon(Icons.g_mobiledata, size: 28),
-                                label: const Text('Sign in with Google'),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: () => _handleSocialLogin('Apple'),
-                                icon: const Icon(Icons.apple, size: 24),
-                                label: const Text('Sign in with Apple'),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      }
-                      
-                      // Side by side on wider screens
-                      return Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () => _handleSocialLogin('Google'),
-                              icon: const Icon(Icons.g_mobiledata, size: 28),
-                              label: const Text('Google'),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                            ),
+                  // Social login buttons - Row layout with actual logos
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => _handleSocialLogin('Google'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            side: const BorderSide(color: AppColors.border),
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () => _handleSocialLogin('Apple'),
-                              icon: const Icon(Icons.apple, size: 24),
-                              label: const Text('Apple'),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image.network(
+                                'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg',
+                                height: 20,
+                                width: 20,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(Icons.g_mobiledata, size: 28, color: Colors.red);
+                                },
                               ),
-                            ),
+                              const SizedBox(width: 8),
+                              const Text('Google'),
+                            ],
                           ),
-                        ],
-                      );
-                    },
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => _handleSocialLogin('Apple'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            side: const BorderSide(color: AppColors.border),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image.network(
+                                'https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg',
+                                height: 20,
+                                width: 20,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(Icons.apple, size: 24);
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              const Text('Apple'),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 24),
                   

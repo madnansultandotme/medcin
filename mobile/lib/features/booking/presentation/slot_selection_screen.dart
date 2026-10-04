@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/service.dart';
@@ -52,18 +53,52 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(
-                        radius: 24,
-                        backgroundColor: AppColors.clay.withOpacity(0.1),
-                        child: Text(
-                          widget.doctor.name[0].toUpperCase(),
-                          style: const TextStyle(
-                            color: AppColors.clay,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
+                      widget.doctor.image != null && widget.doctor.image!.isNotEmpty
+                          ? CircleAvatar(
+                              radius: 24,
+                              backgroundColor: AppColors.surface,
+                              child: ClipOval(
+                                child: CachedNetworkImage(
+                                  imageUrl: widget.doctor.image!,
+                                  width: 48,
+                                  height: 48,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => const CircularProgressIndicator(strokeWidth: 2),
+                                  errorWidget: (context, url, error) {
+                                    return Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.clay.withOpacity(0.1),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          widget.doctor.name[0].toUpperCase(),
+                                          style: const TextStyle(
+                                            color: AppColors.clay,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            )
+                          : CircleAvatar(
+                              radius: 24,
+                              backgroundColor: AppColors.clay.withOpacity(0.1),
+                              child: Text(
+                                widget.doctor.name[0].toUpperCase(),
+                                style: const TextStyle(
+                                  color: AppColors.clay,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -238,12 +273,11 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
   }
 
   Widget _buildProgressLine(bool isActive) {
-    return Expanded(
-      child: Container(
-        height: 2,
-        margin: const EdgeInsets.only(bottom: 20),
-        color: isActive ? AppColors.clay : AppColors.border,
-      ),
+    return Container(
+      width: 40,
+      height: 2,
+      margin: const EdgeInsets.only(bottom: 20, left: 4, right: 4),
+      color: isActive ? AppColors.clay : AppColors.border,
     );
   }
 
