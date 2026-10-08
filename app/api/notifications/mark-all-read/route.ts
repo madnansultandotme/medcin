@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { notifications, users } from '@/db/schema';
+import { notifications } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { getSession } from '@/lib/auth/get-session';
+import { getAuthenticatedUser } from '@/lib/middleware/permissions';
 
 /**
  * Mark All Notifications as Read API
@@ -12,24 +12,14 @@ import { getSession } from '@/lib/auth/get-session';
 
 export async function POST(req: NextRequest) {
   try {
-    const { user } = await getSession();
+    const authContext = await getAuthenticatedUser();
 
-    if (!user) {
+    if (!authContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user
-    const dbUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.authUid, user.id))
-      .limit(1);
-
-    if (!dbUser.length) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    const userId = dbUser[0].id;
+    const { user } = authContext;
+    const userId = user.id;
 
     // Mark all as read
     await db

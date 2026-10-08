@@ -37,6 +37,15 @@ interface Service {
   description?: string;
 }
 
+interface Slot {
+  id: string;
+  doctorId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: 'AVAILABLE' | 'BOOKED' | 'BLOCKED';
+}
+
 export default function DoctorProfilePage() {
   const params = useParams();
   const router = useRouter();
@@ -45,7 +54,17 @@ export default function DoctorProfilePage() {
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [center, setCenter] = useState<Center | null>(null);
   const [services, setServices] = useState<Service[]>([]);
+  const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Booking state
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [selectedService, setSelectedService] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
+  const [bookingNotes, setBookingNotes] = useState('');
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchDoctorData() {
@@ -75,6 +94,21 @@ export default function DoctorProfilePage() {
               const servicesData = await servicesRes.json();
               setServices(servicesData.services || []);
             }
+
+            // Fetch available slots for the next 30 days
+            const today = new Date();
+            const endDate = new Date();
+            endDate.setDate(endDate.getDate() + 30);
+            
+            const slotsRes = await fetch(
+              `/api/slots?doctorId=${foundDoctor.id}&startDate=${today.toISOString().split('T')[0]}&endDate=${endDate.toISOString().split('T')[0]}`
+            );
+            if (slotsRes.ok) {
+              const slotsData = await slotsRes.json();
+              // Only show available slots
+              const availableSlots = (slotsData.slots || []).filter((s: Slot) => s.status === 'AVAILABLE');
+              setSlots(availableSlots);
+            }
           }
         }
       } catch (error) {
@@ -88,6 +122,59 @@ export default function DoctorProfilePage() {
       fetchDoctorData();
     }
   }, [params.id]);
+
+  // Get unique dates from available slots
+  const availableDates = Array.from(new Set(slots.map(s => s.date))).sort();
+
+  // Get slots for selected date
+  const slotsForDate = selectedDate 
+    ? slots.filter(s => s.date === selectedDate)
+    : [];
+
+  const handleBookingSubmit = async () => {
+    if (!selectedSlot || !doctor) {
+      setBookingError('Please select a time slot');
+      return;
+    }
+
+    setBookingLoading(true);
+    setBookingError(null);
+
+    try {
+      const selectedServiceData = services.find(s => s.id === selectedService);
+      const price = selectedServiceData?.price || doctor.price;
+
+      const response = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          doctorId: doctor.id,
+          slotId: selectedSlot.id,
+          serviceId: selectedService || null,
+          date: selectedSlot.date,
+          time: selectedSlot.startTime,
+          price,
+          notes: bookingNotes,
+          paymentMethod: 'Pay at Clinic',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create booking');
+      }
+
+      // Success! Redirect to patient dashboard
+      alert('Booking confirmed! Check your email for confirmation details.');
+      router.push('/patient?tab=appointments');
+    } catch (error: any) {
+      console.error('Booking error:', error);
+      setBookingError(error.message || 'Failed to create booking. Please try again.');
+    } finally {
+      setBookingLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -288,9 +375,14 @@ export default function DoctorProfilePage() {
                 {services.length > 0 && (
                   <div>
                     <label className="block text-sm font-semibold text-[var(--muted)] mb-2">
-                      Select Service
+                      Select Service (Optional)
                     </label>
-                    <select className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20">
+                    <select 
+                      className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                      value={selectedService}
+                      onChange={(e) => setSelectedService(e.target.value)}
+                    >
+                      <option value="">General Consultation - {formatCurrency(doctor.price)}</option>
                       {services.map(service => (
                         <option key={service.id} value={service.id}>
                           {service.name} - {formatCurrency(service.price)}
@@ -302,14 +394,12 @@ export default function DoctorProfilePage() {
               </div>
 
               <button
-                onClick={() => {
-                  // Navigate to booking with doctor info
-                  alert('Booking flow coming soon! This will integrate with the booking API.');
-                }}
-                className="w-full bg-[var(--clay)] text-white py-4 rounded-2xl font-bold text-lg hover:opacity-95 transition-all shadow-lg shadow-[var(--clay)]/20 flex items-center justify-center gap-2"
+                onClick={() => setShowBookingModal(true)}
+                disabled={!doctor.active || slots.length === 0}
+                className="w-full bg-[var(--clay)] text-white py-4 rounded-2xl font-bold text-lg hover:opacity-95 transition-all shadow-lg shadow-[var(--clay)]/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Calendar className="w-5 h-5" />
-                <span>Schedule Visit</span>
+                <span>{slots.length === 0 ? 'No Slots Available' : 'Schedule Visit'}</span>
               </button>
 
               <p className="text-xs text-center text-[var(--muted)] mt-4">
@@ -346,6 +436,169 @@ export default function DoctorProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Booking Modal */}
+      {showBookingModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-[var(--surface)] rounded-3xl p-6 sm:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-[var(--ink)]">Book Appointment</h2>
+              <button
+                onClick={() => {
+                  setShowBookingModal(false);
+                  setSelectedDate('');
+                  setSelectedSlot(null);
+                  setBookingNotes('');
+                  setBookingError(null);
+                }}
+                className="text-[var(--muted)] hover:text-[var(--ink)] transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {bookingError && (
+              <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+                {bookingError}
+              </div>
+            )}
+
+            {/* Doctor Summary */}
+            <div className="mb-6 p-4 rounded-2xl bg-[var(--paper)] border border-[var(--mist)]">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-[var(--clay)]/10 text-[var(--clay)] flex items-center justify-center flex-none">
+                  {doctor?.imageUrl ? (
+                    <img src={doctor.imageUrl} alt={doctor.name} className="w-full h-full object-cover rounded-2xl" />
+                  ) : (
+                    <Stethoscope className="w-6 h-6" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg text-[var(--ink)]">{doctor?.name}</h3>
+                  <p className="text-sm text-[var(--muted)]">{doctor?.role}</p>
+                  {center && (
+                    <p className="text-sm text-[var(--muted)] flex items-center gap-1 mt-1">
+                      <Building2 className="w-3 h-3" />
+                      {center.name}
+                    </p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-[var(--sage)]">
+                    {formatCurrency(services.find(s => s.id === selectedService)?.price || doctor?.price || 0)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 1: Select Date */}
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-[var(--ink)] mb-3">
+                1. Select Date
+              </label>
+              {availableDates.length === 0 ? (
+                <p className="text-[var(--muted)] text-center py-4">No available dates at this time</p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {availableDates.slice(0, 12).map(date => {
+                    const dateObj = new Date(date + 'T00:00:00');
+                    const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+                    const dayNum = dateObj.getDate();
+                    const monthName = dateObj.toLocaleDateString('en-US', { month: 'short' });
+                    
+                    return (
+                      <button
+                        key={date}
+                        onClick={() => {
+                          setSelectedDate(date);
+                          setSelectedSlot(null);
+                        }}
+                        className={`p-4 rounded-xl border-2 transition-all text-center ${
+                          selectedDate === date
+                            ? 'border-[var(--clay)] bg-[var(--clay)]/5'
+                            : 'border-[var(--mist)] hover:border-[var(--clay)]/40'
+                        }`}
+                      >
+                        <div className="text-xs text-[var(--muted)] font-semibold uppercase">{dayName}</div>
+                        <div className="text-2xl font-bold text-[var(--ink)] my-1">{dayNum}</div>
+                        <div className="text-xs text-[var(--muted)]">{monthName}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Step 2: Select Time */}
+            {selectedDate && (
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-[var(--ink)] mb-3">
+                  2. Select Time
+                </label>
+                {slotsForDate.length === 0 ? (
+                  <p className="text-[var(--muted)] text-center py-4">No available times for this date</p>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    {slotsForDate.map(slot => (
+                      <button
+                        key={slot.id}
+                        onClick={() => setSelectedSlot(slot)}
+                        className={`p-3 rounded-xl border-2 transition-all text-center ${
+                          selectedSlot?.id === slot.id
+                            ? 'border-[var(--clay)] bg-[var(--clay)]/5'
+                            : 'border-[var(--mist)] hover:border-[var(--clay)]/40'
+                        }`}
+                      >
+                        <div className="text-sm font-bold text-[var(--ink)]">{slot.startTime}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 3: Notes */}
+            {selectedSlot && (
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-[var(--ink)] mb-3">
+                  3. Additional Notes (Optional)
+                </label>
+                <textarea
+                  value={bookingNotes}
+                  onChange={(e) => setBookingNotes(e.target.value)}
+                  placeholder="Any specific concerns or information for the doctor..."
+                  className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 min-h-[100px] resize-none"
+                />
+              </div>
+            )}
+
+            {/* Confirm Button */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowBookingModal(false);
+                  setSelectedDate('');
+                  setSelectedSlot(null);
+                  setBookingNotes('');
+                  setBookingError(null);
+                }}
+                className="flex-1 py-3 rounded-xl border-2 border-[var(--mist)] text-[var(--ink)] font-semibold hover:bg-[var(--paper)] transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBookingSubmit}
+                disabled={!selectedSlot || bookingLoading}
+                className="flex-1 bg-[var(--clay)] text-white py-3 rounded-xl font-bold hover:opacity-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {bookingLoading ? 'Confirming...' : 'Confirm Booking'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

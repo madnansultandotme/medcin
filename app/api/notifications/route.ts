@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { notifications, users } from '@/db/schema';
+import { notifications } from '@/db/schema';
 import { eq, desc, and } from 'drizzle-orm';
-import { getSession } from '@/lib/auth/get-session';
+import { getAuthenticatedUser } from '@/lib/middleware/permissions';
 
 /**
  * Notifications API
@@ -14,24 +14,14 @@ import { getSession } from '@/lib/auth/get-session';
 // GET /api/notifications - List user's notifications
 export async function GET(req: NextRequest) {
   try {
-    const { user } = await getSession();
+    const authContext = await getAuthenticatedUser();
 
-    if (!user) {
+    if (!authContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user
-    const dbUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.authUid, user.id))
-      .limit(1);
-
-    if (!dbUser.length) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    const userId = dbUser[0].id;
+    const { user } = authContext;
+    const userId = user.id;
 
     // Get query params
     const { searchParams } = new URL(req.url);
@@ -89,20 +79,16 @@ export async function GET(req: NextRequest) {
 // POST /api/notifications - Create notification (admin only)
 export async function POST(req: NextRequest) {
   try {
-    const { user } = await getSession();
+    const authContext = await getAuthenticatedUser();
 
-    if (!user) {
+    if (!authContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin
-    const dbUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.authUid, user.id))
-      .limit(1);
+    const { user } = authContext;
 
-    if (!dbUser.length || dbUser[0].role !== 'ADMIN') {
+    // Check if user is admin
+    if (user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
