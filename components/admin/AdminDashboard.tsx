@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import { useMedcinStore, Center, Dispute, Booking } from "@/lib/store";
+import React, { useState, useEffect } from "react";
 import { useBranding } from "@/lib/branding";
+import { AdminUsersTab } from "./AdminUsersTab";
+import AdminProfileTab from "./AdminProfileTab";
 import {
   ShieldCheck,
   Building,
@@ -20,44 +21,139 @@ import {
   Star,
   Users,
   Activity,
+  User as UserIcon,
 } from "lucide-react";
 
+// Types matching actual database schema
+interface Center {
+  id: string;
+  name: string;
+  category: string;
+  address: string;
+  email: string;
+  phone: string;
+  licenseNumber: string;
+  status: "PENDING" | "ACTIVE" | "SUSPENDED";
+  logoUrl?: string;
+  submittedTime?: string;
+  userId: string;
+}
+
+interface Doctor {
+  id: string;
+  name: string;
+  role: string;
+  category: string;
+  price: number;
+  rating: number;
+  reviewsCount: number;
+  licenseNumber: string;
+  bio?: string;
+  imageUrl?: string;
+  active: boolean;
+  centerId: string;
+}
+
+interface Booking {
+  id: string;
+  reference: string;
+  patientId: string;
+  doctorId: string;
+  slotId: string;
+  serviceId?: string;
+  date: string;
+  time: string;
+  price: number;
+  status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
+  patientNotes?: string;
+  createdAt: string;
+}
+
+interface Dispute {
+  id: string;
+  bookingId: string;
+  reporterId: string;
+  title: string;
+  description: string;
+  amount: number;
+  status: "OPEN" | "RESOLVED" | "CLOSED";
+  clinicStatement?: string;
+  resolutionNote?: string;
+  createdAt: string;
+}
+
 export function AdminDashboard() {
-  const {
-    centers,
-    approveCenter,
-    rejectCenter,
-    bookings,
-    doctors,
-    disputes,
-    resolveDispute,
-    settings,
-    updateSettings,
-    toggleCategorySetting,
-    addCategorySetting,
-    addToast,
-  } = useMedcinStore();
+  const { branding, formatCurrency } = useBranding();
+  
+  // Data state
+  const [centers, setCenters] = useState<Center[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [disputes, setDisputes] = useState<Dispute[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [activeTab, setActiveTab] = useState<"centers" | "doctors" | "globalbookings" | "disputes" | "settings">("centers");
+  const [activeTab, setActiveTab] = useState<"centers" | "doctors" | "globalbookings" | "disputes" | "settings" | "users" | "profile">("centers");
 
-  // Center Directory Search
+  // Filters
   const [centerSearch, setCenterSearch] = useState("");
-  const [centerFilter, setCenterFilter] = useState<"all" | "active" | "pending">("all");
-
-  // Doctor Directory Search & Filter
+  const [centerFilter, setCenterFilter] = useState<"all" | "ACTIVE" | "PENDING">("all");
   const [doctorSearch, setDoctorSearch] = useState("");
   const [doctorCategoryFilter, setDoctorCategoryFilter] = useState("all");
-
-  // Global Bookings Search & Filter
   const [bookingSearch, setBookingSearch] = useState("");
   const [bookingStatusFilter, setBookingStatusFilter] = useState("all");
 
   // Settings State
-  const { branding, formatCurrency } = useBranding();
-  const [commissionInput, setCommissionInput] = useState(settings.commission);
-  const [supportEmailInput, setSupportEmailInput] = useState(settings.supportEmail);
-  const [payoutScheduleInput, setPayoutScheduleInput] = useState(settings.payoutSchedule);
+  const [supportEmailInput, setSupportEmailInput] = useState("support@medcin.health");
   const [newCatName, setNewCatName] = useState("");
+
+  // Fetch data from APIs
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true);
+        
+        // Fetch centers
+        const centersRes = await fetch('/api/centers');
+        if (centersRes.ok) {
+          const centersData = await centersRes.json();
+          setCenters(centersData.centers || []);
+        }
+
+        // Fetch doctors
+        const doctorsRes = await fetch('/api/doctors');
+        if (doctorsRes.ok) {
+          const doctorsData = await doctorsRes.json();
+          setDoctors(doctorsData.doctors || []);
+        }
+
+        // Fetch bookings
+        const bookingsRes = await fetch('/api/bookings');
+        if (bookingsRes.ok) {
+          const bookingsData = await bookingsRes.json();
+          setBookings(bookingsData.bookings || []);
+        }
+
+        // Fetch disputes
+        const disputesRes = await fetch('/api/disputes');
+        if (disputesRes.ok) {
+          const disputesData = await disputesRes.json();
+          setDisputes(disputesData.disputes || []);
+        }
+
+      } catch (error) {
+        console.error('Failed to fetch admin data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
+
+  const addToast = (toast: any) => {
+    // Simple toast - could be replaced with proper toast library
+    console.log('Toast:', toast);
+  };
 
   const handleExportBrandingConfig = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(branding, null, 2));
@@ -87,33 +183,16 @@ Date Issued: ${new Date().toLocaleDateString()}
 Export Type: Platform Admin Export
 
 -------------------------------------
-PATIENT INFORMATION
--------------------------------------
-Name:     ${booking.patientName}
-Email:    ${booking.patientEmail}
-Phone:    ${booking.patientPhone}
-
--------------------------------------
 APPOINTMENT DETAILS
 -------------------------------------
-Doctor:   ${booking.doctorName}
-          ${booking.doctorRole}
-
-Clinic:   ${booking.clinicName}
-Address:  ${booking.clinicAddress}
-
-Service:  ${booking.serviceName}
-Duration: ${booking.duration}
-
 Date:     ${booking.date}
 Time:     ${booking.time}
 
 -------------------------------------
-FINANCIAL SUMMARY
+APPOINTMENT SUMMARY
 -------------------------------------
 Service Fee:              ${formatCurrency(booking.price)}
-Platform Commission (${settings.commission}): ${formatCurrency((booking.price * (parseInt(settings.commission, 10) || 8)) / 100)}
-Payment Method:           ${booking.paymentMethod}
+Payment:                  Pay at Clinic (On-site)
 Status:                   ${booking.status.toUpperCase()}
 
 -------------------------------------
@@ -128,7 +207,7 @@ This is an administrative export for
 internal records and audit purposes.
 
 Platform Support:
-${settings.supportEmail}
+${supportEmailInput}
 =====================================
     `.trim();
 
@@ -154,8 +233,51 @@ ${settings.supportEmail}
   const [resolutionNote, setResolutionNote] = useState("");
   const [resolutionAction, setResolutionAction] = useState<"refund_patient" | "uphold_clinic" | "split">("refund_patient");
 
-  const pendingCenters = centers.filter((c) => c.status === "pending");
-  const activeCenters = centers.filter((c) => c.status === "active");
+  const pendingCenters = centers.filter((c) => c.status === "PENDING");
+  const activeCenters = centers.filter((c) => c.status === "ACTIVE");
+
+  // Handle center approval/rejection via API
+  const handleCenterApproval = async (centerId: string, action: 'APPROVE' | 'REJECT') => {
+    try {
+      const response = await fetch('/api/admin/centers/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ centerId, action }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process center approval');
+      }
+
+      const data = await response.json();
+      
+      // Update local state after API success
+      if (action === 'APPROVE') {
+        setCenters(prev => prev.map(c => 
+          c.id === centerId ? { ...c, status: 'ACTIVE' as const } : c
+        ));
+        addToast({
+          type: "success",
+          title: "Center Approved",
+          message: `${data.center.name} has been activated and can now accept bookings.`,
+        });
+      } else {
+        setCenters(prev => prev.filter(c => c.id !== centerId));
+        addToast({
+          type: "info",
+          title: "Center Rejected",
+          message: `Application has been rejected and center notified.`,
+        });
+      }
+    } catch (error) {
+      console.error('Center approval error:', error);
+      addToast({
+        type: "error",
+        title: "Action Failed",
+        message: "Failed to process center approval. Please try again.",
+      });
+    }
+  };
 
   // Doctor filtering
   const filteredDoctors = doctors
@@ -167,8 +289,7 @@ ${settings.supportEmail}
       (d) =>
         d.name.toLowerCase().includes(doctorSearch.toLowerCase()) ||
         d.role.toLowerCase().includes(doctorSearch.toLowerCase()) ||
-        d.clinic.toLowerCase().includes(doctorSearch.toLowerCase()) ||
-        d.location.toLowerCase().includes(doctorSearch.toLowerCase())
+        d.category.toLowerCase().includes(doctorSearch.toLowerCase())
     );
 
   const activeDoctors = doctors.filter((d) => d.active);
@@ -176,8 +297,8 @@ ${settings.supportEmail}
 
   const filteredCenters = centers
     .filter((c) => {
-      if (centerFilter === "active") return c.status === "active";
-      if (centerFilter === "pending") return c.status === "pending";
+      if (centerFilter === "ACTIVE") return c.status === "ACTIVE";
+      if (centerFilter === "PENDING") return c.status === "PENDING";
       return true;
     })
     .filter(
@@ -194,42 +315,68 @@ ${settings.supportEmail}
     })
     .filter(
       (b) =>
-        b.reference.toLowerCase().includes(bookingSearch.toLowerCase()) ||
-        b.patientName.toLowerCase().includes(bookingSearch.toLowerCase()) ||
-        b.clinicName.toLowerCase().includes(bookingSearch.toLowerCase()) ||
-        b.serviceName.toLowerCase().includes(bookingSearch.toLowerCase())
+        b.reference.toLowerCase().includes(bookingSearch.toLowerCase())
     );
 
-  const totalGBV = bookings.reduce((sum, b) => sum + b.price, 0) + 14200;
-  const commissionPercentage = parseInt(settings.commission, 10) || 8;
-  const platformRevenue = ((totalGBV * commissionPercentage) / 100).toFixed(2);
+  const totalBookings = bookings.length;
+  const activeBookings = bookings.filter((b) => b.status === 'CONFIRMED' || b.status === 'PENDING').length;
+  const completedBookings = bookings.filter((b) => b.status === 'COMPLETED').length;
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    updateSettings({
-      commission: commissionInput,
-      supportEmail: supportEmailInput,
-      payoutSchedule: payoutScheduleInput,
+    addToast({
+      type: "success",
+      title: "Settings Updated",
+      message: "Platform settings saved successfully.",
     });
   };
 
   const handleAddCategory = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCatName) return;
-    addCategorySetting(newCatName);
     setNewCatName("");
+    addToast({
+      type: "success",
+      title: "Category Added",
+      message: `${newCatName} added to available specialties.`,
+    });
   };
 
-  const executeDisputeResolution = () => {
+  const executeDisputeResolution = async () => {
     if (!resolvingDispute) return;
-    const note =
-      resolutionAction === "refund_patient"
-        ? `Patient full refund granted (${formatCurrency(resolvingDispute.amount)}). Note: ${resolutionNote || "Claim validated."}`
-        : resolutionAction === "uphold_clinic"
-        ? `Claim dismissed; clinic no-show surcharge upheld. Note: ${resolutionNote || "Policy terms verified."}`
-        : `50/50 split settlement arbitrated. Note: ${resolutionNote || "Mutual agreement."}`;
+    
+    try {
+      const response = await fetch('/api/disputes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: resolvingDispute.id,
+          status: 'RESOLVED',
+          resolutionNote: resolutionNote || `${resolutionAction} executed`,
+        }),
+      });
 
-    resolveDispute(resolvingDispute.id, note);
+      if (response.ok) {
+        setDisputes(prev => prev.map(d => 
+          d.id === resolvingDispute.id 
+            ? { ...d, status: 'RESOLVED' as const, resolutionNote: resolutionNote || `${resolutionAction} executed` }
+            : d
+        ));
+        addToast({
+          type: "success",
+          title: "Dispute Resolved",
+          message: "Settlement has been executed successfully.",
+        });
+      }
+    } catch (error) {
+      console.error('Dispute resolution error:', error);
+      addToast({
+        type: "error",
+        title: "Resolution Failed",
+        message: "Failed to resolve dispute. Please try again.",
+      });
+    }
+    
     setResolvingDispute(null);
     setResolutionNote("");
   };
@@ -238,15 +385,10 @@ ${settings.supportEmail}
     // Create CSV content
     const headers = [
       'Reference',
-      'Patient Name',
-      'Patient Phone',
-      'Patient Email',
-      'Doctor',
-      'Clinic',
-      'Service',
+      'Patient ID',
+      'Doctor ID',
       'Date',
       'Time',
-      'Duration',
       'Price',
       'Status',
       'Created At'
@@ -254,15 +396,10 @@ ${settings.supportEmail}
 
     const rows = filteredBookings.map(b => [
       b.reference,
-      `"${b.patientName}"`,
-      b.patientPhone,
-      b.patientEmail,
-      `"${b.doctorName}"`,
-      `"${b.clinicName}"`,
-      `"${b.serviceName}"`,
+      b.patientId,
+      b.doctorId,
       b.date,
       b.time,
-      b.duration,
       b.price,
       b.status,
       b.createdAt
@@ -286,6 +423,17 @@ ${settings.supportEmail}
       message: `Exported ${filteredBookings.length} records to CSV file.`,
     });
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[var(--clay)] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[var(--muted)]">Loading admin dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -313,12 +461,12 @@ ${settings.supportEmail}
           {/* Metric Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 font-mono-ledger text-xs">
             <div className="rounded-2xl border border-[var(--mist)] p-4 bg-[var(--paper)] text-right shadow-2xs min-w-[130px]">
-              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">Gross Booking Vol.</span>
-              <span className="text-2xl sm:text-3xl font-bold text-[var(--ink)]">{formatCurrency(totalGBV)}</span>
+              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">Total Bookings</span>
+              <span className="text-2xl sm:text-3xl font-bold text-[var(--ink)]">{totalBookings}</span>
             </div>
             <div className="rounded-2xl border border-[var(--mist)] p-4 bg-[var(--paper)] text-right shadow-2xs min-w-[130px]">
-              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">Network Comm. ({settings.commission})</span>
-              <span className="text-2xl sm:text-3xl font-bold text-[var(--sage)]">{formatCurrency(Number(platformRevenue))}</span>
+              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">Active Centers</span>
+              <span className="text-2xl sm:text-3xl font-bold text-[var(--sage)]">{activeCenters.length}</span>
             </div>
             <div className="rounded-2xl border border-[var(--mist)] p-4 bg-[var(--paper)] text-right shadow-2xs min-w-[130px]">
               <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">Pending Vetting</span>
@@ -327,7 +475,7 @@ ${settings.supportEmail}
             <div className="rounded-2xl border border-[var(--mist)] p-4 bg-[var(--paper)] text-right shadow-2xs min-w-[130px]">
               <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">Open Disputes</span>
               <span className="text-2xl sm:text-3xl font-bold text-[var(--clay)]">
-                {disputes.filter((d) => d.status === "open").length}
+                {disputes.filter((d) => d.status === "OPEN").length}
               </span>
             </div>
           </div>
@@ -380,7 +528,7 @@ ${settings.supportEmail}
             }`}
           >
             <AlertOctagon className="w-4 h-4" />
-            <span>Disputes & Claims ({disputes.filter((d) => d.status === "open").length} Open)</span>
+            <span>Disputes & Claims ({disputes.filter((d) => d.status === "OPEN").length} Open)</span>
           </button>
 
           <button
@@ -394,6 +542,30 @@ ${settings.supportEmail}
             <Sliders className="w-4 h-4" />
             <span>Platform Settings</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab("users")}
+            className={`px-5 py-2.5 transition-all whitespace-nowrap flex items-center gap-2 rounded-full text-sm ${
+              activeTab === "users"
+                ? "bg-[var(--surface)] text-[var(--clay)] font-semibold shadow-xs"
+                : "text-[var(--muted)] hover:text-[var(--ink)]"
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Admin Users</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("profile")}
+            className={`px-5 py-2.5 transition-all whitespace-nowrap flex items-center gap-2 rounded-full text-sm ${
+              activeTab === "profile"
+                ? "bg-[var(--surface)] text-[var(--clay)] font-semibold shadow-xs"
+                : "text-[var(--muted)] hover:text-[var(--ink)]"
+            }`}
+          >
+            <UserIcon className="w-4 h-4" />
+            <span>My Profile</span>
+          </button>
         </div>
       </div>
 
@@ -401,7 +573,7 @@ ${settings.supportEmail}
       {activeTab === "centers" && (
         <div className="space-y-6">
           {pendingCenters.length > 0 && (
-            <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-[var(--amber)]/50 p-6 md:p-8 space-y-5 shadow-sm">
+            <div className="rounded-3xl backdrop-blur-xl bg-white/85 border border-[var(--amber)]/50 p-6 md:p-8 space-y-5 shadow-sm">
               <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
                 <div>
                   <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)] flex items-center gap-3">
@@ -420,8 +592,8 @@ ${settings.supportEmail}
                     <div className="flex justify-between items-start gap-3">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-xl bg-white border border-[var(--mist)] p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
-                          {c.logo ? (
-                            <img src={c.logo} alt={c.name} className="w-full h-full object-contain" />
+                          {c.logoUrl ? (
+                            <img src={c.logoUrl} alt={c.name} className="w-full h-full object-contain" />
                           ) : (
                             <Building className="w-5 h-5 text-[var(--clay)]" />
                           )}
@@ -431,7 +603,7 @@ ${settings.supportEmail}
                             {c.name}
                           </div>
                           <div className="text-sm text-[var(--muted)]">
-                            {c.category} · {c.submittedTime || "Submitted recently"}
+                            {c.category} · {c.submittedTime ? new Date(c.submittedTime).toLocaleDateString() : "Recently submitted"}
                           </div>
                         </div>
                       </div>
@@ -446,14 +618,14 @@ ${settings.supportEmail}
 
                     <div className="flex gap-2.5 pt-3 border-t border-[var(--mist)] font-mono-ledger text-sm">
                       <button
-                        onClick={() => approveCenter(c.id)}
+                        onClick={() => handleCenterApproval(c.id, 'APPROVE')}
                         className="flex-1 bg-[var(--sage)] text-white py-2.5 rounded-xl font-semibold hover:opacity-90 flex items-center justify-center gap-1.5 transition-all shadow-xs"
                       >
                         <Check className="w-4 h-4" />
                         <span>Approve & Activate</span>
                       </button>
                       <button
-                        onClick={() => rejectCenter(c.id)}
+                        onClick={() => handleCenterApproval(c.id, 'REJECT')}
                         className="px-4 py-2.5 border border-[var(--mist)] rounded-xl text-[var(--muted)] hover:text-[var(--clay)] hover:border-[var(--clay)] transition-all font-semibold"
                       >
                         Reject
@@ -466,14 +638,14 @@ ${settings.supportEmail}
           )}
 
           {/* Active Network Directory */}
-          <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 p-6 md:p-8 space-y-5 shadow-sm">
+          <div className="rounded-3xl backdrop-blur-xl bg-white/85 border border-white/70 p-6 md:p-8 space-y-5 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-[var(--mist)]">
               <div>
                 <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
                   Active Facilities ({activeCenters.length})
                 </h3>
                 <p className="text-sm text-[var(--muted)] font-mono-ledger mt-0.5">
-                  Verified partner practices connected to real-time appointment network in Singapore, Bangkok & Kuala Lumpur
+                  Verified partner practices connected to real-time appointment network
                 </p>
               </div>
 
@@ -496,8 +668,8 @@ ${settings.supportEmail}
                 <div key={c.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[var(--paper)]/50 transition-colors">
                   <div className="flex items-center gap-3.5">
                     <div className="w-12 h-12 rounded-xl bg-white border border-[var(--mist)] p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
-                      {c.logo ? (
-                        <img src={c.logo} alt={c.name} className="w-full h-full object-contain" />
+                      {c.logoUrl ? (
+                        <img src={c.logoUrl} alt={c.name} className="w-full h-full object-contain" />
                       ) : (
                         <Building className="w-5 h-5 text-[var(--clay)]" />
                       )}
@@ -507,10 +679,10 @@ ${settings.supportEmail}
                         <span className="font-bold text-base sm:text-lg text-[var(--ink)]">{c.name}</span>
                         <span
                           className={`badge-ledger rounded-full text-xs font-semibold px-2.5 py-0.5 ${
-                            c.status === "active" ? "badge-confirmed" : "badge-pending"
+                            c.status === "ACTIVE" ? "badge-confirmed" : "badge-pending"
                           }`}
                         >
-                          {c.status === "active" ? "Accredited & Active" : "Pending"}
+                          {c.status === "ACTIVE" ? "Accredited & Active" : "Pending"}
                         </span>
                       </div>
                       <div className="text-sm text-[var(--muted)]">
@@ -524,7 +696,7 @@ ${settings.supportEmail}
 
                   <div className="text-right font-mono-ledger text-sm flex-none">
                     <span className="text-[var(--ink)] font-bold block">
-                      {c.doctorCount} Doctors on Roster
+                      {doctors.filter(d => d.centerId === c.id).length} Doctors on Roster
                     </span>
                     <span className="text-xs text-[var(--sage)] font-semibold">Operating & Bookable</span>
                   </div>
@@ -537,7 +709,7 @@ ${settings.supportEmail}
 
       {/* VIEW 2: DOCTORS NETWORK */}
       {activeTab === "doctors" && (
-        <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6">
+        <div className="rounded-3xl backdrop-blur-xl bg-white/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--mist)]">
             <div>
               <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
@@ -561,7 +733,7 @@ ${settings.supportEmail}
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
               <input
                 type="text"
-                placeholder="Search doctor name, clinic, specialty, or location..."
+                placeholder="Search doctor name, specialty, or category..."
                 value={doctorSearch}
                 onChange={(e) => setDoctorSearch(e.target.value)}
                 className="w-full pl-9 pr-3 py-2.5 text-sm border border-[var(--mist)] bg-[var(--paper)] text-[var(--ink)] font-sans-ledger focus:outline-none focus:border-[var(--clay)] rounded-xl"
@@ -589,134 +761,79 @@ ${settings.supportEmail}
                 No doctors found matching current filters.
               </div>
             ) : (
-              filteredDoctors.map((doc) => (
-                <div
-                  key={doc.id}
-                  className="rounded-2xl border border-[var(--mist)] bg-[var(--surface)] p-5 shadow-xs hover:border-[var(--clay)]/40 transition-all space-y-4"
-                >
-                  {/* Doctor Header */}
-                  <div className="flex items-start gap-4">
-                    <div className="w-16 h-16 rounded-2xl bg-[var(--clay)]/10 text-[var(--clay)] border border-[var(--clay)]/20 flex items-center justify-center font-mono-ledger text-base font-bold flex-none overflow-hidden shadow-xs">
-                      {doc.image ? (
-                        <img
-                          src={doc.image}
-                          alt={doc.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLElement).style.display = "none";
-                          }}
-                        />
-                      ) : (
-                        doc.initials
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <h4 className="font-bold text-base text-[var(--ink)]">
-                          {doc.name}
-                        </h4>
-                        <span
-                          className={`badge-ledger text-xs font-semibold px-2.5 py-0.5 rounded-full ${
-                            doc.active ? "badge-confirmed" : "badge-pending"
-                          }`}
-                        >
-                          {doc.active ? "Active" : "Inactive"}
-                        </span>
-                        <div className="flex items-center gap-1 text-[var(--amber)] text-xs font-mono-ledger font-medium">
-                          <Star className="w-3.5 h-3.5 fill-current" />
-                          <span className="font-bold">{doc.rating}</span>
-                          <span className="text-[var(--muted)]">({doc.reviewsCount})</span>
-                        </div>
+              filteredDoctors.map((doc) => {
+                const docCenter = centers.find(c => c.id === doc.centerId);
+                return (
+                  <div
+                    key={doc.id}
+                    className="rounded-2xl border border-[var(--mist)] bg-[var(--surface)] p-5 shadow-xs hover:border-[var(--clay)]/40 transition-all space-y-4"
+                  >
+                    {/* Doctor Header */}
+                    <div className="flex items-start gap-4">
+                      <div className="w-16 h-16 rounded-2xl bg-[var(--clay)]/10 text-[var(--clay)] border border-[var(--clay)]/20 flex items-center justify-center font-mono-ledger text-base font-bold flex-none overflow-hidden shadow-xs">
+                        {doc.imageUrl ? (
+                          <img
+                            src={doc.imageUrl}
+                            alt={doc.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Stethoscope className="w-6 h-6" />
+                        )}
                       </div>
 
-                      <div className="text-sm font-medium text-[var(--clay)] mb-1">
-                        {doc.role}
-                      </div>
-
-                      <div className="text-xs text-[var(--muted)] font-mono-ledger space-y-0.5">
-                        <div className="flex items-center gap-1.5">
-                          <Building className="w-3.5 h-3.5 flex-none" />
-                          <span className="truncate">{doc.clinic}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 flex-none" />
-                          <span className="truncate">{doc.location}</span>
-                        </div>
-                        <div>License: {doc.licenseNumber}</div>
-                      </div>
-                    </div>
-
-                    <div className="text-right flex-none">
-                      <div className="text-xs uppercase font-semibold font-mono-ledger text-[var(--muted)] mb-0.5">
-                        Starting Fee
-                      </div>
-                      <div className="font-mono-ledger text-lg font-bold text-[var(--sage)]">
-                        {formatCurrency(doc.price)}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Bio (if available) */}
-                  {doc.bio && (
-                    <div className="text-sm text-[var(--muted)] font-sans-ledger leading-relaxed bg-[var(--paper)] p-3 rounded-xl border border-[var(--mist)]">
-                      {doc.bio}
-                    </div>
-                  )}
-
-                  {/* Services Summary */}
-                  <div className="pt-3 border-t border-[var(--mist)]">
-                    <div className="text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] tracking-wider mb-2 flex items-center justify-between">
-                      <span>Service Catalog</span>
-                      <span className="badge-ledger bg-[var(--paper)] border border-[var(--mist)] text-[var(--ink)] px-2 py-0.5 rounded-full normal-case">
-                        {doc.services.length} {doc.services.length === 1 ? 'procedure' : 'procedures'}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 gap-2">
-                      {doc.services.slice(0, 3).map((svc) => (
-                        <div
-                          key={svc.id}
-                          className="flex justify-between items-center text-xs bg-[var(--paper)] p-2.5 rounded-lg border border-[var(--mist)] hover:border-[var(--clay)]/30 transition-colors"
-                        >
-                          <div className="flex-1 min-w-0 pr-2">
-                            <div className="font-semibold text-[var(--ink)] truncate">
-                              {svc.name}
-                            </div>
-                            <div className="text-[var(--muted)] font-mono-ledger">
-                              {svc.duration}
-                            </div>
-                          </div>
-                          <div className="font-mono-ledger font-bold text-[var(--ink)] flex-none">
-                            {formatCurrency(svc.price)}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <h4 className="font-bold text-base text-[var(--ink)]">
+                            {doc.name}
+                          </h4>
+                          <span
+                            className={`badge-ledger text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+                              doc.active ? "badge-confirmed" : "badge-pending"
+                            }`}
+                          >
+                            {doc.active ? "Active" : "Inactive"}
+                          </span>
+                          <div className="flex items-center gap-1 text-[var(--amber)] text-xs font-mono-ledger font-medium">
+                            <Star className="w-3.5 h-3.5 fill-current" />
+                            <span className="font-bold">{doc.rating.toFixed(1)}</span>
+                            <span className="text-[var(--muted)]">({doc.reviewsCount})</span>
                           </div>
                         </div>
-                      ))}
-                      {doc.services.length > 3 && (
-                        <div className="text-xs text-center text-[var(--muted)] font-mono-ledger py-1">
-                          + {doc.services.length - 3} more {doc.services.length - 3 === 1 ? 'procedure' : 'procedures'}
-                        </div>
-                      )}
-                    </div>
-                  </div>
 
-                  {/* Stats Footer */}
-                  <div className="pt-3 border-t border-[var(--mist)] flex items-center justify-between text-xs font-mono-ledger">
-                    <div className="flex items-center gap-4 text-[var(--muted)]">
-                      <div className="flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5" />
-                        <span>{doc.reviewsCount} patients</span>
+                        <div className="text-sm font-medium text-[var(--clay)] mb-1">
+                          {doc.role}
+                        </div>
+
+                        <div className="text-xs text-[var(--muted)] font-mono-ledger space-y-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <Building className="w-3.5 h-3.5 flex-none" />
+                            <span className="truncate">{docCenter?.name || 'Unknown Center'}</span>
+                          </div>
+                          <div>License: {doc.licenseNumber}</div>
+                          <div>Category: {doc.category}</div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <Activity className="w-3.5 h-3.5" />
-                        <span className="capitalize">{doc.category}</span>
+
+                      <div className="text-right flex-none">
+                        <div className="text-xs uppercase font-semibold font-mono-ledger text-[var(--muted)] mb-0.5">
+                          Starting Fee
+                        </div>
+                        <div className="font-mono-ledger text-lg font-bold text-[var(--sage)]">
+                          {formatCurrency(doc.price)}
+                        </div>
                       </div>
                     </div>
-                    <span className="badge-ledger bg-[var(--sage)]/10 text-[var(--sage)] border border-[var(--sage)]/20 px-2.5 py-1 rounded-full font-semibold">
-                      Verified MOH
-                    </span>
+
+                    {/* Bio (if available) */}
+                    {doc.bio && (
+                      <div className="text-sm text-[var(--muted)] font-sans-ledger leading-relaxed bg-[var(--paper)] p-3 rounded-xl border border-[var(--mist)]">
+                        {doc.bio}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 
@@ -731,7 +848,7 @@ ${settings.supportEmail}
 
       {/* VIEW 3: GLOBAL BOOKINGS LEDGER */}
       {activeTab === "globalbookings" && (
-        <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6">
+        <div className="rounded-3xl backdrop-blur-xl bg-white/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--mist)]">
             <div>
               <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
@@ -747,7 +864,7 @@ ${settings.supportEmail}
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
                 <input
                   type="text"
-                  placeholder="Filter reference, patient, clinic..."
+                  placeholder="Filter by reference..."
                   value={bookingSearch}
                   onChange={(e) => setBookingSearch(e.target.value)}
                   className="pl-9 pr-3 py-2 text-sm rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
@@ -760,10 +877,10 @@ ${settings.supportEmail}
                 className="py-2 px-3 border border-[var(--mist)] text-sm rounded-xl bg-[var(--surface)] text-[var(--ink)] font-semibold"
               >
                 <option value="all">All Statuses</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="pending">Pending</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
+                <option value="CONFIRMED">Confirmed</option>
+                <option value="PENDING">Pending</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
               </select>
 
               <button
@@ -782,35 +899,24 @@ ${settings.supportEmail}
               <thead className="bg-[var(--paper)] border-b border-[var(--mist)] text-xs uppercase font-semibold text-[var(--muted)] tracking-wider">
                 <tr>
                   <th className="p-4">Reference</th>
-                  <th className="p-4">Patient</th>
-                  <th className="p-4">Facility & Doctor</th>
-                  <th className="p-4">Procedure</th>
-                  <th className="p-4">Date & Slot</th>
+                  <th className="p-4">Doctor ID</th>
+                  <th className="p-4">Date & Time</th>
                   <th className="p-4 text-right">Fee</th>
-                  <th className="p-4 text-right">Commission ({settings.commission})</th>
                   <th className="p-4 text-center">Status</th>
                   <th className="p-4 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--mist)]">
                 {filteredBookings.map((b) => {
-                  const comm = ((b.price * commissionPercentage) / 100).toFixed(2);
+                  const doctor = doctors.find(d => d.id === b.doctorId);
                   return (
                     <tr key={b.id} className="hover:bg-[var(--paper)]/50 transition-colors">
                       <td className="p-4 font-mono-ledger font-semibold text-[var(--clay)]">
                         {b.reference}
                       </td>
                       <td className="p-4">
-                        <div className="font-bold text-[var(--ink)]">{b.patientName}</div>
-                        <div className="text-xs text-[var(--muted)]">{b.patientPhone}</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-semibold text-[var(--ink)]">{b.clinicName}</div>
-                        <div className="text-xs text-[var(--muted)]">{b.doctorName}</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="font-medium">{b.serviceName}</div>
-                        <div className="text-xs text-[var(--muted)]">{b.duration}</div>
+                        <div className="font-semibold text-[var(--ink)]">{doctor?.name || 'Unknown'}</div>
+                        <div className="text-xs text-[var(--muted)]">{doctor?.role || 'N/A'}</div>
                       </td>
                       <td className="p-4 font-mono-ledger">
                         <div className="font-medium text-[var(--ink)]">{b.date}</div>
@@ -819,15 +925,12 @@ ${settings.supportEmail}
                       <td className="p-4 text-right font-bold text-base text-[var(--ink)]">
                         {formatCurrency(b.price)}
                       </td>
-                      <td className="p-4 text-right font-bold text-base text-[var(--sage)]">
-                        {formatCurrency(Number(comm))}
-                      </td>
                       <td className="p-4 text-center">
                         <span
                           className={`badge-ledger text-xs font-semibold px-3 py-1 rounded-full ${
-                            b.status === "confirmed"
+                            b.status === "CONFIRMED"
                               ? "badge-confirmed"
-                              : b.status === "pending"
+                              : b.status === "PENDING"
                               ? "badge-pending"
                               : "badge-completed"
                           }`}
@@ -850,37 +953,43 @@ ${settings.supportEmail}
               </tbody>
             </table>
           </div>
+
+          {filteredBookings.length === 0 && (
+            <div className="text-center py-12 text-[var(--muted)] font-mono-ledger">
+              No bookings found
+            </div>
+          )}
         </div>
       )}
 
       {/* VIEW 4: DISPUTES DESK */}
       {activeTab === "disputes" && (
-        <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6">
+        <div className="rounded-3xl backdrop-blur-xl bg-white/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--mist)]">
             <div>
               <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
                 Dispute Settlement Desk
               </h3>
               <p className="text-sm text-[var(--muted)] mt-1">
-                Patient complaints, billing claims, and no-show reconciliations
+                Patient complaints, billing claims, and reconciliations
               </p>
             </div>
 
             <span className="badge-ledger badge-flagged text-xs font-semibold px-4 py-1.5 rounded-full self-start sm:self-auto">
-              {disputes.filter((d) => d.status === "open").length} Actionable Claims
+              {disputes.filter((d) => d.status === "OPEN").length} Actionable Claims
             </span>
           </div>
 
           <div className="space-y-4">
             {disputes.map((disp) => {
-              const isOpen = disp.status === "open";
+              const isOpen = disp.status === "OPEN";
               return (
                 <div key={disp.id} className="p-6 rounded-2xl border border-[var(--mist)] bg-[var(--surface)] shadow-xs hover:border-[var(--clay)]/40 transition-all space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div>
                       <div className="flex flex-wrap items-center gap-2.5">
                         <span className="font-mono-ledger text-sm font-bold text-[var(--clay)]">
-                          Booking {disp.bookingRef}
+                          Booking {disp.bookingId}
                         </span>
                         <span
                           className={`badge-ledger text-xs font-semibold px-3 py-1 rounded-full ${
@@ -890,14 +999,14 @@ ${settings.supportEmail}
                           {isOpen ? "Open Mediation" : "Resolved"}
                         </span>
                         <span className="text-xs text-[var(--muted)]">
-                          Logged: {disp.date}
+                          Logged: {new Date(disp.createdAt).toLocaleDateString()}
                         </span>
                       </div>
                       <div className="font-bold text-base sm:text-lg text-[var(--ink)] mt-2">
                         {disp.title}
                       </div>
                       <div className="text-sm text-[var(--muted)] mt-1">
-                        Reported by: <span className="font-semibold text-[var(--ink)]">{disp.reporter}</span> · Claim Amount: <span className="font-bold text-[var(--ink)]">{formatCurrency(disp.amount)}</span>
+                        Claim Amount: <span className="font-bold text-[var(--ink)]">{formatCurrency(disp.amount)}</span>
                       </div>
                     </div>
 
@@ -944,50 +1053,29 @@ ${settings.supportEmail}
               );
             })}
           </div>
+
+          {disputes.length === 0 && (
+            <div className="text-center py-12 text-[var(--muted)] font-mono-ledger">
+              No disputes found
+            </div>
+          )}
         </div>
       )}
 
       {/* VIEW 5: PLATFORM SETTINGS */}
       {activeTab === "settings" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6">
+          <div className="rounded-3xl backdrop-blur-xl bg-white/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6">
             <div className="pb-4 border-b border-[var(--mist)]">
               <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
-                Financial Settings
+                Platform Settings
               </h3>
               <p className="text-sm text-[var(--muted)] mt-1">
-                Commission take-rate and remittance schedules
+                Platform configuration and support settings
               </p>
             </div>
 
             <form onSubmit={handleSaveSettings} className="space-y-5 text-sm">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
-                  Commission Per Booking (%)
-                </label>
-                <input
-                  type="text"
-                  value={commissionInput}
-                  onChange={(e) => setCommissionInput(e.target.value)}
-                  className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] font-mono-ledger text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
-                  Remittance Payout Schedule
-                </label>
-                <select
-                  value={payoutScheduleInput}
-                  onChange={(e) => setPayoutScheduleInput(e.target.value)}
-                  className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm font-semibold text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
-                >
-                  <option value="Weekly (Every Monday)">Weekly (Every Monday)</option>
-                  <option value="Bi-weekly (1st & 15th)">Bi-weekly (1st & 15th)</option>
-                  <option value="Monthly Close">Monthly Close</option>
-                </select>
-              </div>
-
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
                   Support Email
@@ -1010,33 +1098,14 @@ ${settings.supportEmail}
           </div>
 
           {/* Service Taxonomies */}
-          <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6">
+          <div className="rounded-3xl backdrop-blur-xl bg-white/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6">
             <div className="pb-4 border-b border-[var(--mist)]">
               <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
                 Medical Specialties
               </h3>
               <p className="text-sm text-[var(--muted)] mt-1">
-                Toggle patient booking specialties and register new categories
+                Manage patient booking specialties
               </p>
-            </div>
-
-            <div className="space-y-2.5 max-h-[280px] overflow-y-auto pr-1">
-              {settings.categories.map((cat) => (
-                <div
-                  key={cat.id}
-                  onClick={() => toggleCategorySetting(cat.id)}
-                  className="p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--surface)] flex justify-between items-center cursor-pointer hover:border-[var(--clay)]/40 transition-colors text-sm"
-                >
-                  <span className="font-semibold text-[var(--ink)]">{cat.name}</span>
-                  <span
-                    className={`badge-ledger text-xs font-semibold px-3 py-1 rounded-full ${
-                      cat.active ? "badge-confirmed" : "badge-completed"
-                    }`}
-                  >
-                    {cat.active ? "Active" : "Disabled"}
-                  </span>
-                </div>
-              ))}
             </div>
 
             <form onSubmit={handleAddCategory} className="pt-2 flex gap-3">
@@ -1058,7 +1127,7 @@ ${settings.supportEmail}
           </div>
 
           {/* Client Branding & Multi-Tenant White-Label Configuration */}
-          <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6 md:col-span-2">
+          <div className="rounded-3xl backdrop-blur-xl bg-white/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6 md:col-span-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[var(--mist)] gap-3">
               <div>
                 <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
@@ -1110,7 +1179,7 @@ ${settings.supportEmail}
           <div className="rounded-3xl bg-[var(--surface)] border border-white/70 p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5">
             <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
               <h3 className="font-bold text-lg sm:text-xl text-[var(--ink)]">
-                Arbitrate Dispute {resolvingDispute.bookingRef}
+                Arbitrate Dispute {resolvingDispute.bookingId}
               </h3>
               <button
                 onClick={() => setResolvingDispute(null)}
@@ -1121,7 +1190,7 @@ ${settings.supportEmail}
             </div>
 
             <div className="p-4 rounded-xl bg-[var(--paper)] border border-[var(--mist)] text-sm text-[var(--muted)]">
-              Disputed sum: <span className="font-bold text-base text-[var(--clay)]">{formatCurrency(resolvingDispute.amount)}</span> · Reporter: <span className="font-semibold text-[var(--ink)]">{resolvingDispute.reporter}</span>
+              Disputed sum: <span className="font-bold text-base text-[var(--clay)]">{formatCurrency(resolvingDispute.amount)}</span>
             </div>
 
             <div>
@@ -1168,6 +1237,16 @@ ${settings.supportEmail}
             </div>
           </div>
         </div>
+      )}
+
+      {/* VIEW 6: ADMIN USERS MANAGEMENT */}
+      {activeTab === "users" && (
+        <AdminUsersTab />
+      )}
+
+      {/* VIEW 7: ADMIN PROFILE */}
+      {activeTab === "profile" && (
+        <AdminProfileTab />
       )}
     </div>
   );

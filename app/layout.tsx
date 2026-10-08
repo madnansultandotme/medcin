@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { MedcinProvider } from "@/lib/store";
 import { BrandingProvider } from "@/lib/branding";
+import { AuthProvider } from "@/lib/auth/AuthProvider";
 import brandingData from "@/config/branding.json";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -20,11 +20,11 @@ export default function RootLayout({
     <html lang="en" className="h-full antialiased" suppressHydrationWarning>
       <body className="min-h-full flex flex-col font-sans-ledger bg-[var(--paper)] text-[var(--ink)] transition-colors">
         <BrandingProvider>
-          <MedcinProvider>
+          <AuthProvider>
             <Navbar />
             <main className="flex-1 flex flex-col">{children}</main>
             <Footer />
-          </MedcinProvider>
+          </AuthProvider>
         </BrandingProvider>
       </body>
     </html>

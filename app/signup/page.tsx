@@ -1,326 +1,131 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { MedcinLogo } from "@/components/MedcinLogo";
-import { useMedcinStore, Role } from "@/lib/store";
-import { useBranding } from "@/lib/branding";
-import { User, Building2, CheckCircle2, ArrowRight, ShieldCheck, Mail, Lock, Phone } from "lucide-react";
+import Link from 'next/link';
+import { User, Building2, ArrowRight } from 'lucide-react';
 
-export default function SignupPage() {
-  const router = useRouter();
-  const { setRole } = useMedcinStore();
-  const { branding } = useBranding();
-  const [accountType, setAccountType] = useState<"patient" | "center">("patient");
-  const [success, setSuccess] = useState(false);
-
-  // Patient fields
-  const [patientName, setPatientName] = useState("");
-  const [patientEmail, setPatientEmail] = useState("");
-  const [patientPhone, setPatientPhone] = useState("");
-  const [patientPassword, setPatientPassword] = useState("");
-
-  // Center fields
-  const [centerName, setCenterName] = useState("");
-  const [centerCategory, setCenterCategory] = useState("Dental clinic");
-  const [centerAddress, setCenterAddress] = useState("");
-  const [centerRegNumber, setCenterRegNumber] = useState("");
-  const [centerContactName, setCenterContactName] = useState("");
-  const [centerEmail, setCenterEmail] = useState("");
-  const [centerPhone, setCenterPhone] = useState("");
-  const [centerPassword, setCenterPassword] = useState("");
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSuccess(true);
-    setRole(accountType);
-
-    setTimeout(() => {
-      if (accountType === "patient") {
-        router.push("/patient");
-      } else {
-        router.push("/center");
-      }
-    }, 800);
-  };
-
+export default function SignupLandingPage() {
   return (
-    <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8 relative min-h-[calc(100vh-4rem)] overflow-hidden font-sans-ledger">
-      {/* Background Sanctuary Image */}
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url('/images/bg-sanctuary.jpg')` }}
-      />
-      <div className="absolute inset-0 bg-[var(--paper)]/85 backdrop-blur-md" />
-
-      <div className="relative z-10 w-full max-w-lg backdrop-blur-2xl bg-white/85/90 border border-white/80 p-8 sm:p-10 space-y-6 shadow-2xl rounded-3xl">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 via-indigo-50 to-gray-50 dark:from-gray-900 dark:to-gray-800">
+      <div className="w-full max-w-5xl">
         {/* Header */}
-        <div className="text-center space-y-2">
-          <MedcinLogo size="lg" className="justify-center" />
-          <h1 className="text-xl font-bold text-[var(--ink)] tracking-tight">
-            Create Your {branding.client.name} Account
+        <div className="text-center mb-12">
+          <h1 className="text-4xl sm:text-5xl font-bold text-[#102A43] dark:text-[#EAF5FF] mb-4">
+            Join Medcin
           </h1>
-          <p className="text-xs text-[var(--muted)] font-mono-ledger">
-            Join the ASEAN healthcare & wellness network
+          <p className="text-lg text-[#5C7185] dark:text-[#A1B8CB]">
+            Choose how you want to get started
           </p>
         </div>
 
-        {success && (
-          <div className="p-3 bg-[var(--paper)] border border-[var(--sage)] text-xs font-mono-ledger text-[var(--sage)] flex items-center gap-2 rounded-xl">
-            <CheckCircle2 className="w-4 h-4 flex-none" />
-            <span>Account initialized! Forwarding to workspace...</span>
-          </div>
-        )}
-
-        {/* Account Type Selector Tabs */}
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
-            I am registering as:
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setAccountType("patient")}
-              className={`p-3.5 border text-left flex items-center gap-3 transition-all rounded-xl ${
-                accountType === "patient"
-                  ? "border-[var(--clay)] bg-[var(--paper)] text-[var(--clay)] font-semibold shadow-xs"
-                  : "border-[var(--mist)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--muted)]"
-              }`}
-            >
-              <User className="w-5 h-5 flex-none" />
-              <div>
-                <div className="font-bold text-sm text-[var(--ink)]">
-                  Patient
-                </div>
-                <div className="text-xs text-[var(--muted)]">
-                  Personal bookings & care
-                </div>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setAccountType("center")}
-              className={`p-3.5 border text-left flex items-center gap-3 transition-all rounded-xl ${
-                accountType === "center"
-                  ? "border-[var(--clay)] bg-[var(--paper)] text-[var(--clay)] font-semibold shadow-xs"
-                  : "border-[var(--mist)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--muted)]"
-              }`}
-            >
-              <Building2 className="w-5 h-5 flex-none" />
-              <div>
-                <div className="font-bold text-sm text-[var(--ink)]">
-                  Medical Center
-                </div>
-                <div className="text-xs text-[var(--muted)]">
-                  Clinic & practitioner roster
-                </div>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        {/* Dynamic Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 text-sm font-sans-ledger">
-          {accountType === "patient" ? (
-            /* Patient Fields */
-            <>
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
-                  Full Legal Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Marcus Wei"
-                  value={patientName}
-                  onChange={(e) => setPatientName(e.target.value)}
-                  className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="marcus.wei@example.sg"
-                    value={patientEmail}
-                    onChange={(e) => setPatientEmail(e.target.value)}
-                    className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
-                    Mobile Phone
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="+65 9123 4567"
-                    value={patientPhone}
-                    onChange={(e) => setPatientPhone(e.target.value)}
-                    className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm font-mono-ledger text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
-                  Create Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Min 8 characters"
-                  value={patientPassword}
-                  onChange={(e) => setPatientPassword(e.target.value)}
-                  className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
-                />
-              </div>
-            </>
-          ) : (
-            /* Medical Center Fields */
-            <>
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
-                  Medical Center / Practice Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Novena Premier Specialist Medical"
-                  value={centerName}
-                  onChange={(e) => setCenterName(e.target.value)}
-                  className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
-                    Primary Category
-                  </label>
-                  <select
-                    value={centerCategory}
-                    onChange={(e) => setCenterCategory(e.target.value)}
-                    className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm font-semibold text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
-                  >
-                    <option value="Specialist diagnostics">Specialist diagnostics</option>
-                    <option value="Aesthetic & anti-aging clinic">Aesthetic & anti-aging clinic</option>
-                    <option value="Physiotherapy & sports medicine">Physiotherapy & sports medicine</option>
-                    <option value="Dental surgery & aesthetics">Dental surgery & aesthetics</option>
-                    <option value="Integrative wellness sanctuary">Integrative wellness sanctuary</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
-                    Healthcare License / Reg #
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. MOH-SG-NOV-8812"
-                    value={centerRegNumber}
-                    onChange={(e) => setCenterRegNumber(e.target.value)}
-                    className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm font-mono-ledger text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
-                  Physical Practice Address
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. 10 Sinaran Drive, Novena Medical Hub, Singapore"
-                  value={centerAddress}
-                  onChange={(e) => setCenterAddress(e.target.value)}
-                  className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
-                    Practice Work Email
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="appointments@novenamedical.sg"
-                    value={centerEmail}
-                    onChange={(e) => setCenterEmail(e.target.value)}
-                    className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
-                    Contact Phone
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="+65 6712 8900"
-                    value={centerPhone}
-                    onChange={(e) => setCenterPhone(e.target.value)}
-                    className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm font-mono-ledger text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1.5">
-                  Account Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Min 8 characters"
-                  value={centerPassword}
-                  onChange={(e) => setCenterPassword(e.target.value)}
-                  className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--mist)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 rounded-xl"
-                />
-              </div>
-            </>
-          )}
-
-          {/* Terms Agreement */}
-          <div className="pt-1">
-            <label className="flex items-start gap-2.5 cursor-pointer text-xs text-[var(--muted)] leading-relaxed">
-              <input
-                type="checkbox"
-                required
-                defaultChecked
-                className="mt-0.5 accent-[var(--clay)] rounded"
-              />
-              <span>
-                I agree to the {branding.client.name} clinical charter, transparent pricing rules, and data handling policy.
-              </span>
-            </label>
-          </div>
-
-          <button
-            type="submit"
-            className="w-full bg-[var(--clay)] text-white font-mono-ledger text-xs font-bold py-3 hover:opacity-95 transition-opacity mt-2 rounded-xl shadow-md"
+        {/* Role Selection Cards */}
+        <div className="grid gap-8 md:grid-cols-2">
+          {/* Patient Signup */}
+          <Link
+            href="/signup/patient"
+            className="group relative overflow-hidden rounded-2xl border-2 border-[#D7E7F5] dark:border-[#244766] bg-[#D7E7F5] dark:bg-[#244766]/20 p-8 transition-all hover:scale-105 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-[#1769AA]/50"
           >
-            Create {accountType === "patient" ? "Patient" : "Medical Center"} Account
-          </button>
-        </form>
+            <div className="relative z-10">
+              {/* Icon */}
+              <div className="mb-6 inline-flex rounded-xl bg-white/50 dark:bg-gray-900/50 p-4 backdrop-blur-sm">
+                <User className="h-12 w-12 text-[#1769AA] dark:text-[#55A9E6]" />
+              </div>
 
-        {/* Footer Link */}
-        <div className="text-center pt-2 border-t border-[var(--mist)]/70 text-xs text-[var(--muted)] font-mono-ledger">
-          <span>Already registered with {branding.client.name}? </span>
-          <Link href="/login" className="text-[var(--clay)] font-bold hover:underline">
-            Sign in here
+              {/* Content */}
+              <h2 className="text-3xl font-bold text-[#102A43] dark:text-[#EAF5FF] mb-3">
+                I'm a Patient
+              </h2>
+              <p className="text-[#5C7185] dark:text-[#A1B8CB] mb-6">
+                Book appointments with healthcare providers, manage your health records, and access quality medical care.
+              </p>
+
+              {/* Features List */}
+              <ul className="space-y-2 mb-6 text-sm text-[#5C7185] dark:text-[#A1B8CB]">
+                <li className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#1769AA]" />
+                  Search and book appointments instantly
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#1769AA]" />
+                  View doctor profiles and reviews
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#1769AA]" />
+                  Manage your medical appointments
+                </li>
+              </ul>
+
+              {/* CTA */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-[#1769AA] dark:text-[#55A9E6]">
+                  Sign up as Patient
+                </span>
+                <ArrowRight className="h-5 w-5 text-[#1769AA] dark:text-[#55A9E6] transition-transform group-hover:translate-x-1" />
+              </div>
+            </div>
+
+            {/* Hover Effect */}
+            <div className="absolute inset-0 -z-10 bg-gradient-to-br from-white/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100 dark:from-white/10" />
+          </Link>
+
+          {/* Center Signup */}
+          <Link
+            href="/signup/center"
+            className="group relative overflow-hidden rounded-2xl border-2 border-[#D7E7F5] dark:border-[#244766] bg-[#D7E7F5] dark:bg-[#244766]/20 p-8 transition-all hover:scale-105 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-[#1769AA]/50"
+          >
+            <div className="relative z-10">
+              {/* Icon */}
+              <div className="mb-6 inline-flex rounded-xl bg-white/50 dark:bg-gray-900/50 p-4 backdrop-blur-sm">
+                <Building2 className="h-12 w-12 text-[#2F80B7] dark:text-[#72BCE8]" />
+              </div>
+
+              {/* Content */}
+              <h2 className="text-3xl font-bold text-[#102A43] dark:text-[#EAF5FF] mb-3">
+                I'm a Healthcare Provider
+              </h2>
+              <p className="text-[#5C7185] dark:text-[#A1B8CB] mb-6">
+                Register your medical center or clinic, manage appointments, and reach more patients.
+              </p>
+
+              {/* Features List */}
+              <ul className="space-y-2 mb-6 text-sm text-[#5C7185] dark:text-[#A1B8CB]">
+                <li className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#2F80B7]" />
+                  Manage doctors and services
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#2F80B7]" />
+                  Control appointment availability
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#2F80B7]" />
+                  Grow your practice online
+                </li>
+              </ul>
+
+              {/* CTA */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-[#2F80B7] dark:text-[#72BCE8]">
+                  Register Your Center
+                </span>
+                <ArrowRight className="h-5 w-5 text-[#2F80B7] dark:text-[#72BCE8] transition-transform group-hover:translate-x-1" />
+              </div>
+            </div>
+
+            {/* Hover Effect */}
+            <div className="absolute inset-0 -z-10 bg-gradient-to-br from-white/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100 dark:from-white/10" />
           </Link>
         </div>
+
+        {/* Login Link */}
+        <p className="mt-8 text-center text-sm text-[#5C7185] dark:text-[#A1B8CB]">
+          Already have an account?{' '}
+          <Link
+            href="/login"
+            className="text-[#1769AA] dark:text-[#55A9E6] hover:text-[#2F80B7] dark:hover:text-[#72BCE8] font-semibold"
+          >
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   );

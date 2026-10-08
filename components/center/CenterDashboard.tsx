@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useMedcinStore, Doctor, Booking } from "@/lib/store";
 import { useBranding } from "@/lib/branding";
 import {
   Building2,
@@ -11,244 +10,415 @@ import {
   Check,
   Plus,
   Trash2,
-  Copy,
   Calendar,
   XCircle,
   Search,
-  Camera,
-  Upload,
-  Image as ImageIcon,
   ShieldCheck,
-  Sparkles,
+  User as UserIcon,
 } from "lucide-react";
+import CenterProfileTab from "./CenterProfileTab";
+
+// Types matching database schema
+interface Center {
+  id: string;
+  name: string;
+  category: string;
+  address: string;
+  email: string;
+  phone: string;
+  licenseNumber: string;
+  status: "PENDING" | "ACTIVE" | "SUSPENDED";
+  logoUrl?: string;
+  coverImageUrl?: string;
+  operatingHours?: string;
+  userId: string;
+}
+
+interface Doctor {
+  id: string;
+  name: string;
+  role: string;
+  category: string;
+  price: number;
+  rating: number;
+  reviewsCount: number;
+  licenseNumber: string;
+  bio?: string;
+  imageUrl?: string;
+  active: boolean;
+  centerId: string;
+}
+
+interface Booking {
+  id: string;
+  reference: string;
+  patientId: string;
+  doctorId: string;
+  slotId: string;
+  date: string;
+  time: string;
+  price: number;
+  status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
+  patientNotes?: string;
+  createdAt: string;
+}
+
+interface Service {
+  id: string;
+  doctorId: string;
+  name: string;
+  duration: string;
+  price: number;
+  description?: string;
+}
 
 export function CenterDashboard() {
   const { branding, formatCurrency } = useBranding();
-  const {
-    centers,
-    updateCenterProfile,
-    doctors,
-    addDoctor,
-    updateDoctor,
-    addProcedure,
-    removeProcedure,
-    bookings,
-    updateBookingStatus,
-    selectedDoctorAvailability,
-    setSelectedDoctorAvailability,
-    selectedDayAvailability,
-    setSelectedDayAvailability,
-    slotStates,
-    toggleSlot,
-    copySlotsToRestOfWeek,
-    addToast,
-  } = useMedcinStore();
+  
+  // Data state
+  const [center, setCenter] = useState<Center | null>(null);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [activeTab, setActiveTab] = useState<"onboarding" | "doctors" | "availability" | "inbox">("inbox");
-  const currentCenter = centers.find((c) => c.id === "c-1") || centers[0];
+  const [activeTab, setActiveTab] = useState<"doctors" | "inbox" | "profile">("inbox");
 
   // Inbox Filters
-  const [inboxFilter, setInboxFilter] = useState<"all" | "pending" | "confirmed" | "completed">("all");
+  const [inboxFilter, setInboxFilter] = useState<"all" | "PENDING" | "CONFIRMED" | "COMPLETED">("all");
   const [inboxSearch, setInboxSearch] = useState("");
 
   // Modals
   const [showAddDoctorModal, setShowAddDoctorModal] = useState(false);
-  const [showAddProcedureModal, setShowAddProcedureModal] = useState(false);
+  const [showAddServiceModal, setShowAddServiceModal] = useState(false);
   const [declineBookingModal, setDeclineBookingModal] = useState<Booking | null>(null);
-  const [declineReason, setDeclineReason] = useState("Practitioner unavailable for emergency");
+  const [declineReason, setDeclineReason] = useState("Practitioner unavailable");
 
   // Form states for adding doctor
   const [newDocName, setNewDocName] = useState("");
-  const [newDocRole, setNewDocRole] = useState("Dentist · Restorative Surgery");
-  const [newDocLicense, setNewDocLicense] = useState("SG-MOH-9420");
+  const [newDocRole, setNewDocRole] = useState("");
+  const [newDocCategory, setNewDocCategory] = useState("Dental");
+  const [newDocLicense, setNewDocLicense] = useState("");
   const [newDocPrice, setNewDocPrice] = useState("85");
   const [newDocBio, setNewDocBio] = useState("");
 
-  // Form states for adding procedure
-  const [targetDoctorId, setTargetDoctorId] = useState("doc-1");
-  const [newProcName, setNewProcName] = useState("");
-  const [newProcDuration, setNewProcDuration] = useState("30 min");
-  const [newProcPrice, setNewProcPrice] = useState("45");
-  const [newProcDesc, setNewProcDesc] = useState("");
+  // Form states for adding service
+  const [targetDoctorId, setTargetDoctorId] = useState("");
+  const [newServiceName, setNewServiceName] = useState("");
+  const [newServiceDuration, setNewServiceDuration] = useState("30 min");
+  const [newServicePrice, setNewServicePrice] = useState("45");
+  const [newServiceDesc, setNewServiceDesc] = useState("");
 
-  // Center Profile edit state
-  const [profileForm, setProfileForm] = useState({
-    name: currentCenter.name,
-    category: currentCenter.category,
-    address: currentCenter.address,
-    email: currentCenter.email,
-    phone: currentCenter.phone,
-    licenseNumber: currentCenter.licenseNumber,
-    operatingHours: currentCenter.operatingHours || "Mon-Fri 08:30 – 19:30, Sat 09:00 – 16:00",
-    logo: currentCenter.logo || "/images/centers/center-novena-logo.jpg",
-    coverImage: currentCenter.coverImage || "/images/centers/center-novena.jpg",
-    amenities: currentCenter.amenities || [
-      "Wheelchair Accessible",
-      "On-site Diagnostics",
-      "Multilingual Interpreters",
-      "Complimentary Valet",
-      "Direct MOH Integration",
-    ],
-  });
-
+  // Fetch data from APIs
   useEffect(() => {
-    if (currentCenter) {
-      setProfileForm({
-        name: currentCenter.name,
-        category: currentCenter.category,
-        address: currentCenter.address,
-        email: currentCenter.email,
-        phone: currentCenter.phone,
-        licenseNumber: currentCenter.licenseNumber,
-        operatingHours: currentCenter.operatingHours || "Mon-Fri 08:30 – 19:30, Sat 09:00 – 16:00",
-        logo: currentCenter.logo || "/images/centers/center-novena-logo.jpg",
-        coverImage: currentCenter.coverImage || "/images/centers/center-novena.jpg",
-        amenities: currentCenter.amenities || [
-          "Wheelchair Accessible",
-          "On-site Diagnostics",
-          "Multilingual Interpreters",
-          "Complimentary Valet",
-          "Direct MOH Integration",
-        ],
-      });
+    async function fetchData() {
+      try {
+        setLoading(true);
+        
+        // Fetch current center
+        const centersRes = await fetch('/api/centers');
+        if (centersRes.ok) {
+          const centersData = await centersRes.json();
+          // Get the first center for current user (in real app, filter by userId)
+          setCenter(centersData.centers?.[0] || null);
+        }
+
+        // Fetch doctors for this center
+        const doctorsRes = await fetch('/api/doctors');
+        if (doctorsRes.ok) {
+          const doctorsData = await doctorsRes.json();
+          setDoctors(doctorsData.doctors || []);
+        }
+
+        // Fetch bookings
+        const bookingsRes = await fetch('/api/bookings');
+        if (bookingsRes.ok) {
+          const bookingsData = await bookingsRes.json();
+          setBookings(bookingsData.bookings || []);
+        }
+
+        // Fetch services
+        const servicesRes = await fetch('/api/services');
+        if (servicesRes.ok) {
+          const servicesData = await servicesRes.json();
+          setServices(servicesData.services || []);
+        }
+
+      } catch (error) {
+        console.error('Failed to fetch center data:', error);
+      } finally {
+        setLoading(false);
+      }
     }
-  }, [currentCenter]);
 
-  const centerBookings = bookings.filter((b) =>
-    b.clinicName.toLowerCase().includes("dental")
-  );
+    fetchData();
+  }, []);
 
-  const pendingCount = centerBookings.filter((b) => b.status === "pending").length;
-  const confirmedCount = centerBookings.filter((b) => b.status === "confirmed").length;
+  const addToast = (toast: any) => {
+    console.log('Toast:', toast);
+  };
+
+  // Get bookings for doctors in this center
+  const centerBookings = center ? bookings.filter(b => {
+    const doctor = doctors.find(d => d.id === b.doctorId);
+    return doctor && doctor.centerId === center.id;
+  }) : [];
+
+  const pendingCount = centerBookings.filter((b) => b.status === "PENDING").length;
+  const confirmedCount = centerBookings.filter((b) => b.status === "CONFIRMED").length;
 
   const filteredInbox = centerBookings
     .filter((b) => {
-      if (inboxFilter === "pending") return b.status === "pending";
-      if (inboxFilter === "confirmed") return b.status === "confirmed";
-      if (inboxFilter === "completed") return b.status === "completed";
+      if (inboxFilter === "PENDING") return b.status === "PENDING";
+      if (inboxFilter === "CONFIRMED") return b.status === "CONFIRMED";
+      if (inboxFilter === "COMPLETED") return b.status === "COMPLETED";
       return true;
     })
     .filter(
       (b) =>
-        b.patientName.toLowerCase().includes(inboxSearch.toLowerCase()) ||
-        b.reference.toLowerCase().includes(inboxSearch.toLowerCase()) ||
-        b.serviceName.toLowerCase().includes(inboxSearch.toLowerCase())
+        b.reference.toLowerCase().includes(inboxSearch.toLowerCase())
     );
 
-  const handleProfileSave = (e: React.FormEvent) => {
+  const handleCreateDoctor = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateCenterProfile(profileForm);
-    addToast({
-      type: "success",
-      title: "Practice Profile Saved",
-      message: "Clinic branding assets, facility photos, and licensing details updated.",
-    });
+    if (!newDocName || !center) return;
+    
+    try {
+      const response = await fetch("/api/doctors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          centerId: center.id,
+          name: newDocName,
+          role: newDocRole,
+          category: newDocCategory,
+          licenseNumber: newDocLicense,
+          bio: newDocBio,
+          price: parseFloat(newDocPrice) || 85,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create doctor");
+      }
+
+      const data = await response.json();
+      
+      // Add to local state
+      setDoctors(prev => [...prev, data.doctor]);
+      
+      // Reset form and close modal
+      setNewDocName("");
+      setNewDocRole("");
+      setNewDocLicense("");
+      setNewDocBio("");
+      setNewDocPrice("85");
+      setShowAddDoctorModal(false);
+      
+      addToast({
+        type: "success",
+        title: "Doctor Added",
+        message: `${newDocName} has been added to your practice.`,
+      });
+    } catch (error) {
+      console.error('Failed to create doctor:', error);
+      addToast({
+        type: "error",
+        title: "Failed to Add Doctor",
+        message: error instanceof Error ? error.message : "Please try again.",
+      });
+    }
   };
 
-  const handleCreateDoctor = (e: React.FormEvent) => {
+  const handleCreateService = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newDocName) return;
-    addDoctor({
-      name: newDocName,
-      role: newDocRole,
-      category: "Dental",
-      clinic: currentCenter.name,
-      location: currentCenter.address,
-      price: parseInt(newDocPrice, 10) || 45,
-      rating: 5.0,
-      reviewsCount: 1,
-      initials: newDocName
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2),
-      licenseNumber: newDocLicense,
-      active: true,
-      bio: newDocBio,
-      services: [
-        {
-          id: `s-${Date.now()}`,
-          name: "Initial Consultation",
-          duration: "30 min",
-          price: parseInt(newDocPrice, 10) || 45,
-          description: "Diagnostic checkup and treatment roadmap.",
-        },
-      ],
-    });
-    setNewDocName("");
-    setNewDocBio("");
-    setShowAddDoctorModal(false);
+    if (!newServiceName || !targetDoctorId) return;
+    
+    try {
+      const response = await fetch("/api/services", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          doctorId: targetDoctorId,
+          name: newServiceName,
+          duration: newServiceDuration,
+          price: parseFloat(newServicePrice) || 45,
+          description: newServiceDesc,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create service");
+      }
+
+      const data = await response.json();
+      
+      // Add to local state
+      setServices(prev => [...prev, data.service]);
+      
+      // Reset form and close modal
+      setNewServiceName("");
+      setNewServiceDuration("30 min");
+      setNewServicePrice("45");
+      setNewServiceDesc("");
+      setShowAddServiceModal(false);
+      
+      addToast({
+        type: "success",
+        title: "Service Added",
+        message: `${newServiceName} has been added to the catalog.`,
+      });
+    } catch (error) {
+      console.error('Failed to create service:', error);
+      addToast({
+        type: "error",
+        title: "Failed to Add Service",
+        message: error instanceof Error ? error.message : "Please try again.",
+      });
+    }
   };
 
-  const handleCreateProcedure = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newProcName) return;
-    addProcedure(targetDoctorId, {
-      name: newProcName,
-      duration: newProcDuration,
-      price: parseInt(newProcPrice, 10) || 40,
-      description: newProcDesc,
-    });
-    setNewProcName("");
-    setNewProcDesc("");
-    setShowAddProcedureModal(false);
+  const handleConfirmBooking = async (bookingId: string) => {
+    try {
+      const response = await fetch("/api/bookings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: bookingId,
+          status: "CONFIRMED",
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to confirm booking");
+
+      setBookings(prev => prev.map(b => 
+        b.id === bookingId ? { ...b, status: "CONFIRMED" as const } : b
+      ));
+
+      addToast({
+        type: "success",
+        title: "Booking Confirmed",
+        message: "Patient has been notified of confirmation.",
+      });
+    } catch (error) {
+      console.error('Failed to confirm booking:', error);
+      addToast({
+        type: "error",
+        title: "Confirmation Failed",
+        message: "Please try again.",
+      });
+    }
   };
 
-  const executeDeclineBooking = () => {
+  const handleDeclineBooking = async () => {
     if (!declineBookingModal) return;
-    updateBookingStatus(declineBookingModal.id, "cancelled", declineReason);
-    setDeclineBookingModal(null);
+
+    try {
+      const response = await fetch("/api/bookings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: declineBookingModal.id,
+          status: "CANCELLED",
+          cancellationReason: declineReason,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to decline booking");
+
+      setBookings(prev => prev.map(b => 
+        b.id === declineBookingModal.id ? { ...b, status: "CANCELLED" as const } : b
+      ));
+
+      setDeclineBookingModal(null);
+      setDeclineReason("Practitioner unavailable");
+
+      addToast({
+        type: "info",
+        title: "Booking Declined",
+        message: "Patient has been notified of cancellation.",
+      });
+    } catch (error) {
+      console.error('Failed to decline booking:', error);
+      addToast({
+        type: "error",
+        title: "Decline Failed",
+        message: "Please try again.",
+      });
+    }
   };
 
-  const clinicDoctors = doctors.filter((d) => d.clinic.includes("Dental"));
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[var(--clay)] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[var(--muted)]">Loading center dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!center) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Building2 className="w-16 h-16 text-[var(--muted)] mx-auto mb-4" />
+          <p className="text-[var(--muted)]">No center found. Please contact support.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Clinic Operations Header */}
+      {/* Center Header */}
       <div className="rounded-3xl border border-[var(--mist)] bg-[var(--surface)] p-6 md:p-8 shadow-sm backdrop-blur-md">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-white border border-[var(--mist)] flex items-center justify-center overflow-hidden shadow-xs relative flex-none p-1.5">
-              {currentCenter.logo ? (
-                <img
-                  src={currentCenter.logo}
-                  alt={currentCenter.name}
-                  className="w-full h-full object-contain"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLElement).style.display = "none";
-                  }}
-                />
+            <div className="w-16 h-16 rounded-2xl bg-white border border-[var(--mist)] p-2 flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
+              {center.logoUrl ? (
+                <img src={center.logoUrl} alt={center.name} className="w-full h-full object-contain" />
               ) : (
-                <Building2 className="w-7 h-7 text-[var(--clay)]" />
+                <Building2 className="w-8 h-8 text-[var(--clay)]" />
               )}
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-bold text-[var(--ink)] tracking-tight">
-                  {currentCenter.name}
-                </h2>
-                <span className="badge-ledger badge-confirmed rounded-full px-2.5 py-0.5 text-xs font-semibold">MOH Accredited</span>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-[var(--sage)] animate-pulse" />
+                <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider">
+                  {center.category} Practice
+                </span>
+                {center.status === "ACTIVE" && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-[var(--sage)]/10 border border-[var(--sage)]/20 text-xs font-semibold text-[var(--sage)]">
+                    Active & Bookable
+                  </span>
+                )}
               </div>
-              <p className="text-xs text-[var(--muted)] font-mono-ledger mt-0.5">
-                {currentCenter.category} · {currentCenter.address} · License: {currentCenter.licenseNumber}
+              <h2 className="text-2xl sm:text-3xl font-bold text-[var(--ink)] tracking-tight">
+                {center.name}
+              </h2>
+              <p className="text-sm text-[var(--muted)] mt-1">
+                {center.address}
               </p>
             </div>
           </div>
 
-          {/* Quick Metrics */}
-          <div className="flex items-center gap-3 font-mono-ledger text-xs">
+          {/* Metric Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 font-mono-ledger text-xs">
             <div className="rounded-2xl border border-[var(--mist)] p-4 bg-[var(--paper)] text-right shadow-2xs min-w-[120px]">
-              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">Pending Inbox</span>
+              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">Pending</span>
               <span className="text-2xl sm:text-3xl font-bold text-[var(--amber)]">{pendingCount}</span>
             </div>
             <div className="rounded-2xl border border-[var(--mist)] p-4 bg-[var(--paper)] text-right shadow-2xs min-w-[120px]">
-              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">Confirmed Visits</span>
+              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">Confirmed</span>
               <span className="text-2xl sm:text-3xl font-bold text-[var(--sage)]">{confirmedCount}</span>
             </div>
             <div className="rounded-2xl border border-[var(--mist)] p-4 bg-[var(--paper)] text-right shadow-2xs min-w-[120px]">
-              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">Doctors On Duty</span>
-              <span className="text-2xl sm:text-3xl font-bold text-[var(--ink)]">{clinicDoctors.length}</span>
+              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">Doctors</span>
+              <span className="text-2xl sm:text-3xl font-bold text-[var(--ink)]">{doctors.length}</span>
             </div>
           </div>
         </div>
@@ -257,200 +427,161 @@ export function CenterDashboard() {
         <div className="flex gap-1.5 border border-[var(--mist)] p-1.5 bg-[var(--paper)] font-mono-ledger text-xs mt-6 overflow-x-auto rounded-full">
           <button
             onClick={() => setActiveTab("inbox")}
-            className={`px-4 py-2 transition-all whitespace-nowrap flex items-center gap-2 rounded-full ${
+            className={`px-5 py-2.5 transition-all whitespace-nowrap flex items-center gap-2 rounded-full text-sm ${
               activeTab === "inbox"
                 ? "bg-[var(--surface)] text-[var(--clay)] font-semibold shadow-xs"
                 : "text-[var(--muted)] hover:text-[var(--ink)]"
             }`}
           >
-            <Inbox className="w-3.5 h-3.5" />
-            <span>Bookings Inbox {pendingCount > 0 ? `(${pendingCount})` : ""}</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("availability")}
-            className={`px-4 py-2 transition-all whitespace-nowrap flex items-center gap-2 rounded-full ${
-              activeTab === "availability"
-                ? "bg-[var(--surface)] text-[var(--clay)] font-semibold shadow-xs"
-                : "text-[var(--muted)] hover:text-[var(--ink)]"
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span>Availability Schedule</span>
+            <Inbox className="w-4 h-4" />
+            <span>Appointment Inbox {pendingCount > 0 ? `(${pendingCount})` : ""}</span>
           </button>
 
           <button
             onClick={() => setActiveTab("doctors")}
-            className={`px-4 py-2 transition-all whitespace-nowrap flex items-center gap-2 rounded-full ${
+            className={`px-5 py-2.5 transition-all whitespace-nowrap flex items-center gap-2 rounded-full text-sm ${
               activeTab === "doctors"
                 ? "bg-[var(--surface)] text-[var(--clay)] font-semibold shadow-xs"
                 : "text-[var(--muted)] hover:text-[var(--ink)]"
             }`}
           >
-            <Stethoscope className="w-3.5 h-3.5" />
-            <span>Doctors & Catalog</span>
+            <Stethoscope className="w-4 h-4" />
+            <span>Medical Team ({doctors.length})</span>
           </button>
 
           <button
-            onClick={() => setActiveTab("onboarding")}
-            className={`px-4 py-2 transition-all whitespace-nowrap flex items-center gap-2 rounded-full ${
-              activeTab === "onboarding"
+            onClick={() => setActiveTab("profile")}
+            className={`px-5 py-2.5 transition-all whitespace-nowrap flex items-center gap-2 rounded-full text-sm ${
+              activeTab === "profile"
                 ? "bg-[var(--surface)] text-[var(--clay)] font-semibold shadow-xs"
                 : "text-[var(--muted)] hover:text-[var(--ink)]"
             }`}
           >
-            <Building2 className="w-3.5 h-3.5" />
-            <span>Practice Profile & Legal</span>
+            <UserIcon className="w-4 h-4" />
+            <span>Practice Profile</span>
           </button>
         </div>
       </div>
 
-      {/* VIEW 1: BOOKINGS INBOX */}
+      {/* VIEW: APPOINTMENT INBOX */}
       {activeTab === "inbox" && (
-        <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 p-6 md:p-8 shadow-sm space-y-6">
+        <div className="rounded-3xl backdrop-blur-xl bg-white/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--mist)]">
             <div>
               <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
-                Appointments Inbox
+                Appointment Requests
               </h3>
-              <p className="text-sm text-[var(--muted)] font-mono-ledger mt-0.5">
-                Patient consultation requests and real-time appointment dispatch
+              <p className="text-sm text-[var(--muted)] mt-1">
+                Patient bookings requiring your review and confirmation
               </p>
             </div>
 
-            {/* Filter Tabs & Search */}
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-3">
               <div className="relative">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
                 <input
                   type="text"
-                  placeholder="Filter patient or reference..."
+                  placeholder="Filter by reference..."
                   value={inboxSearch}
                   onChange={(e) => setInboxSearch(e.target.value)}
-                  className="pl-9 pr-3 py-2 text-sm border border-[var(--mist)] bg-[var(--paper)] text-[var(--ink)] font-sans-ledger focus:outline-none focus:border-[var(--clay)] rounded-xl"
+                  className="pl-9 pr-3 py-2 text-sm rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
                 />
               </div>
 
-              <div className="flex p-1 bg-[var(--paper)] border border-[var(--mist)] rounded-full text-xs font-mono-ledger">
-                {(["all", "pending", "confirmed", "completed"] as const).map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setInboxFilter(f)}
-                    className={`px-3.5 py-1.5 rounded-full capitalize font-semibold transition-all ${
-                      inboxFilter === f
-                        ? "bg-[var(--clay)] text-white shadow-xs"
-                        : "text-[var(--muted)] hover:text-[var(--ink)]"
-                    }`}
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
+              <select
+                value={inboxFilter}
+                onChange={(e) => setInboxFilter(e.target.value as any)}
+                className="py-2 px-3 border border-[var(--mist)] text-sm rounded-xl bg-[var(--surface)] text-[var(--ink)] font-semibold"
+              >
+                <option value="all">All Statuses</option>
+                <option value="PENDING">Pending</option>
+                <option value="CONFIRMED">Confirmed</option>
+                <option value="COMPLETED">Completed</option>
+              </select>
             </div>
           </div>
 
-          {/* Table Feed */}
-          <div className="divide-y divide-[var(--mist)] border border-[var(--mist)] rounded-2xl overflow-hidden bg-white/40">
+          <div className="space-y-4">
             {filteredInbox.length === 0 ? (
-              <div className="p-12 text-center text-sm font-mono-ledger text-[var(--muted)]">
-                No bookings found matching current filters.
+              <div className="text-center py-12 text-[var(--muted)] font-mono-ledger">
+                No appointments found
               </div>
             ) : (
-              filteredInbox.map((b) => {
-                const isPending = b.status === "pending";
+              filteredInbox.map((booking) => {
+                const doctor = doctors.find(d => d.id === booking.doctorId);
                 return (
-                  <div key={b.id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-5 hover:bg-[var(--paper)]/50 transition-colors">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2.5">
-                        <span className="font-mono-ledger text-xs font-bold text-[var(--clay)] px-2.5 py-0.5 rounded-full bg-[var(--clay)]/10 border border-[var(--clay)]/20">
-                          {b.reference}
-                        </span>
-                        <span
-                          className={`badge-ledger rounded-full text-xs font-semibold px-3 py-0.5 ${
-                            isPending
-                              ? "badge-pending"
-                              : b.status === "confirmed"
-                              ? "badge-confirmed"
-                              : "badge-completed"
-                          }`}
-                        >
-                          {isPending ? "Pending Clinic Approval" : b.status}
-                        </span>
-                        <span className="text-xs font-mono-ledger text-[var(--muted)]">
-                          Booked {new Date(b.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-
-                      <div className="font-bold text-base sm:text-lg text-[var(--ink)] flex items-center gap-2">
-                        <span>{b.patientName}</span>
-                        <span className="text-sm font-normal text-[var(--muted)]">
-                          ({b.patientPhone} · {b.patientEmail})
-                        </span>
-                      </div>
-
-                      <div className="text-sm text-[var(--muted)] font-sans-ledger flex items-center gap-2">
-                        <span className="font-semibold text-[var(--ink)]">{b.serviceName}</span>
-                        <span>·</span>
-                        <span>Doctor: {b.doctorName}</span>
-                        <span>·</span>
-                        <span className="font-mono-ledger text-xs">{b.duration}</span>
-                      </div>
-
-                      <div className="text-sm font-sans-ledger text-[var(--ink)] flex items-center gap-3 pt-0.5">
-                        <div className="flex items-center gap-1.5 font-medium text-[var(--clay)]">
-                          <Calendar className="w-4 h-4 shrink-0" />
-                          <span>{b.date} at {b.time}</span>
-                        </div>
-                        <span>·</span>
-                        <span className="font-bold text-[var(--sage)] font-mono-ledger text-base">{formatCurrency(b.price)}</span>
-                      </div>
-
-                      {b.patientNotes && (
-                        <div className="text-sm text-[var(--muted)] font-sans-ledger bg-[var(--paper)] p-3 border border-[var(--mist)] rounded-xl mt-2 max-w-xl">
-                          <span className="font-semibold text-[var(--ink)] font-mono-ledger text-xs block uppercase mb-0.5">
-                            Patient Note:
+                  <div
+                    key={booking.id}
+                    className="p-6 rounded-2xl border border-[var(--mist)] bg-[var(--surface)] shadow-xs hover:border-[var(--clay)]/40 transition-all space-y-4"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center gap-2.5 mb-2">
+                          <span className="font-mono-ledger text-sm font-bold text-[var(--clay)]">
+                            {booking.reference}
                           </span>
-                          {b.patientNotes}
+                          <span
+                            className={`badge-ledger text-xs font-semibold px-3 py-1 rounded-full ${
+                              booking.status === "PENDING"
+                                ? "badge-pending"
+                                : booking.status === "CONFIRMED"
+                                ? "badge-confirmed"
+                                : "badge-completed"
+                            }`}
+                          >
+                            {booking.status}
+                          </span>
+                          <span className="text-xs text-[var(--muted)]">
+                            {new Date(booking.createdAt).toLocaleDateString()}
+                          </span>
                         </div>
-                      )}
-                    </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-2.5 font-mono-ledger text-sm flex-none">
-                      {isPending ? (
-                        <>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">
+                              Doctor
+                            </span>
+                            <span className="font-semibold text-[var(--ink)]">{doctor?.name || 'Unknown'}</span>
+                          </div>
+                          <div>
+                            <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">
+                              Appointment
+                            </span>
+                            <span className="font-semibold text-[var(--ink)]">{booking.date} at {booking.time}</span>
+                          </div>
+                          <div>
+                            <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">
+                              Fee
+                            </span>
+                            <span className="font-bold text-[var(--sage)]">{formatCurrency(booking.price)}</span>
+                          </div>
+                          {booking.patientNotes && (
+                            <div className="sm:col-span-2">
+                              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">
+                                Patient Notes
+                              </span>
+                              <span className="text-[var(--ink)]">{booking.patientNotes}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {booking.status === "PENDING" && (
+                        <div className="flex gap-2 flex-none">
                           <button
-                            onClick={() => updateBookingStatus(b.id, "confirmed")}
-                            className="bg-[var(--sage)] text-white px-4 py-2 rounded-xl font-semibold hover:opacity-90 transition-all flex items-center gap-1.5 shadow-xs"
+                            onClick={() => handleConfirmBooking(booking.id)}
+                            className="bg-[var(--sage)] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:opacity-95 flex items-center gap-1.5 shadow-sm"
                           >
                             <Check className="w-4 h-4" />
-                            <span>Accept</span>
+                            <span>Confirm</span>
                           </button>
-
                           <button
-                            onClick={() => setDeclineBookingModal(b)}
-                            className="border border-[var(--mist)] text-[var(--muted)] px-4 py-2 rounded-xl hover:border-[var(--clay)] hover:text-[var(--clay)] transition-all font-semibold"
+                            onClick={() => setDeclineBookingModal(booking)}
+                            className="px-4 py-2.5 border border-[var(--mist)] rounded-xl text-[var(--muted)] hover:text-[var(--clay)] hover:border-[var(--clay)] transition-all font-semibold"
                           >
                             Decline
                           </button>
-                        </>
-                      ) : b.status === "confirmed" ? (
-                        <>
-                          <button
-                            onClick={() => updateBookingStatus(b.id, "completed")}
-                            className="border border-[var(--sage)] text-[var(--sage)] px-4 py-2 rounded-xl hover:bg-[var(--sage)] hover:text-white transition-all font-semibold shadow-2xs"
-                          >
-                            Mark Completed
-                          </button>
-                          <button
-                            onClick={() => setDeclineBookingModal(b)}
-                            className="border border-[var(--mist)] text-[var(--muted)] px-3 py-2 rounded-xl hover:text-[var(--clay)] hover:border-[var(--clay)] transition-all"
-                          >
-                            Cancel
-                          </button>
-                        </>
-                      ) : (
-                        <span className="badge-ledger badge-completed">Archived</span>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -461,641 +592,139 @@ export function CenterDashboard() {
         </div>
       )}
 
-      {/* VIEW 2: AVAILABILITY SCHEDULER */}
-      {activeTab === "availability" && (
-        <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 p-6 md:p-8 shadow-sm space-y-6">
+      {/* VIEW: MEDICAL TEAM */}
+      {activeTab === "doctors" && (
+        <div className="rounded-3xl backdrop-blur-xl bg-white/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--mist)]">
             <div>
               <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
-                Slot Availability Scheduler
+                Medical Team Roster
               </h3>
-              <p className="text-sm text-[var(--muted)] font-mono-ledger mt-0.5">
-                Click any slot to open or block consultation appointments across the regional calendar
+              <p className="text-sm text-[var(--muted)] mt-1">
+                Manage your practice's healthcare providers and services
               </p>
             </div>
 
-            <button
-              onClick={copySlotsToRestOfWeek}
-              className="bg-[var(--clay)] text-white px-5 py-2.5 rounded-xl font-mono-ledger text-sm font-semibold hover:opacity-95 flex items-center gap-2 shadow-xs transition-all self-start sm:self-auto"
-            >
-              <Copy className="w-4 h-4" />
-              <span>Clone {selectedDayAvailability} Schedule to Week</span>
-            </button>
-          </div>
-
-          {/* Practitioner Selector Chips */}
-          <div>
-            <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2.5 tracking-wider">
-              Select Physician
-            </label>
-            <div className="flex gap-2.5 flex-wrap">
-              {clinicDoctors.map((doc) => (
-                <button
-                  key={doc.id}
-                  onClick={() => setSelectedDoctorAvailability(doc.id)}
-                  className={`px-4 py-2 rounded-xl font-mono-ledger text-sm flex items-center gap-2 transition-all ${
-                    selectedDoctorAvailability === doc.id
-                      ? "border border-[var(--clay)] bg-[var(--paper)] text-[var(--clay)] font-semibold shadow-xs"
-                      : "border border-[var(--mist)] text-[var(--muted)] bg-[var(--surface)] hover:border-[var(--muted)]"
-                  }`}
-                >
-                  <span className="w-2.5 h-2.5 rounded-full bg-[var(--sage)]" />
-                  <span>{doc.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Weekday Selector */}
-          <div>
-            <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2.5 tracking-wider">
-              Day of Week
-            </label>
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                <button
-                  key={day}
-                  onClick={() => setSelectedDayAvailability(day)}
-                  className={`px-5 py-2.5 rounded-xl border font-mono-ledger text-sm font-semibold transition-all ${
-                    selectedDayAvailability === day
-                      ? "border-[var(--clay)] text-white bg-[var(--clay)] shadow-xs"
-                      : "border-[var(--mist)] text-[var(--muted)] bg-[var(--surface)] hover:text-[var(--ink)] hover:border-[var(--muted)]"
-                  }`}
-                >
-                  {day}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Slot Grid Matrix */}
-          <div>
-            <div className="flex justify-between items-center text-sm font-mono-ledger text-[var(--muted)] mb-3">
-              <span>Appointment Matrix (30-minute intervals)</span>
-              <div className="flex items-center gap-4">
-                <span className="flex items-center gap-1.5 text-[var(--clay)] font-medium">
-                  <span className="w-3 h-3 border border-[var(--clay)] bg-[var(--paper)] rounded-xs inline-block" />
-                  <span>Available</span>
-                </span>
-                <span className="flex items-center gap-1.5 text-[var(--muted)]">
-                  <span className="w-3 h-3 border border-[var(--mist)] bg-[var(--surface)] rounded-xs inline-block" />
-                  <span className="line-through">Blocked</span>
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
-              {[
-                "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-                "12:00", "12:30", "14:00", "14:30", "15:00", "15:30", "16:00",
-                "16:30", "17:00", "17:30", "18:00"
-              ].map((time) => {
-                const slotKey = `${selectedDoctorAvailability}-${selectedDayAvailability}-${time}`;
-                const isAvailable = slotStates[slotKey] !== "blocked";
-
-                return (
-                  <button
-                    key={time}
-                    onClick={() => toggleSlot(slotKey)}
-                    className={`py-3 px-3 text-center border font-mono-ledger text-sm rounded-xl transition-all ${
-                      isAvailable
-                        ? "border-[var(--clay)] bg-[var(--paper)] text-[var(--clay)] font-bold shadow-xs hover:border-[var(--ink)]"
-                        : "border-[var(--mist)] bg-[var(--surface)] text-[var(--mist)] line-through hover:border-[var(--muted)] hover:text-[var(--muted)]"
-                    }`}
-                    title={isAvailable ? "Open slot (click to block)" : "Blocked slot (click to open)"}
-                  >
-                    {time}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* VIEW 3: DOCTORS & CATALOG */}
-      {activeTab === "doctors" && (
-        <div className="space-y-6">
-          <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 p-6 md:p-8 shadow-sm space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[var(--mist)] gap-3">
-              <div>
-                <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
-                  Practitioner Staff
-                </h3>
-                <p className="text-sm text-[var(--muted)] font-mono-ledger mt-0.5">
-                  Registered doctors and active duty statuses in Novena facility
-                </p>
-              </div>
-
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowAddServiceModal(true)}
+                className="px-4 py-2 border border-[var(--mist)] rounded-xl text-sm font-semibold text-[var(--ink)] hover:border-[var(--clay)] hover:text-[var(--clay)] transition-colors flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Service</span>
+              </button>
               <button
                 onClick={() => setShowAddDoctorModal(true)}
-                className="bg-[var(--clay)] text-white px-5 py-2.5 rounded-xl font-mono-ledger text-sm font-semibold hover:opacity-95 flex items-center gap-1.5 shadow-xs transition-all self-start sm:self-auto"
+                className="bg-[var(--clay)] text-white px-5 py-2 rounded-xl text-sm font-semibold hover:opacity-95 flex items-center gap-2 shadow-sm shadow-[var(--clay)]/20"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Doctor</span>
               </button>
             </div>
-
-            <div className="divide-y divide-[var(--mist)] border border-[var(--mist)] rounded-2xl overflow-hidden bg-white/40">
-              {clinicDoctors.map((doc) => (
-                <div key={doc.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-5 hover:bg-[var(--paper)]/50 transition-colors">
-                  <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-[var(--mist)]/40 flex items-center justify-center font-mono-ledger font-bold text-base text-[var(--ink)] border border-[var(--mist)] overflow-hidden relative flex-none">
-                      {doc.image ? (
-                        <img
-                          src={doc.image}
-                          alt={doc.name}
-                          className="w-full h-full object-cover object-top"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLElement).style.display = "none";
-                          }}
-                        />
-                      ) : (
-                        doc.initials
-                      )}
-                    </div>
-                    <div>
-                      <div className="font-bold text-base sm:text-lg text-[var(--ink)] flex items-center gap-2.5">
-                        <span>{doc.name}</span>
-                        <span className="badge-ledger badge-confirmed rounded-full text-xs px-2.5 py-0.5 font-semibold">Active</span>
-                      </div>
-                      <div className="text-sm font-medium text-[var(--clay)] mt-0.5">
-                        {doc.role}
-                      </div>
-                      <div className="text-xs sm:text-sm font-mono-ledger text-[var(--muted)] mt-0.5">
-                        License: {doc.licenseNumber} · Starting Fee: {formatCurrency(doc.price)}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 font-mono-ledger text-sm">
-                    <button
-                      onClick={() =>
-                        updateDoctor(doc.id, {
-                          price: doc.price + 5,
-                        })
-                      }
-                      className="px-3.5 py-2 border border-[var(--mist)] rounded-xl hover:border-[var(--clay)] text-[var(--ink)] font-semibold transition-all shadow-2xs"
-                    >
-                      Fee: {formatCurrency(doc.price)} (Edit)
-                    </button>
-                    <button
-                      onClick={() => {
-                        setTargetDoctorId(doc.id);
-                        setShowAddProcedureModal(true);
-                      }}
-                      className="px-3.5 py-2 rounded-xl border border-[var(--clay)] text-[var(--clay)] hover:bg-[var(--clay)] hover:text-white transition-all font-semibold shadow-2xs"
-                    >
-                      + Procedure
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
 
-          {/* Procedures Catalog */}
-          <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 p-6 md:p-8 shadow-sm space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[var(--mist)] gap-3">
-              <div>
-                <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
-                  Procedures & Pricing
-                </h3>
-                <p className="text-sm text-[var(--muted)] font-mono-ledger mt-0.5">
-                  Standard consultation durations and transparent fees published on patient portal
-                </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {doctors.length === 0 ? (
+              <div className="col-span-2 text-center py-12 text-[var(--muted)] font-mono-ledger">
+                No doctors yet. Add your first practitioner to start accepting bookings.
               </div>
+            ) : (
+              doctors.map((doctor) => {
+                const doctorServices = services.filter(s => s.doctorId === doctor.id);
+                return (
+                  <div
+                    key={doctor.id}
+                    className="rounded-2xl border border-[var(--mist)] bg-[var(--surface)] p-5 shadow-xs space-y-4"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="w-16 h-16 rounded-2xl bg-[var(--clay)]/10 text-[var(--clay)] border border-[var(--clay)]/20 flex items-center justify-center font-mono-ledger text-base font-bold flex-none overflow-hidden shadow-xs">
+                        {doctor.imageUrl ? (
+                          <img src={doctor.imageUrl} alt={doctor.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <Stethoscope className="w-6 h-6" />
+                        )}
+                      </div>
 
-              <button
-                onClick={() => setShowAddProcedureModal(true)}
-                className="bg-[var(--clay)] text-white px-5 py-2.5 rounded-xl font-mono-ledger text-sm font-semibold hover:opacity-95 flex items-center gap-1.5 shadow-xs transition-all self-start sm:self-auto"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Procedure</span>
-              </button>
-            </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-bold text-base text-[var(--ink)]">
+                            {doctor.name}
+                          </h4>
+                          <span
+                            className={`badge-ledger text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+                              doctor.active ? "badge-confirmed" : "badge-pending"
+                            }`}
+                          >
+                            {doctor.active ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                        <div className="text-sm font-medium text-[var(--clay)] mb-1">
+                          {doctor.role}
+                        </div>
+                        <div className="text-xs text-[var(--muted)] font-mono-ledger">
+                          License: {doctor.licenseNumber}
+                        </div>
+                      </div>
 
-            <div className="divide-y divide-[var(--mist)] border border-[var(--mist)] rounded-2xl overflow-hidden bg-white/40">
-              {clinicDoctors[0]?.services.map((svc) => (
-                <div key={svc.id} className="p-4 flex items-center justify-between text-sm hover:bg-[var(--paper)]/50 transition-colors">
-                  <div>
-                    <div className="font-bold text-base text-[var(--ink)]">
-                      {svc.name}
+                      <div className="text-right flex-none">
+                        <div className="text-xs uppercase font-semibold font-mono-ledger text-[var(--muted)] mb-0.5">
+                          Starting Fee
+                        </div>
+                        <div className="font-mono-ledger text-lg font-bold text-[var(--sage)]">
+                          {formatCurrency(doctor.price)}
+                        </div>
+                      </div>
                     </div>
-                    {svc.description && (
-                      <div className="text-sm text-[var(--muted)] font-sans-ledger mt-0.5">
-                        {svc.description}
+
+                    {doctor.bio && (
+                      <div className="text-sm text-[var(--muted)] bg-[var(--paper)] p-3 rounded-xl border border-[var(--mist)]">
+                        {doctor.bio}
                       </div>
                     )}
-                    <div className="text-xs font-mono-ledger text-[var(--muted)] mt-1">
-                      Duration: {svc.duration}
-                    </div>
-                  </div>
 
-                  <div className="flex items-center gap-4">
-                    <span className="font-mono-ledger text-base sm:text-lg font-bold text-[var(--ink)]">
-                      {formatCurrency(svc.price)}
-                    </span>
-                    <button
-                      onClick={() => removeProcedure(clinicDoctors[0].id, svc.id)}
-                      className="text-[var(--muted)] hover:text-[var(--clay)] p-1.5 rounded-lg hover:bg-[var(--paper)] transition-all"
-                      title="Remove procedure"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {doctorServices.length > 0 && (
+                      <div className="pt-3 border-t border-[var(--mist)]">
+                        <div className="text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] tracking-wider mb-2">
+                          Services ({doctorServices.length})
+                        </div>
+                        <div className="space-y-2">
+                          {doctorServices.slice(0, 3).map((service) => (
+                            <div
+                              key={service.id}
+                              className="flex justify-between items-center text-xs bg-[var(--paper)] p-2.5 rounded-lg border border-[var(--mist)]"
+                            >
+                              <div className="flex-1 min-w-0 pr-2">
+                                <div className="font-semibold text-[var(--ink)] truncate">
+                                  {service.name}
+                                </div>
+                                <div className="text-[var(--muted)] font-mono-ledger">
+                                  {service.duration}
+                                </div>
+                              </div>
+                              <div className="font-mono-ledger font-bold text-[var(--ink)] flex-none">
+                                {formatCurrency(service.price)}
+                              </div>
+                            </div>
+                          ))}
+                          {doctorServices.length > 3 && (
+                            <div className="text-xs text-center text-[var(--muted)] font-mono-ledger py-1">
+                              + {doctorServices.length - 3} more
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
-            </div>
+                );
+              })
+            )}
           </div>
         </div>
       )}
 
-      {/* VIEW 4: CENTER PROFILE */}
-      {activeTab === "onboarding" && (
-        <div className="rounded-3xl backdrop-blur-xl bg-white/80/85 border border-white/70 p-6 md:p-8 shadow-sm space-y-8 max-w-4xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[var(--mist)] gap-3">
-            <div>
-              <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
-                Practice Profile & Facility Branding
-              </h3>
-              <p className="text-sm text-[var(--muted)] font-mono-ledger mt-0.5">
-                Manage clinic credentials, logo emblem, facility imagery, and statutory parameters for patient discovery
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="badge-ledger badge-confirmed rounded-full text-xs font-semibold px-3 py-1 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-[var(--sage)]" />
-                <span>MOH Singapore Licensed</span>
-              </span>
-            </div>
-          </div>
-
-          <form onSubmit={handleProfileSave} className="space-y-8">
-            {/* Visual Branding Assets: Logo & Facility Cover Photo */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b border-[var(--mist)]">
-                <ImageIcon className="w-4 h-4 text-[var(--clay)]" />
-                <h4 className="font-bold text-sm uppercase tracking-wider text-[var(--ink)] font-mono-ledger">
-                  1. Visual Assets & Clinic Branding
-                </h4>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Clinic Logo Upload */}
-                <div className="p-5 rounded-2xl bg-[var(--paper)] border border-[var(--mist)] space-y-4 text-center">
-                  <span className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] tracking-wider">
-                    Clinic Emblem / Logo
-                  </span>
-                  <div className="w-24 h-24 mx-auto rounded-2xl bg-white border border-[var(--mist)] p-2 shadow-xs flex items-center justify-center overflow-hidden relative group">
-                    {profileForm.logo ? (
-                      <img
-                        src={profileForm.logo}
-                        alt="Clinic Logo Preview"
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      <Building2 className="w-10 h-10 text-[var(--clay)]" />
-                    )}
-                    <label className="absolute inset-0 bg-black/40 text-white rounded-2xl opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-xs font-semibold gap-1">
-                      <Camera className="w-4 h-4" />
-                      <span>Change</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              if (reader.result) {
-                                setProfileForm((prev) => ({
-                                  ...prev,
-                                  logo: reader.result as string,
-                                }));
-                              }
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="cursor-pointer inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--clay)] text-[var(--clay)] hover:bg-[var(--clay)] hover:text-white transition-all text-xs font-semibold">
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Upload New Logo</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              if (reader.result) {
-                                setProfileForm((prev) => ({
-                                  ...prev,
-                                  logo: reader.result as string,
-                                }));
-                              }
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
-                      />
-                    </label>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setProfileForm((prev) => ({
-                          ...prev,
-                          logo: "/images/centers/center-novena-logo.jpg",
-                        }))
-                      }
-                      className="block mx-auto text-xs text-[var(--muted)] hover:text-[var(--clay)] hover:underline"
-                    >
-                      Reset Default Logo
-                    </button>
-                  </div>
-                </div>
-
-                {/* Facility Cover Photo Upload */}
-                <div className="md:col-span-2 p-5 rounded-2xl bg-[var(--paper)] border border-[var(--mist)] space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] tracking-wider">
-                      Facility Exterior / Reception Photo
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setProfileForm((prev) => ({
-                          ...prev,
-                          coverImage: "/images/centers/center-novena.jpg",
-                        }))
-                      }
-                      className="text-xs text-[var(--muted)] hover:text-[var(--clay)] hover:underline"
-                    >
-                      Reset Default Photo
-                    </button>
-                  </div>
-
-                  <div className="w-full h-36 rounded-2xl overflow-hidden border border-[var(--mist)] relative group bg-[var(--surface)] shadow-xs">
-                    {profileForm.coverImage ? (
-                      <img
-                        src={profileForm.coverImage}
-                        alt="Facility Cover Preview"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xs text-[var(--muted)]">
-                        No cover photo uploaded
-                      </div>
-                    )}
-                    <label className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition-opacity text-xs font-semibold gap-1">
-                      <Camera className="w-5 h-5" />
-                      <span>Upload New Facility Photo</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              if (reader.result) {
-                                setProfileForm((prev) => ({
-                                  ...prev,
-                                  coverImage: reader.result as string,
-                                }));
-                              }
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs text-[var(--muted)] font-mono-ledger">
-                    <span>High-resolution reception or surgical wing photo (16:9 recommended)</span>
-                    <label className="cursor-pointer text-[var(--clay)] hover:underline font-semibold flex items-center gap-1">
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Browse Photo</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              if (reader.result) {
-                                setProfileForm((prev) => ({
-                                  ...prev,
-                                  coverImage: reader.result as string,
-                                }));
-                              }
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Section 2: Statutory Registration & Parameters */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b border-[var(--mist)]">
-                <Building2 className="w-4 h-4 text-[var(--clay)]" />
-                <h4 className="font-bold text-sm uppercase tracking-wider text-[var(--ink)] font-mono-ledger">
-                  2. Facility & Regulatory Credentials
-                </h4>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-sans-ledger text-sm">
-                <div>
-                  <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-1.5 tracking-wider">
-                    Facility Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={profileForm.name}
-                    onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-1.5 tracking-wider">
-                    Practice Specialty Category
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={profileForm.category}
-                    onChange={(e) => setProfileForm({ ...profileForm, category: e.target.value })}
-                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-1.5 tracking-wider">
-                    Statutory Medical License
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={profileForm.licenseNumber}
-                    onChange={(e) => setProfileForm({ ...profileForm, licenseNumber: e.target.value })}
-                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--surface)] font-mono-ledger text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-1.5 tracking-wider">
-                    Primary Accreditation Body
-                  </label>
-                  <select
-                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
-                  >
-                    <option value="MOH Singapore">Ministry of Health (MOH) Singapore</option>
-                    <option value="JCI International">Joint Commission International (JCI)</option>
-                    <option value="KKM Malaysia">Ministry of Health (KKM) Malaysia</option>
-                    <option value="MOPH Thailand">Ministry of Public Health (MOPH) Thailand</option>
-                  </select>
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-1.5 tracking-wider">
-                    Physical Address & Floor
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={profileForm.address}
-                    onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
-                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Section 3: Communication & Operating Schedule */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b border-[var(--mist)]">
-                <Clock className="w-4 h-4 text-[var(--clay)]" />
-                <h4 className="font-bold text-sm uppercase tracking-wider text-[var(--ink)] font-mono-ledger">
-                  3. Contact Hotline, Hours & Facility Amenities
-                </h4>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-sans-ledger text-sm">
-                <div>
-                  <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-1.5 tracking-wider">
-                    Contact Email
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={profileForm.email}
-                    onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--surface)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-1.5 tracking-wider">
-                    Clinic Phone Hotline
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={profileForm.phone}
-                    onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--surface)] font-mono-ledger text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-1.5 tracking-wider">
-                    Weekly Operating Hours
-                  </label>
-                  <input
-                    type="text"
-                    value={profileForm.operatingHours}
-                    onChange={(e) => setProfileForm({ ...profileForm, operatingHours: e.target.value })}
-                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--surface)] font-mono-ledger text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
-                  />
-                </div>
-
-                <div className="sm:col-span-2 space-y-2">
-                  <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-1.5 tracking-wider">
-                    Facility Amenities & Features
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      "Wheelchair Accessible",
-                      "On-site Diagnostics",
-                      "Multilingual Interpreters",
-                      "Complimentary Valet",
-                      "VIP Recovery Suites",
-                      "Direct MOH Integration",
-                      "Emergency Pharmacy",
-                    ].map((amenity) => {
-                      const isSelected = profileForm.amenities?.includes(amenity);
-                      return (
-                        <button
-                          key={amenity}
-                          type="button"
-                          onClick={() => {
-                            const updated = isSelected
-                              ? profileForm.amenities?.filter((a) => a !== amenity)
-                              : [...(profileForm.amenities || []), amenity];
-                            setProfileForm({ ...profileForm, amenities: updated });
-                          }}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-                            isSelected
-                              ? "bg-[var(--clay)] text-white border-[var(--clay)] shadow-xs"
-                              : "bg-[var(--surface)] text-[var(--muted)] border-[var(--mist)] hover:border-[var(--clay)]"
-                          }`}
-                        >
-                          {isSelected ? "✓ " : "+ "}
-                          {amenity}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Save Button */}
-            <div className="pt-4 border-t border-[var(--mist)] flex justify-between items-center">
-              <span className="text-xs text-[var(--muted)] font-mono-ledger">
-                Live changes sync immediately to directory listing and patient workspace.
-              </span>
-              <button
-                type="submit"
-                className="bg-[var(--clay)] text-white px-8 py-3.5 rounded-xl font-mono-ledger text-sm font-semibold hover:opacity-95 shadow-sm shadow-[var(--clay)]/20 transition-all flex items-center gap-2"
-              >
-                <Check className="w-4 h-4 stroke-[3]" />
-                <span>Save Practice Details</span>
-              </button>
-            </div>
-          </form>
-        </div>
+      {/* VIEW: PRACTICE PROFILE */}
+      {activeTab === "profile" && (
+        <CenterProfileTab />
       )}
 
       {/* MODAL: ADD DOCTOR */}
@@ -1104,7 +733,7 @@ export function CenterDashboard() {
           <div className="rounded-3xl bg-[var(--surface)] border border-white/70 p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5">
             <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
               <h3 className="font-bold text-lg sm:text-xl text-[var(--ink)]">
-                Add Doctor to Practice
+                Add Medical Practitioner
               </h3>
               <button
                 onClick={() => setShowAddDoctorModal(false)}
@@ -1114,76 +743,93 @@ export function CenterDashboard() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateDoctor} className="space-y-4 text-sm">
+            <form onSubmit={handleCreateDoctor} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
-                  Full Name
+                  Full Name *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Dr. Ieva Balčiūnaitė"
                   value={newDocName}
                   onChange={(e) => setNewDocName(e.target.value)}
-                  className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                  placeholder="Dr. Jane Smith"
+                  className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
-                  Specialty
+                  Role / Specialty *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Dentist · Periodontology Specialist"
                   value={newDocRole}
                   onChange={(e) => setNewDocRole(e.target.value)}
-                  className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                  placeholder="Dentist · General Practice"
+                  className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
-                    License ID
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newDocLicense}
-                    onChange={(e) => setNewDocLicense(e.target.value)}
-                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] font-mono-ledger text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
-                    Starting Fee ({branding.localization.currency.symbol})
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={newDocPrice}
-                    onChange={(e) => setNewDocPrice(e.target.value)}
-                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] font-mono-ledger text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
-                  />
-                </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
-                  Bio / Qualifications
+                  Category *
+                </label>
+                <select
+                  value={newDocCategory}
+                  onChange={(e) => setNewDocCategory(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                >
+                  <option value="Dental">Dental</option>
+                  <option value="Massage">Massage</option>
+                  <option value="Physio">Physiotherapy</option>
+                  <option value="Dermatology">Dermatology</option>
+                  <option value="Acupuncture">Acupuncture</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
+                  License Number *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newDocLicense}
+                  onChange={(e) => setNewDocLicense(e.target.value)}
+                  placeholder="SG-MOH-12345"
+                  className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
+                  Consultation Fee ({branding.localization.currency.symbol})
+                </label>
+                <input
+                  type="number"
+                  value={newDocPrice}
+                  onChange={(e) => setNewDocPrice(e.target.value)}
+                  placeholder="85"
+                  className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
+                  Bio (Optional)
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="Specialization background..."
                   value={newDocBio}
                   onChange={(e) => setNewDocBio(e.target.value)}
-                  className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                  placeholder="Brief professional background..."
+                  className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
                 />
               </div>
 
-              <div className="flex gap-3 pt-3 border-t border-[var(--mist)] text-sm">
+              <div className="flex gap-3 pt-3 border-t border-[var(--mist)]">
                 <button
                   type="button"
                   onClick={() => setShowAddDoctorModal(false)}
@@ -1195,7 +841,7 @@ export function CenterDashboard() {
                   type="submit"
                   className="flex-1 py-3 rounded-xl bg-[var(--clay)] text-white font-semibold hover:opacity-95 shadow-sm shadow-[var(--clay)]/20"
                 >
-                  Save Doctor
+                  Add Doctor
                 </button>
               </div>
             </form>
@@ -1203,34 +849,51 @@ export function CenterDashboard() {
         </div>
       )}
 
-      {/* MODAL: ADD PROCEDURE */}
-      {showAddProcedureModal && (
+      {/* MODAL: ADD SERVICE */}
+      {showAddServiceModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="rounded-3xl bg-[var(--surface)] border border-white/70 p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5">
             <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
               <h3 className="font-bold text-lg sm:text-xl text-[var(--ink)]">
-                Add Procedure
+                Add Service / Procedure
               </h3>
               <button
-                onClick={() => setShowAddProcedureModal(false)}
+                onClick={() => setShowAddServiceModal(false)}
                 className="text-[var(--muted)] hover:text-[var(--ink)] p-1 rounded-full hover:bg-[var(--paper)] transition-colors"
               >
                 <XCircle className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateProcedure} className="space-y-4 text-sm">
+            <form onSubmit={handleCreateService} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
-                  Procedure Name
+                  Select Doctor *
+                </label>
+                <select
+                  required
+                  value={targetDoctorId}
+                  onChange={(e) => setTargetDoctorId(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                >
+                  <option value="">Choose a practitioner...</option>
+                  {doctors.map(doc => (
+                    <option key={doc.id} value={doc.id}>{doc.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
+                  Service Name *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Composite Veneer Restructuring"
-                  value={newProcName}
-                  onChange={(e) => setNewProcName(e.target.value)}
-                  className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                  value={newServiceName}
+                  onChange={(e) => setNewServiceName(e.target.value)}
+                  placeholder="Root Canal Treatment"
+                  className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
                 />
               </div>
 
@@ -1239,16 +902,13 @@ export function CenterDashboard() {
                   <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
                     Duration
                   </label>
-                  <select
-                    value={newProcDuration}
-                    onChange={(e) => setNewProcDuration(e.target.value)}
-                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm font-semibold text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
-                  >
-                    <option value="30 min">30 min</option>
-                    <option value="45 min">45 min</option>
-                    <option value="60 min">60 min</option>
-                    <option value="90 min">90 min</option>
-                  </select>
+                  <input
+                    type="text"
+                    value={newServiceDuration}
+                    onChange={(e) => setNewServiceDuration(e.target.value)}
+                    placeholder="30 min"
+                    className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
@@ -1256,31 +916,31 @@ export function CenterDashboard() {
                   </label>
                   <input
                     type="number"
-                    required
-                    value={newProcPrice}
-                    onChange={(e) => setNewProcPrice(e.target.value)}
-                    className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] font-mono-ledger text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                    value={newServicePrice}
+                    onChange={(e) => setNewServicePrice(e.target.value)}
+                    placeholder="45"
+                    className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
                   />
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
-                  Description
+                  Description (Optional)
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="Procedure details..."
-                  value={newProcDesc}
-                  onChange={(e) => setNewProcDesc(e.target.value)}
-                  className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                  value={newServiceDesc}
+                  onChange={(e) => setNewServiceDesc(e.target.value)}
+                  placeholder="Service details..."
+                  className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
                 />
               </div>
 
-              <div className="flex gap-3 pt-3 border-t border-[var(--mist)] text-sm">
+              <div className="flex gap-3 pt-3 border-t border-[var(--mist)]">
                 <button
                   type="button"
-                  onClick={() => setShowAddProcedureModal(false)}
+                  onClick={() => setShowAddServiceModal(false)}
                   className="flex-1 py-3 rounded-xl border border-[var(--mist)] text-[var(--muted)] font-semibold hover:bg-[var(--paper)] transition-colors"
                 >
                   Cancel
@@ -1289,7 +949,7 @@ export function CenterDashboard() {
                   type="submit"
                   className="flex-1 py-3 rounded-xl bg-[var(--clay)] text-white font-semibold hover:opacity-95 shadow-sm shadow-[var(--clay)]/20"
                 >
-                  Save Procedure
+                  Add Service
                 </button>
               </div>
             </form>
@@ -1313,35 +973,36 @@ export function CenterDashboard() {
               </button>
             </div>
 
-            <div className="text-sm text-[var(--muted)]">
-              Patient <span className="font-semibold text-[var(--ink)]">{declineBookingModal.patientName}</span> will receive immediate cancellation notification.
+            <div className="p-4 rounded-xl bg-[var(--paper)] border border-[var(--mist)] text-sm text-[var(--muted)]">
+              Appointment: <span className="font-semibold text-[var(--ink)]">{declineBookingModal.date} at {declineBookingModal.time}</span>
             </div>
 
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
-                Decline Reason
+                Reason for Decline
               </label>
               <select
                 value={declineReason}
                 onChange={(e) => setDeclineReason(e.target.value)}
-                className="w-full p-3.5 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm font-semibold text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
+                className="w-full p-3 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
               >
-                <option value="Practitioner unavailable for emergency">Practitioner unavailable for emergency</option>
-                <option value="Slot double-booked offline">Slot double-booked offline</option>
-                <option value="Equipment maintenance required">Equipment maintenance required</option>
-                <option value="Contacted patient directly to reschedule">Contacted patient directly to reschedule</option>
+                <option value="Practitioner unavailable">Practitioner unavailable</option>
+                <option value="Facility maintenance">Facility maintenance</option>
+                <option value="Emergency closure">Emergency closure</option>
+                <option value="Slot no longer available">Slot no longer available</option>
+                <option value="Other">Other</option>
               </select>
             </div>
 
-            <div className="flex gap-3 pt-3 border-t border-[var(--mist)] text-sm">
+            <div className="flex gap-3 pt-3 border-t border-[var(--mist)]">
               <button
                 onClick={() => setDeclineBookingModal(null)}
                 className="flex-1 py-3 rounded-xl border border-[var(--mist)] text-[var(--muted)] font-semibold hover:bg-[var(--paper)] transition-colors"
               >
-                Back
+                Cancel
               </button>
               <button
-                onClick={executeDeclineBooking}
+                onClick={handleDeclineBooking}
                 className="flex-1 py-3 rounded-xl bg-[var(--clay)] text-white font-semibold hover:opacity-95 shadow-sm shadow-[var(--clay)]/20"
               >
                 Confirm Decline

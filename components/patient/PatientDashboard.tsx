@@ -1,1516 +1,635 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useMedcinStore, Doctor, Booking } from "@/lib/store";
+import { useRouter } from "next/navigation";
 import { useBranding } from "@/lib/branding";
 import {
-  Search,
-  Star,
-  MapPin,
   Calendar,
+  Heart,
+  User,
+  Search,
+  MapPin,
+  Star,
   Clock,
-  Check,
-  ChevronRight,
-  ArrowLeft,
-  X,
-  CalendarCheck,
-  ShieldCheck,
-  Download,
-  Info,
-  SlidersHorizontal,
-  Globe2,
-  Stethoscope,
   Building2,
+  Stethoscope,
+  Phone,
+  Mail,
+  XCircle,
 } from "lucide-react";
+import PatientProfileTab from "./PatientProfileTab";
+
+// Types matching database schema
+interface Doctor {
+  id: string;
+  name: string;
+  role: string;
+  category: string;
+  price: number;
+  rating: number;
+  reviewsCount: number;
+  licenseNumber: string;
+  bio?: string;
+  imageUrl?: string;
+  active: boolean;
+  centerId: string;
+}
+
+interface Center {
+  id: string;
+  name: string;
+  category: string;
+  address: string;
+  email: string;
+  phone: string;
+  status: "PENDING" | "ACTIVE" | "SUSPENDED";
+  logoUrl?: string;
+}
+
+interface Booking {
+  id: string;
+  reference: string;
+  patientId: string;
+  doctorId: string;
+  slotId: string;
+  date: string;
+  time: string;
+  price: number;
+  status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
+  patientNotes?: string;
+  createdAt: string;
+}
+
+interface PatientProfile {
+  id: string;
+  userId: string;
+  location?: string;
+  emergencyName?: string;
+  emergencyPhone?: string;
+  medicalNotes?: string;
+}
 
 export function PatientDashboard() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const {
-    doctors,
-    centers,
-    bookings,
-    createBooking,
-    updateBookingStatus,
-    rescheduleBooking,
-    activeBookingDraft,
-    setActiveBookingDraft,
-    patientProfile,
-    addToast,
-  } = useMedcinStore();
-
   const { branding, formatCurrency } = useBranding();
+  
+  // Data state
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [centers, setCenters] = useState<Center[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [patientProfile, setPatientProfile] = useState<PatientProfile | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Download receipt function
-  const downloadReceipt = (booking: Booking) => {
-    const receiptText = `
-=====================================
-    ${branding.client.name}
-    MEDICAL APPOINTMENT RECEIPT
-=====================================
+  const [activeTab, setActiveTab] = useState<"browse" | "appointments" | "profile">("browse");
 
-Booking Reference: ${booking.reference}
-Date Issued: ${new Date().toLocaleDateString()}
+  // Browse Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [locationFilter, setLocationFilter] = useState("all");
 
--------------------------------------
-PATIENT INFORMATION
--------------------------------------
-Name:     ${booking.patientName}
-Email:    ${booking.patientEmail}
-Phone:    ${booking.patientPhone}
+  // Booking Details Modal
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
--------------------------------------
-APPOINTMENT DETAILS
--------------------------------------
-Doctor:   ${booking.doctorName}
-          ${booking.doctorRole}
-
-Clinic:   ${booking.clinicName}
-Address:  ${booking.clinicAddress}
-
-Service:  ${booking.serviceName}
-Duration: ${booking.duration}
-
-Date:     ${booking.date}
-Time:     ${booking.time}
-
--------------------------------------
-PAYMENT SUMMARY
--------------------------------------
-Service Fee:              ${formatCurrency(booking.price)}
-Payment Method:           ${booking.paymentMethod}
-Status:                   ${booking.status.toUpperCase()}
-
--------------------------------------
-NOTES
--------------------------------------
-${booking.patientNotes || 'No additional notes'}
-
--------------------------------------
-This is a computer-generated receipt
-and does not require a signature.
-
-For inquiries, contact:
-${branding.contact.email}
-${branding.contact.supportPhone}
-=====================================
-    `.trim();
-
-    const blob = new Blob([receiptText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `receipt-${booking.reference}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    addToast({
-      type: "success",
-      title: "Receipt Downloaded",
-      message: `Receipt ${booking.reference}.txt saved to your device.`,
-    });
-  };
-
-  const [activeTab, setActiveTab] = useState<"search" | "book" | "confirm" | "mybookings">("search");
-  const [viewMode, setViewMode] = useState<"doctors" | "centers">("doctors");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [selectedCity, setSelectedCity] = useState("All");
-  const [sortBy, setSortBy] = useState<"rating" | "price-asc" | "price-desc">("rating");
-
-  // Check URL params to auto-open booking tab
+  // Fetch data from APIs
   useEffect(() => {
-    const tab = searchParams.get("tab");
-    if (tab === "book" && activeBookingDraft.doctor) {
-      setActiveTab("book");
-      setBookingStep(1); // Start at step 1
+    async function fetchData() {
+      try {
+        setLoading(true);
+        
+        // Fetch doctors
+        const doctorsRes = await fetch('/api/doctors');
+        if (doctorsRes.ok) {
+          const doctorsData = await doctorsRes.json();
+          setDoctors(doctorsData.doctors || []);
+        }
+
+        // Fetch centers
+        const centersRes = await fetch('/api/centers');
+        if (centersRes.ok) {
+          const centersData = await centersRes.json();
+          setCenters(centersData.centers || []);
+        }
+
+        // Fetch patient bookings
+        const bookingsRes = await fetch('/api/bookings');
+        if (bookingsRes.ok) {
+          const bookingsData = await bookingsRes.json();
+          setBookings(bookingsData.bookings || []);
+        }
+
+        // Fetch patient profile
+        const profileRes = await fetch('/api/patient/profile');
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          setPatientProfile(profileData.profile || null);
+        }
+
+      } catch (error) {
+        console.error('Failed to fetch patient data:', error);
+      } finally {
+        setLoading(false);
+      }
     }
-  }, [searchParams, activeBookingDraft]);
 
-  // Booking Flow Steps: 1: Procedure, 2: Slot, 3: Patient Details, 4: Review & Confirm
-  const [bookingStep, setBookingStep] = useState<1 | 2 | 3 | 4>(1);
+    fetchData();
+  }, []);
 
-  // Active doctor for booking
-  const selectedDoctor: Doctor =
-    activeBookingDraft.doctor || doctors.find((d) => d.id === "doc-2") || doctors[0];
+  const addToast = (toast: any) => {
+    console.log('Toast:', toast);
+  };
 
-  // Reschedule & Cancel Modal States
-  const [reschedulingBooking, setReschedulingBooking] = useState<Booking | null>(null);
-  const [cancellingBooking, setCancellingBooking] = useState<Booking | null>(null);
-  const [newRescheduleDate, setNewRescheduleDate] = useState("Tue 30 Sep");
-  const [newRescheduleTime, setNewRescheduleTime] = useState("11:30");
-  const [cancelReason, setCancelReason] = useState("Schedule conflict");
-
-  // Most recent booking for confirm screen
-  const [latestBooking, setLatestBooking] = useState<Booking | null>(bookings[0] || null);
-
-  // Filter Doctors
+  // Filter doctors
   const filteredDoctors = doctors
-    .filter((doc) => {
-      const matchCat = selectedCategory === "All" || doc.category === selectedCategory;
-      const matchCity =
-        selectedCity === "All" ||
-        doc.location.toLowerCase().includes(selectedCity.toLowerCase()) ||
-        doc.clinic.toLowerCase().includes(selectedCity.toLowerCase());
-      const matchSearch =
-        doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.clinic.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchCat && matchCity && matchSearch;
+    .filter((d) => {
+      if (categoryFilter !== "all" && d.category !== categoryFilter) return false;
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        return (
+          d.name.toLowerCase().includes(query) ||
+          d.role.toLowerCase().includes(query) ||
+          d.category.toLowerCase().includes(query)
+        );
+      }
+      return true;
     })
-    .sort((a, b) => {
-      if (sortBy === "rating") return b.rating - a.rating;
-      if (sortBy === "price-asc") return a.price - b.price;
-      if (sortBy === "price-desc") return b.price - a.price;
-      return 0;
-    });
+    .sort((a, b) => b.rating - a.rating);
 
-  // Filter Centers
-  const filteredCenters = centers
-    .filter((center) => {
-      const matchCat = selectedCategory === "All" || center.category === selectedCategory;
-      const matchCity =
-        selectedCity === "All" ||
-        center.address.toLowerCase().includes(selectedCity.toLowerCase());
-      const matchSearch =
-        searchTerm === "" ||
-        center.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        center.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        center.address.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchCat && matchCity && matchSearch;
-    })
-    .sort((a, b) => {
-      // Sort centers by doctor count or alphabetically
-      if (sortBy === "rating") return b.doctorCount - a.doctorCount;
-      return a.name.localeCompare(b.name);
-    });
+  const upcomingBookings = bookings
+    .filter(b => b.status === "CONFIRMED" || b.status === "PENDING")
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  const handleStartBooking = (doc: Doctor, svcId?: string) => {
-    setActiveBookingDraft((prev) => ({
-      ...prev,
-      doctor: doc,
-      serviceId: svcId || doc.services[0]?.id || "s1",
-    }));
-    setBookingStep(1);
-    setActiveTab("book");
+  const pastBookings = bookings
+    .filter(b => b.status === "COMPLETED" || b.status === "CANCELLED")
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const handleCancelBooking = async (bookingId: string) => {
+    try {
+      const response = await fetch("/api/bookings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: bookingId,
+          status: "CANCELLED",
+          cancellationReason: "Patient requested cancellation",
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to cancel booking");
+
+      setBookings(prev => prev.map(b => 
+        b.id === bookingId ? { ...b, status: "CANCELLED" as const } : b
+      ));
+
+      setSelectedBooking(null);
+
+      addToast({
+        type: "info",
+        title: "Booking Cancelled",
+        message: "Your appointment has been cancelled successfully.",
+      });
+    } catch (error) {
+      console.error('Failed to cancel booking:', error);
+      addToast({
+        type: "error",
+        title: "Cancellation Failed",
+        message: "Please try again or contact support.",
+      });
+    }
   };
 
-  const handleFinalizeBooking = () => {
-    const selectedSvc =
-      selectedDoctor.services.find((s) => s.id === activeBookingDraft.serviceId) ||
-      selectedDoctor.services[0];
-
-    const newBooking = createBooking({
-      patientName: activeBookingDraft.patientName || patientProfile.name || "Marcus Wei",
-      patientEmail: activeBookingDraft.patientEmail || patientProfile.email || "marcus.wei@example.sg",
-      patientPhone: activeBookingDraft.patientPhone || patientProfile.phone || "+65 9123 4567",
-      patientNotes: activeBookingDraft.patientNotes,
-      doctorId: selectedDoctor.id,
-      doctorName: selectedDoctor.name,
-      doctorRole: selectedDoctor.role.split("·")[0].trim(),
-      clinicName: selectedDoctor.clinic,
-      clinicAddress: selectedDoctor.location,
-      serviceName: selectedSvc.name,
-      duration: selectedSvc.duration,
-      date: activeBookingDraft.day || "Tue 30 Sep",
-      time: activeBookingDraft.time || "10:30",
-      price: selectedSvc.price,
-      status: "confirmed",
-    });
-
-    setLatestBooking(newBooking);
-    setActiveTab("confirm");
-    addToast({
-      type: "success",
-      title: "Appointment Reserved",
-      message: `Direct confirmation code ${newBooking.reference} issued.`,
-    });
-  };
-
-  const executeReschedule = () => {
-    if (!reschedulingBooking) return;
-    rescheduleBooking(reschedulingBooking.id, newRescheduleDate, newRescheduleTime);
-    setReschedulingBooking(null);
-  };
-
-  const executeCancel = () => {
-    if (!cancellingBooking) return;
-    updateBookingStatus(cancellingBooking.id, "cancelled", cancelReason);
-    setCancellingBooking(null);
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[var(--clay)] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[var(--muted)]">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Patient Workspace Header */}
-      <div className="backdrop-blur-xl bg-white/80/85 border border-white/70 p-6 md:p-8 rounded-3xl shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-[var(--clay)]/10 text-[var(--clay)] border border-[var(--clay)]/20 flex items-center justify-center font-mono-ledger text-lg font-bold shadow-xs overflow-hidden">
-              {patientProfile.photo ? (
-                <img
-                  src={patientProfile.photo}
-                  alt={patientProfile.name || "Patient"}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    // Fallback to initials if image fails to load
-                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                    const parent = e.currentTarget.parentElement;
-                    if (parent) {
-                      parent.innerHTML = patientProfile.initials || "MW";
-                    }
-                  }}
-                />
-              ) : (
-                patientProfile.initials || "MW"
-              )}
+      {/* Patient Header */}
+      <div className="rounded-3xl border border-[var(--mist)] bg-[var(--surface)] p-6 md:p-8 shadow-sm backdrop-blur-md">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[var(--clay)] animate-pulse" />
+              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider">
+                {branding.client.name} Patient Portal
+              </span>
             </div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-[var(--ink)] tracking-tight">
+              Your Healthcare Journey
+            </h2>
+            <p className="text-sm text-[var(--muted)] mt-1.5">
+              Book appointments, browse doctors, and manage your medical records
+            </p>
+          </div>
+
+          {/* Metric Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 font-mono-ledger text-xs">
+            <div className="rounded-2xl border border-[var(--mist)] p-4 bg-[var(--paper)] text-right shadow-2xs min-w-[120px]">
+              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">Upcoming</span>
+              <span className="text-2xl sm:text-3xl font-bold text-[var(--sage)]">{upcomingBookings.length}</span>
+            </div>
+            <div className="rounded-2xl border border-[var(--mist)] p-4 bg-[var(--paper)] text-right shadow-2xs min-w-[120px]">
+              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">Past Visits</span>
+              <span className="text-2xl sm:text-3xl font-bold text-[var(--ink)]">{pastBookings.length}</span>
+            </div>
+            <div className="rounded-2xl border border-[var(--mist)] p-4 bg-[var(--paper)] text-right shadow-2xs min-w-[120px]">
+              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">Doctors</span>
+              <span className="text-2xl sm:text-3xl font-bold text-[var(--clay)]">{doctors.length}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="flex gap-1.5 border border-[var(--mist)] p-1.5 bg-[var(--paper)] font-mono-ledger text-xs mt-6 overflow-x-auto rounded-full">
+          <button
+            onClick={() => setActiveTab("browse")}
+            className={`px-5 py-2.5 transition-all whitespace-nowrap flex items-center gap-2 rounded-full text-sm ${
+              activeTab === "browse"
+                ? "bg-[var(--surface)] text-[var(--clay)] font-semibold shadow-xs"
+                : "text-[var(--muted)] hover:text-[var(--ink)]"
+            }`}
+          >
+            <Search className="w-4 h-4" />
+            <span>Browse Doctors</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("appointments")}
+            className={`px-5 py-2.5 transition-all whitespace-nowrap flex items-center gap-2 rounded-full text-sm ${
+              activeTab === "appointments"
+                ? "bg-[var(--surface)] text-[var(--clay)] font-semibold shadow-xs"
+                : "text-[var(--muted)] hover:text-[var(--ink)]"
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            <span>My Appointments {upcomingBookings.length > 0 ? `(${upcomingBookings.length})` : ""}</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("profile")}
+            className={`px-5 py-2.5 transition-all whitespace-nowrap flex items-center gap-2 rounded-full text-sm ${
+              activeTab === "profile"
+                ? "bg-[var(--surface)] text-[var(--clay)] font-semibold shadow-xs"
+                : "text-[var(--muted)] hover:text-[var(--ink)]"
+            }`}
+          >
+            <User className="w-4 h-4" />
+            <span>My Profile</span>
+          </button>
+        </div>
+      </div>
+
+      {/* VIEW: BROWSE DOCTORS */}
+      {activeTab === "browse" && (
+        <div className="rounded-3xl backdrop-blur-xl bg-white/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--mist)]">
             <div>
-              <div className="flex items-center gap-2.5">
-                <h2 className="text-2xl sm:text-3xl font-bold text-[var(--ink)] tracking-tight">
-                  {patientProfile.name || "Marcus Wei"}
-                </h2>
-                <span className="badge-ledger badge-confirmed font-mono-ledger text-xs px-3 py-1 rounded-full font-semibold">
-                  Patient Workspace
-                </span>
-              </div>
-              <p className="text-sm text-[var(--muted)] font-mono-ledger mt-1">
-                {patientProfile.email || "marcus.wei@example.sg"} · {patientProfile.phone || "+65 9123 4567"} · {patientProfile.location || "Novena, Singapore"}
+              <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
+                Find Your Healthcare Provider
+              </h3>
+              <p className="text-sm text-[var(--muted)] mt-1">
+                Browse verified doctors and book appointments instantly
               </p>
             </div>
           </div>
 
-          {/* Tab Navigation */}
-          <div className="inline-flex p-1.5 bg-[var(--paper)] border border-[var(--mist)] rounded-full text-sm font-semibold overflow-x-auto shadow-inner">
-            <button
-              onClick={() => setActiveTab("search")}
-              className={`px-5 py-2 rounded-full transition-all whitespace-nowrap ${
-                activeTab === "search"
-                  ? "bg-[var(--clay)] text-white shadow-xs font-semibold"
-                  : "text-[var(--muted)] hover:text-[var(--ink)]"
-              }`}
-            >
-              Find Care
-            </button>
-            <button
-              onClick={() => setActiveTab("book")}
-              className={`px-5 py-2 rounded-full transition-all whitespace-nowrap ${
-                activeTab === "book"
-                  ? "bg-[var(--clay)] text-white shadow-xs font-semibold"
-                  : "text-[var(--muted)] hover:text-[var(--ink)]"
-              }`}
-            >
-              Book Appointment
-            </button>
-            <button
-              onClick={() => setActiveTab("mybookings")}
-              className={`px-5 py-2 rounded-full transition-all whitespace-nowrap ${
-                activeTab === "mybookings"
-                  ? "bg-[var(--clay)] text-white shadow-xs font-semibold"
-                  : "text-[var(--muted)] hover:text-[var(--ink)]"
-              }`}
-            >
-              My Consultations ({bookings.filter((b) => b.status === "confirmed" || b.status === "pending").length})
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* VIEW 1: SEARCH & DIRECTORY */}
-      {activeTab === "search" && (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Left Filter Rail */}
-          <div className="lg:col-span-1 space-y-4">
-            <div className="backdrop-blur-xl bg-white/80/85 border border-white/70 p-6 rounded-3xl shadow-sm space-y-5">
-              <div className="flex items-center justify-between pb-3 border-b border-[var(--mist)] text-sm">
-                <span className="font-bold text-[var(--ink)] uppercase tracking-wider text-xs font-mono-ledger">Specialties & Filters</span>
-                {(selectedCategory !== "All" || selectedCity !== "All" || searchTerm) && (
-                  <button
-                    onClick={() => {
-                      setSelectedCategory("All");
-                      setSelectedCity("All");
-                      setSearchTerm("");
-                    }}
-                    className="text-xs font-semibold text-[var(--clay)] hover:underline"
-                  >
-                    Reset
-                  </button>
-                )}
-              </div>
-
-              {/* Specialty Category */}
-              <div>
-                <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2.5 tracking-wider">
-                  Select Specialty
-                </label>
-                <div className="space-y-1.5">
-                  {["All", "Dental", "Massage", "Physio", "Dermatology"].map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => setSelectedCategory(cat)}
-                      className={`w-full text-left px-3.5 py-2 text-sm rounded-xl transition-all flex items-center justify-between font-medium ${
-                        selectedCategory === cat
-                          ? "border border-[var(--clay)] bg-[var(--clay)] text-white font-semibold shadow-xs"
-                          : "text-[var(--muted)] hover:bg-[var(--paper)] hover:text-[var(--ink)]"
-                      }`}
-                    >
-                      <span>{cat === "All" ? "All Specialties" : cat}</span>
-                      {selectedCategory === cat && <span className="w-2 h-2 rounded-full bg-white" />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* City Selection */}
-              <div>
-                <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2.5 tracking-wider">
-                  Target Hub / Geography
-                </label>
-                <div className="space-y-1.5">
-                  {[
-                    { key: "All", label: "All ASEAN Hubs", flag: "🌏" },
-                    { key: "Singapore", label: "Singapore (Novena)", flag: "🇸🇬" },
-                    { key: "Bangkok", label: "Bangkok (Sukhumvit)", flag: "🇹🇭" },
-                    { key: "Kuala Lumpur", label: "Kuala Lumpur (KLCC)", flag: "🇲🇾" },
-                    { key: "Phuket", label: "Phuket (Laguna)", flag: "🇹🇭" },
-                    { key: "Penang", label: "Penang (George Town)", flag: "🇲🇾" },
-                  ].map((city) => (
-                    <button
-                      key={city.key}
-                      onClick={() => setSelectedCity(city.key)}
-                      className={`w-full text-left px-3.5 py-2 text-sm rounded-xl transition-all flex items-center justify-between font-medium ${
-                        selectedCity === city.key
-                          ? "border border-[var(--clay)] bg-[var(--clay)] text-white font-semibold shadow-xs"
-                          : "text-[var(--muted)] hover:bg-[var(--paper)] hover:text-[var(--ink)]"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <span>{city.flag}</span>
-                        <span className="truncate">{city.label}</span>
-                      </div>
-                      {selectedCity === city.key && <span className="w-2 h-2 rounded-full bg-white" />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Sort Order */}
-              <div>
-                <label className="block text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] mb-2.5 tracking-wider">
-                  Sort By
-                </label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  className="w-full p-3 border border-[var(--mist)] bg-[var(--surface)] text-sm font-medium text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] rounded-xl"
-                >
-                  <option value="rating">Top Rated Practitioners</option>
-                  <option value="price-asc">Price: Lowest First</option>
-                  <option value="price-desc">Price: Highest First</option>
-                </select>
-              </div>
-
-              <div className="pt-3 border-t border-[var(--mist)] text-xs text-[var(--muted)] space-y-1.5 font-sans-ledger">
-                <div className="flex items-center gap-2 text-[var(--sage)] font-medium">
-                  <Check className="w-4 h-4 shrink-0" />
-                  <span>Licensed MOH / JCI specialists</span>
-                </div>
-                <div className="flex items-center gap-2 text-[var(--sage)] font-medium">
-                  <Check className="w-4 h-4 shrink-0" />
-                  <span>Pay at clinic after visit</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Directory Feed */}
-          <div className="lg:col-span-3 space-y-4">
-            {/* View Mode Toggle and Search Bar */}
-            <div className="space-y-3">
-              {/* View Mode Toggle */}
-              <div className="backdrop-blur-xl bg-white/80/85 border border-white/70 p-2 rounded-2xl shadow-sm inline-flex gap-2">
-                <button
-                  onClick={() => setViewMode("doctors")}
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${
-                    viewMode === "doctors"
-                      ? "bg-[var(--clay)] text-white shadow-xs"
-                      : "text-[var(--muted)] hover:text-[var(--ink)]"
-                  }`}
-                >
-                  <Stethoscope className="w-4 h-4" />
-                  Doctors ({filteredDoctors.length})
-                </button>
-                <button
-                  onClick={() => setViewMode("centers")}
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${
-                    viewMode === "centers"
-                      ? "bg-[var(--clay)] text-white shadow-xs"
-                      : "text-[var(--muted)] hover:text-[var(--ink)]"
-                  }`}
-                >
-                  <Building2 className="w-4 h-4" />
-                  Centers ({filteredCenters.length})
-                </button>
-              </div>
-
-              {/* Search Input Bar */}
-              <div className="backdrop-blur-xl bg-white/80/85 border border-white/70 p-4 rounded-2xl shadow-sm flex items-center gap-3">
-              <Search className="w-5 h-5 text-[var(--muted)] ml-1 shrink-0" />
+          {/* Search and Filters */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
               <input
                 type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder={viewMode === "doctors" 
-                  ? "Search practitioner by name, specialty, or clinic..." 
-                  : "Search medical centers by name, category, or location..."
-                }
-                className="w-full bg-transparent text-sm font-sans-ledger text-[var(--ink)] placeholder-[var(--muted)] focus:outline-none"
+                placeholder="Search by name, specialty, or category..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-2.5 text-sm border border-[var(--mist)] bg-[var(--paper)] text-[var(--ink)] font-sans-ledger focus:outline-none focus:border-[var(--clay)] rounded-xl"
               />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="text-[var(--muted)] hover:text-[var(--ink)] p-1.5"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
             </div>
 
-            {/* Doctor Cards List */}
-            {viewMode === "doctors" && (
-              <div className="space-y-4">
-                {filteredDoctors.length === 0 ? (
-                  <div className="backdrop-blur-xl bg-white/80/85 border border-white/70 p-12 text-center rounded-3xl">
-                    <div className="text-base font-bold text-[var(--ink)]">
-                      No practitioners matching criteria
-                    </div>
-                    <p className="text-sm text-[var(--muted)] font-mono-ledger mt-1">
-                      Try broadening your specialty selection or choosing all ASEAN Hubs.
-                    </p>
-                  </div>
-                ) : (
-                filteredDoctors.map((doc) => (
-                  <div
-                    key={doc.id}
-                    onClick={() => router.push(`/doctors/${doc.id}`)}
-                    className="backdrop-blur-xl bg-white/85/85 border border-white/70 p-6 sm:p-7 rounded-3xl shadow-sm hover:shadow-md hover:border-[var(--clay)] transition-all space-y-4 cursor-pointer"
-                  >
-                    <div className="flex flex-col sm:flex-row justify-between gap-5">
-                      {/* Doctor Info */}
-                      <div className="flex items-start gap-4">
-                        {doc.image ? (
-                          <img
-                            src={doc.image}
-                            alt={doc.name}
-                            className="w-16 h-16 rounded-2xl object-cover border border-[var(--mist)] flex-none shadow-xs"
-                          />
-                        ) : (
-                          <div className="w-16 h-16 rounded-2xl bg-[var(--paper)] border border-[var(--mist)] flex items-center justify-center font-mono-ledger text-lg font-bold text-[var(--clay)] flex-none shadow-xs">
-                            {doc.initials}
-                          </div>
-                        )}
-                        <div className="space-y-1.5">
-                          <div className="flex flex-wrap items-center gap-2.5">
-                            <h3 className="font-bold text-lg sm:text-xl text-[var(--ink)]">
-                              {doc.name}
-                            </h3>
-                            <span className="badge-ledger badge-confirmed font-mono-ledger text-xs px-2.5 py-0.5 rounded-full font-semibold">
-                              Verified
-                            </span>
-                            <div className="flex items-center gap-1 text-[var(--amber)] text-sm font-mono-ledger font-medium">
-                              <Star className="w-4 h-4 fill-current" />
-                              <span className="font-bold">{doc.rating}</span>
-                              <span className="text-[var(--muted)]">({doc.reviewsCount})</span>
-                            </div>
-                          </div>
-
-                          <div className="text-sm font-medium text-[var(--clay)]">
-                            {doc.role}
-                          </div>
-
-                          <div className="text-xs sm:text-sm font-sans-ledger text-[var(--muted)] flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5 flex-none text-[var(--clay)]" />
-                            <span>{doc.clinic} · {doc.location}</span>
-                          </div>
-
-                          {doc.bio && (
-                            <p className="text-sm text-[var(--muted)] font-sans-ledger pt-1 max-w-xl leading-relaxed">
-                              {doc.bio}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Starting Price & Book Button */}
-                      <div className="sm:text-right flex sm:flex-col justify-between items-center sm:items-end flex-none pt-3 sm:pt-0 border-t sm:border-t-0 border-[var(--mist)] gap-2">
-                        <div>
-                          <span className="text-xs font-mono-ledger text-[var(--muted)] uppercase font-semibold block">
-                            Starting from
-                          </span>
-                          <span className="font-mono-ledger text-xl sm:text-2xl font-bold text-[var(--sage)]">
-                            {formatCurrency(doc.price)}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => handleStartBooking(doc)}
-                          className="mt-1 bg-[var(--clay)] text-white px-6 py-3 rounded-xl font-mono-ledger text-sm font-semibold hover:opacity-95 transition-all flex items-center gap-2 shadow-sm hover:shadow-md"
-                        >
-                          <span>Select Doctor</span>
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Procedure Catalog Preview */}
-                    <div className="mt-4 pt-3.5 border-t border-[var(--mist)]/70">
-                      <div className="text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] tracking-wider mb-2.5">
-                        Available Procedures & Consultations
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {doc.services.map((svc) => (
-                          <div
-                            key={svc.id}
-                            onClick={() => handleStartBooking(doc, svc.id)}
-                            className="p-3.5 border border-[var(--mist)] bg-[var(--paper)] rounded-2xl hover:border-[var(--clay)] cursor-pointer transition-all flex justify-between items-center text-sm shadow-2xs hover:shadow-xs"
-                          >
-                            <div className="truncate pr-2">
-                              <div className="font-semibold text-[var(--ink)] truncate">
-                                {svc.name}
-                              </div>
-                              <div className="text-xs font-mono-ledger text-[var(--muted)] mt-0.5">
-                                {svc.duration}
-                              </div>
-                            </div>
-                            <span className="font-mono-ledger font-bold text-[var(--ink)] text-sm sm:text-base flex-none">
-                              {formatCurrency(svc.price)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-            )}
-
-            {/* Center Cards List */}
-            {viewMode === "centers" && (
-              <div className="space-y-4">
-                {filteredCenters.length === 0 ? (
-                  <div className="backdrop-blur-xl bg-white/80/85 border border-white/70 p-12 text-center rounded-3xl">
-                    <div className="text-base font-bold text-[var(--ink)]">
-                      No medical centers matching criteria
-                    </div>
-                    <p className="text-sm text-[var(--muted)] font-mono-ledger mt-1">
-                      Try broadening your specialty selection or choosing all ASEAN Hubs.
-                    </p>
-                  </div>
-                ) : (
-                  filteredCenters.map((center) => (
-                    <div
-                      key={center.id}
-                      onClick={() => router.push(`/centers/${center.id}`)}
-                      className="backdrop-blur-xl bg-white/85/85 border border-white/70 p-6 sm:p-7 rounded-3xl shadow-sm hover:shadow-md hover:border-[var(--clay)] transition-all space-y-4 cursor-pointer"
-                    >
-                      <div className="flex flex-col sm:flex-row justify-between gap-5">
-                        {/* Center Info */}
-                        <div className="flex items-start gap-4">
-                          {center.logo ? (
-                            <img
-                              src={center.logo}
-                              alt={center.name}
-                              className="w-16 h-16 rounded-2xl object-cover border border-[var(--mist)] flex-none shadow-xs"
-                            />
-                          ) : (
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--sage-light)] to-[var(--sage)] border border-[var(--mist)] flex items-center justify-center flex-none shadow-xs">
-                              <Building2 className="w-8 h-8 text-white" />
-                            </div>
-                          )}
-                          <div className="space-y-1.5 flex-1">
-                            <div className="flex flex-wrap items-center gap-2.5">
-                              <h3 className="font-bold text-lg sm:text-xl text-[var(--ink)]">
-                                {center.name}
-                              </h3>
-                              {center.status === "active" && (
-                                <span className="badge-ledger badge-confirmed font-mono-ledger text-xs px-2.5 py-0.5 rounded-full font-semibold">
-                                  Verified
-                                </span>
-                              )}
-                              {center.status === "pending" && (
-                                <span className="badge-ledger badge-pending font-mono-ledger text-xs px-2.5 py-0.5 rounded-full font-semibold">
-                                  Pending
-                                </span>
-                              )}
-                              <span className="badge-ledger badge-category px-2.5 py-0.5 rounded-full font-mono-ledger text-xs font-semibold">
-                                {center.category}
-                              </span>
-                            </div>
-
-                            <div className="text-xs sm:text-sm font-sans-ledger text-[var(--muted)] flex items-center gap-1.5">
-                              <MapPin className="w-3.5 h-3.5 flex-none text-[var(--clay)]" />
-                              <span>{center.address}</span>
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--clay)]">
-                              <div className="flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5" />
-                                <span>{center.operatingHours}</span>
-                              </div>
-                              <div className="flex items-center gap-1 font-semibold">
-                                <Stethoscope className="w-3.5 h-3.5" />
-                                {center.doctorCount} Professional{center.doctorCount !== 1 ? "s" : ""}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Center Stats */}
-                        <div className="sm:text-right space-y-1 flex-none">
-                          <div className="text-xs text-[var(--muted)] font-mono-ledger">
-                            License
-                          </div>
-                          <div className="text-xs font-mono-ledger font-semibold text-[var(--ink)]">
-                            {center.licenseNumber}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Amenities Preview */}
-                      {center.amenities && center.amenities.length > 0 && (
-                        <div className="mt-4 pt-3.5 border-t border-[var(--mist)]/70">
-                          <div className="text-xs font-semibold font-mono-ledger uppercase text-[var(--muted)] tracking-wider mb-2.5">
-                            Amenities & Services
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {center.amenities.slice(0, 4).map((amenity, idx) => (
-                              <span
-                                key={idx}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--paper)] border border-[var(--mist)] rounded-full text-xs font-medium text-[var(--clay)]"
-                              >
-                                <Check className="w-3 h-3 text-[var(--sage)]" />
-                                {amenity}
-                              </span>
-                            ))}
-                            {center.amenities.length > 4 && (
-                              <span className="inline-flex items-center px-3 py-1.5 bg-[var(--paper)] border border-[var(--mist)] rounded-full text-xs font-medium text-[var(--muted)]">
-                                +{center.amenities.length - 4} more
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* VIEW 2: FULL BOOKING WORKFLOW (STEP 1 - 4) */}
-      {activeTab === "book" && (
-        <div className="max-w-3xl mx-auto space-y-6">
-          {/* Stepper Progress Bar */}
-          <div className="backdrop-blur-xl bg-white/80/85 border border-white/70 p-3 rounded-2xl shadow-sm">
-            <div className="grid grid-cols-4 gap-2 text-center font-mono-ledger text-xs">
-              {[
-                { num: 1, label: "1. Procedure" },
-                { num: 2, label: "2. Date & Slot" },
-                { num: 3, label: "3. Patient Info" },
-                { num: 4, label: "4. Confirm" },
-              ].map((s) => (
-                <button
-                  key={s.num}
-                  onClick={() => setBookingStep(s.num as any)}
-                  className={`py-2 rounded-xl border transition-all ${
-                    bookingStep === s.num
-                      ? "border-[var(--clay)] bg-[var(--clay)] text-white font-semibold shadow-xs"
-                      : bookingStep > s.num
-                      ? "border-[var(--mist)] bg-[var(--paper)] text-[var(--sage)]"
-                      : "border-transparent text-[var(--muted)]"
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Selected Doctor Summary Card */}
-          <div className="backdrop-blur-xl bg-white/80/85 border border-white/70 p-5 rounded-3xl shadow-sm flex items-center justify-between">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-[var(--clay)]/10 text-[var(--clay)] border border-[var(--clay)]/20 flex items-center justify-center font-mono-ledger font-bold text-sm shadow-xs">
-                {selectedDoctor.initials}
-              </div>
-              <div>
-                <div className="font-bold text-base sm:text-lg text-[var(--ink)]">
-                  {selectedDoctor.name}
-                </div>
-                <div className="text-sm text-[var(--muted)]">
-                  {selectedDoctor.role} · {selectedDoctor.clinic}
-                </div>
-                <div className="text-xs text-[var(--muted)] font-mono-ledger mt-0.5">
-                  {selectedDoctor.location}
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setActiveTab("search")}
-              className="text-sm font-semibold text-[var(--clay)] hover:underline"
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="py-2.5 px-4 border border-[var(--mist)] text-sm rounded-xl bg-[var(--surface)] text-[var(--ink)] font-semibold focus:outline-none focus:border-[var(--clay)]"
             >
-              Change Doctor
-            </button>
+              <option value="all">All Specialties</option>
+              <option value="Dental">Dental</option>
+              <option value="Massage">Massage Therapy</option>
+              <option value="Physio">Physiotherapy</option>
+              <option value="Dermatology">Dermatology</option>
+              <option value="Acupuncture">Acupuncture</option>
+            </select>
           </div>
 
-          {/* STEP 1: SELECT PROCEDURE */}
-          {bookingStep === 1 && (
-            <div className="backdrop-blur-xl bg-white/85/85 border border-white/70 p-6 sm:p-8 rounded-3xl shadow-sm space-y-5">
-              <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
-                <h3 className="font-bold text-lg text-[var(--ink)]">
-                  Select Procedure / Consultation
-                </h3>
-                <span className="text-xs uppercase font-semibold tracking-wider text-[var(--muted)]">
-                  Transparent Fee Schedule
-                </span>
+          {/* Doctors Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {filteredDoctors.length === 0 ? (
+              <div className="col-span-2 text-center py-12 text-[var(--muted)] font-mono-ledger">
+                No doctors found matching your search
               </div>
+            ) : (
+              filteredDoctors.map((doctor) => {
+                const center = centers.find(c => c.id === doctor.centerId);
+                return (
+                  <div
+                    key={doctor.id}
+                    className="rounded-2xl border border-[var(--mist)] bg-[var(--surface)] p-5 shadow-xs hover:border-[var(--clay)]/40 transition-all space-y-4 cursor-pointer"
+                    onClick={() => router.push(`/doctors/${doctor.id}`)}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="w-16 h-16 rounded-2xl bg-[var(--clay)]/10 text-[var(--clay)] border border-[var(--clay)]/20 flex items-center justify-center font-mono-ledger text-base font-bold flex-none overflow-hidden shadow-xs">
+                        {doctor.imageUrl ? (
+                          <img src={doctor.imageUrl} alt={doctor.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <Stethoscope className="w-6 h-6" />
+                        )}
+                      </div>
 
-              <div className="space-y-3">
-                {selectedDoctor.services.map((svc) => {
-                  const isSelected = activeBookingDraft.serviceId === svc.id;
-                  return (
-                    <div
-                      key={svc.id}
-                      onClick={() =>
-                        setActiveBookingDraft((prev) => ({ ...prev, serviceId: svc.id }))
-                      }
-                      className={`p-5 border rounded-2xl cursor-pointer transition-all flex items-start justify-between gap-4 ${
-                        isSelected
-                          ? "border-[var(--clay)] bg-[var(--paper)] shadow-xs"
-                          : "border-[var(--mist)] bg-[var(--surface)] hover:border-[var(--muted)]"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3.5">
-                        <div
-                          className={`w-5 h-5 mt-0.5 rounded-full border flex items-center justify-center transition-all ${
-                            isSelected
-                              ? "border-[var(--clay)] bg-[var(--clay)] text-white"
-                              : "border-[var(--mist)]"
-                          }`}
-                        >
-                          {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                        </div>
-                        <div>
-                          <div className="font-bold text-base text-[var(--ink)]">
-                            {svc.name}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-bold text-base text-[var(--ink)]">
+                            {doctor.name}
+                          </h4>
+                          <div className="flex items-center gap-1 text-[var(--amber)] text-xs font-mono-ledger font-medium">
+                            <Star className="w-3.5 h-3.5 fill-current" />
+                            <span className="font-bold">{doctor.rating.toFixed(1)}</span>
+                            <span className="text-[var(--muted)]">({doctor.reviewsCount})</span>
                           </div>
-                          {svc.description && (
-                            <div className="text-sm text-[var(--muted)] mt-1 font-sans-ledger">
-                              {svc.description}
+                        </div>
+
+                        <div className="text-sm font-medium text-[var(--clay)] mb-2">
+                          {doctor.role}
+                        </div>
+
+                        <div className="text-xs text-[var(--muted)] space-y-1">
+                          {center && (
+                            <div className="flex items-center gap-1.5">
+                              <Building2 className="w-3.5 h-3.5 flex-none" />
+                              <span className="truncate">{center.name}</span>
                             </div>
                           )}
-                          <div className="text-xs text-[var(--muted)] font-mono-ledger mt-1.5">
-                            Duration: {svc.duration}
-                          </div>
+                          {center && (
+                            <div className="flex items-center gap-1.5">
+                              <MapPin className="w-3.5 h-3.5 flex-none" />
+                              <span className="truncate">{center.address}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       <div className="text-right flex-none">
-                        <div className="font-mono-ledger text-base sm:text-lg font-bold text-[var(--ink)]">
-                          {formatCurrency(svc.price)}
+                        <div className="text-xs uppercase font-semibold font-mono-ledger text-[var(--muted)] mb-0.5">
+                          From
                         </div>
-                        <span className="badge-ledger badge-confirmed mt-1.5 rounded-full text-xs font-semibold px-2.5 py-0.5">
-                          Available
-                        </span>
+                        <div className="font-mono-ledger text-lg font-bold text-[var(--sage)]">
+                          {formatCurrency(doctor.price)}
+                        </div>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
 
-              <div className="flex justify-end pt-3">
-                <button
-                  onClick={() => setBookingStep(2)}
-                  className="bg-[var(--clay)] text-white px-7 py-3 rounded-xl text-sm font-semibold hover:opacity-95 flex items-center gap-2 shadow-sm shadow-[var(--clay)]/20"
-                >
-                  <span>Continue to Date & Slot</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2: SELECT DATE & TIME SLOT */}
-          {bookingStep === 2 && (
-            <div className="backdrop-blur-xl bg-white/85/85 border border-white/70 p-6 sm:p-8 rounded-3xl shadow-sm space-y-6">
-              <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
-                <h3 className="font-bold text-lg text-[var(--ink)]">
-                  Pick Appointment Date & Time
-                </h3>
-                <span className="text-xs uppercase font-semibold tracking-wider text-[var(--muted)]">
-                  Real-Time Physician Schedule
-                </span>
-              </div>
-
-              {/* Day Tabs */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2.5">
-                  Select Day
-                </label>
-                <div className="flex gap-2.5 overflow-x-auto pb-1">
-                  {["Mon 29 Sep", "Tue 30 Sep", "Wed 1 Oct", "Thu 2 Oct", "Fri 3 Oct"].map((d) => (
-                    <button
-                      key={d}
-                      onClick={() => setActiveBookingDraft((prev) => ({ ...prev, day: d }))}
-                      className={`text-sm px-5 py-2.5 rounded-xl border whitespace-nowrap font-semibold transition-all ${
-                        activeBookingDraft.day === d
-                          ? "border-[var(--clay)] text-white bg-[var(--clay)] shadow-xs"
-                          : "border-[var(--mist)] text-[var(--muted)] bg-[var(--surface)] hover:border-[var(--muted)]"
-                      }`}
-                    >
-                      {d}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Morning Slots */}
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-3 flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-[var(--clay)]" />
-                  <span>Morning Sessions (09:00 – 12:00)</span>
-                </div>
-                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2.5">
-                  {[
-                    { time: "09:00", open: true },
-                    { time: "09:45", open: true },
-                    { time: "10:30", open: true },
-                    { time: "11:15", open: true },
-                    { time: "12:00", open: false },
-                  ].map((s) => {
-                    const isSelected = activeBookingDraft.time === s.time;
-                    if (!s.open) {
-                      return (
-                        <div
-                          key={s.time}
-                          className="font-mono-ledger text-sm py-3 text-center border border-[var(--mist)] text-[var(--mist)] line-through bg-[var(--paper)] rounded-xl select-none"
-                          title="Booked by another patient"
-                        >
-                          {s.time}
-                        </div>
-                      );
-                    }
-                    return (
-                      <button
-                        key={s.time}
-                        onClick={() => setActiveBookingDraft((prev) => ({ ...prev, time: s.time }))}
-                        className={`font-mono-ledger text-sm py-3 text-center border rounded-xl font-semibold transition-all ${
-                          isSelected
-                            ? "border-[var(--clay)] text-white bg-[var(--clay)] shadow-xs"
-                            : "border-[var(--mist)] text-[var(--ink)] bg-[var(--surface)] hover:border-[var(--muted)]"
-                        }`}
-                      >
-                        {s.time}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Afternoon Slots */}
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-3 flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-[var(--clay)]" />
-                  <span>Afternoon Sessions (13:30 – 17:00)</span>
-                </div>
-                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2.5">
-                  {[
-                    { time: "13:30", open: true },
-                    { time: "14:15", open: true },
-                    { time: "15:00", open: true },
-                    { time: "15:45", open: true },
-                    { time: "16:30", open: true },
-                  ].map((s) => {
-                    const isSelected = activeBookingDraft.time === s.time;
-                    return (
-                      <button
-                        key={s.time}
-                        onClick={() => setActiveBookingDraft((prev) => ({ ...prev, time: s.time }))}
-                        className={`font-mono-ledger text-sm py-3 text-center border rounded-xl font-semibold transition-all ${
-                          isSelected
-                            ? "border-[var(--clay)] text-white bg-[var(--clay)] shadow-xs"
-                            : "border-[var(--mist)] text-[var(--ink)] bg-[var(--surface)] hover:border-[var(--muted)]"
-                        }`}
-                      >
-                        {s.time}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center pt-3 border-t border-[var(--mist)]">
-                <button
-                  onClick={() => setBookingStep(1)}
-                  className="text-sm font-semibold text-[var(--muted)] hover:text-[var(--ink)]"
-                >
-                  ← Back to Procedure
-                </button>
-                <button
-                  onClick={() => setBookingStep(3)}
-                  className="bg-[var(--clay)] text-white px-7 py-3 rounded-xl text-sm font-semibold hover:opacity-95 flex items-center gap-2 shadow-sm shadow-[var(--clay)]/20"
-                >
-                  <span>Continue to Patient Info</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 3: PATIENT INFORMATION */}
-          {bookingStep === 3 && (
-            <div className="backdrop-blur-xl bg-white/85/85 border border-white/70 p-6 sm:p-8 rounded-3xl shadow-sm space-y-6">
-              <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
-                <h3 className="font-bold text-lg text-[var(--ink)]">
-                  Patient Contact & Clinical Notes
-                </h3>
-                <span className="text-xs uppercase font-semibold tracking-wider text-[var(--muted)]">
-                  PDPA & HIPAA Encrypted
-                </span>
-              </div>
-
-              <div className="space-y-4 text-sm">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
-                    Full Legal Name
-                  </label>
-                  <input
-                    type="text"
-                    value={activeBookingDraft.patientName || patientProfile.name || "Marcus Wei"}
-                    onChange={(e) =>
-                      setActiveBookingDraft((prev) => ({ ...prev, patientName: e.target.value }))
-                    }
-                    className="w-full p-3.5 border border-[var(--mist)] bg-white/80/80 rounded-xl text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      value={activeBookingDraft.patientEmail || "marcus.wei@example.sg"}
-                      onChange={(e) =>
-                        setActiveBookingDraft((prev) => ({ ...prev, patientEmail: e.target.value }))
-                      }
-                      className="w-full p-3.5 border border-[var(--mist)] bg-white/80/80 rounded-xl text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
-                      Phone Number (WhatsApp notifications)
-                    </label>
-                    <input
-                      type="tel"
-                      value={activeBookingDraft.patientPhone || "+65 9123 4567"}
-                      onChange={(e) =>
-                        setActiveBookingDraft((prev) => ({ ...prev, patientPhone: e.target.value }))
-                      }
-                      className="w-full p-3.5 border border-[var(--mist)] bg-white/80/80 rounded-xl text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
-                    Symptoms or Clinical Intake Notes (Optional)
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={activeBookingDraft.patientNotes || ""}
-                    onChange={(e) =>
-                      setActiveBookingDraft((prev) => ({ ...prev, patientNotes: e.target.value }))
-                    }
-                    placeholder="Briefly state reason for visit or existing medications..."
-                    className="w-full p-3.5 border border-[var(--mist)] bg-white/80/80 rounded-xl text-sm text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20 font-sans-ledger"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center pt-3 border-t border-[var(--mist)]">
-                <button
-                  onClick={() => setBookingStep(2)}
-                  className="text-sm font-semibold text-[var(--muted)] hover:text-[var(--ink)]"
-                >
-                  ← Back to Slot Selection
-                </button>
-                <button
-                  onClick={() => setBookingStep(4)}
-                  className="bg-[var(--clay)] text-white px-7 py-3 rounded-xl text-sm font-semibold hover:opacity-95 flex items-center gap-2 shadow-sm shadow-[var(--clay)]/20"
-                >
-                  <span>Review & Finalize</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 4: REVIEW & CONFIRM */}
-          {bookingStep === 4 && (
-            <div className="backdrop-blur-xl bg-white/85/85 border border-white/70 p-6 sm:p-8 rounded-3xl shadow-sm space-y-6">
-              <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
-                <h3 className="font-bold text-lg text-[var(--ink)]">
-                  Review Appointment Summary
-                </h3>
-                <span className="badge-ledger badge-confirmed text-xs font-semibold px-3 py-1 rounded-full">
-                  Zero Upfront Charge
-                </span>
-              </div>
-
-              <div className="border border-[var(--mist)] divide-y divide-[var(--mist)] text-sm rounded-2xl overflow-hidden bg-white/50">
-                <div className="p-4 flex justify-between items-center">
-                  <span className="text-[var(--muted)]">Physician</span>
-                  <span className="font-bold text-[var(--ink)]">
-                    {selectedDoctor.name} ({selectedDoctor.role})
-                  </span>
-                </div>
-                <div className="p-4 flex justify-between items-center">
-                  <span className="text-[var(--muted)]">Location</span>
-                  <span className="font-semibold text-[var(--ink)] text-right">
-                    {selectedDoctor.clinic} · {selectedDoctor.location}
-                  </span>
-                </div>
-                <div className="p-4 flex justify-between items-center">
-                  <span className="text-[var(--muted)]">Service / Procedure</span>
-                  <span className="font-semibold text-[var(--ink)]">
-                    {selectedDoctor.services.find((s) => s.id === activeBookingDraft.serviceId)?.name} (
-                    {selectedDoctor.services.find((s) => s.id === activeBookingDraft.serviceId)?.duration})
-                  </span>
-                </div>
-                <div className="p-4 flex justify-between items-center">
-                  <span className="text-[var(--muted)]">Slot Time</span>
-                  <span className="font-bold text-[var(--clay)]">
-                    {activeBookingDraft.day || "Tue 30 Sep"} at {activeBookingDraft.time || "10:30"}
-                  </span>
-                </div>
-                <div className="p-4 flex justify-between items-center">
-                  <span className="text-[var(--muted)]">Patient</span>
-                  <span className="font-semibold text-[var(--ink)]">
-                    {activeBookingDraft.patientName || patientProfile.name || "Marcus Wei"} ({activeBookingDraft.patientPhone || patientProfile.phone || "+65 9123 4567"})
-                  </span>
-                </div>
-                <div className="p-4 bg-[var(--paper)] flex justify-between items-center text-base">
-                  <span className="font-bold text-[var(--ink)]">Total Due at Clinic</span>
-                  <span className="font-bold text-xl text-[var(--sage)]">
-                    {formatCurrency(
-                      selectedDoctor.services.find((s) => s.id === activeBookingDraft.serviceId)?.price || 0
+                    {doctor.bio && (
+                      <div className="text-sm text-[var(--muted)] bg-[var(--paper)] p-3 rounded-xl border border-[var(--mist)] line-clamp-2">
+                        {doctor.bio}
+                      </div>
                     )}
-                  </span>
-                </div>
-              </div>
-
-              <div className="text-xs text-[var(--muted)] space-y-1.5 leading-relaxed bg-[var(--paper)] p-4 rounded-xl border border-[var(--mist)]">
-                <div>· Free cancellation up to 24 hours prior to appointment time.</div>
-                <div>· Pay in person via credit card, PayNow/PromptPay, or cash upon consultation conclusion.</div>
-              </div>
-
-              <div className="flex justify-between items-center pt-3 border-t border-[var(--mist)]">
-                <button
-                  onClick={() => setBookingStep(3)}
-                  className="text-sm font-semibold text-[var(--muted)] hover:text-[var(--ink)]"
-                >
-                  ← Edit Details
-                </button>
-                <button
-                  onClick={handleFinalizeBooking}
-                  className="bg-[var(--clay)] text-white px-8 py-3.5 rounded-xl text-sm font-bold hover:opacity-95 shadow-sm shadow-[var(--clay)]/20 flex items-center gap-2"
-                >
-                  <Check className="w-5 h-5 stroke-[3]" />
-                  <span>
-                    Confirm Appointment ·{" "}
-                    {formatCurrency(
-                      selectedDoctor.services.find((s) => s.id === activeBookingDraft.serviceId)?.price || 0
-                    )}
-                  </span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* VIEW 3: CONFIRMATION SUCCESS */}
-      {activeTab === "confirm" && latestBooking && (
-        <div className="max-w-2xl mx-auto space-y-6">
-          <div className="backdrop-blur-xl bg-white/85/85 border border-white/70 p-8 sm:p-10 rounded-3xl text-center space-y-5 shadow-xl">
-            <div className="w-16 h-16 border-2 border-[var(--sage)] rounded-full flex items-center justify-center mx-auto text-[var(--sage)] bg-[var(--sage)]/10 shadow-sm">
-              <Check className="w-9 h-9 stroke-[3]" />
-            </div>
-
-            <div>
-              <span className="badge-ledger badge-confirmed mb-2 rounded-full text-xs font-semibold px-4 py-1 inline-block">
-                Registration Confirmed
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-bold text-[var(--ink)] tracking-tight">
-                Your Appointment is Booked
-              </h2>
-              <p className="text-sm text-[var(--muted)] mt-1.5">
-                Booking Reference: <span className="font-bold text-[var(--clay)]">{latestBooking.reference}</span>
-              </p>
-            </div>
-
-            {/* Structured Receipt Ledger */}
-            <div className="border border-[var(--mist)] bg-[var(--surface)] text-left divide-y divide-[var(--mist)] text-sm max-w-lg mx-auto rounded-2xl overflow-hidden shadow-xs">
-              <div className="p-4 flex justify-between items-center">
-                <span className="text-[var(--muted)]">Practitioner</span>
-                <span className="font-bold text-[var(--ink)]">
-                  {latestBooking.doctorName}
-                </span>
-              </div>
-              <div className="p-4 flex justify-between items-center">
-                <span className="text-[var(--muted)]">Service</span>
-                <span className="font-semibold text-[var(--ink)]">
-                  {latestBooking.serviceName}
-                </span>
-              </div>
-              <div className="p-4 flex justify-between items-center">
-                <span className="text-[var(--muted)]">Date & Slot</span>
-                <span className="font-bold text-[var(--clay)]">
-                  {latestBooking.date} · {latestBooking.time}
-                </span>
-              </div>
-              <div className="p-4 flex justify-between items-center">
-                <span className="text-[var(--muted)]">Location</span>
-                <span className="font-semibold text-[var(--ink)] text-right">
-                  {latestBooking.clinicName} ({latestBooking.clinicAddress})
-                </span>
-              </div>
-              <div className="p-4 bg-[var(--paper)] flex justify-between items-center text-base">
-                <span className="font-bold text-[var(--ink)]">Total Payable</span>
-                <span className="font-bold text-xl text-[var(--sage)]">{formatCurrency(latestBooking.price)}</span>
-              </div>
-            </div>
-
-            {/* Preparation Instructions */}
-            <div className="p-4 bg-[var(--paper)] border border-[var(--mist)] text-left text-xs font-mono-ledger text-[var(--muted)] space-y-1 max-w-md mx-auto rounded-2xl">
-              <div className="font-semibold text-[var(--ink)] flex items-center gap-1.5">
-                <Info className="w-3.5 h-3.5 text-[var(--clay)]" />
-                <span>Patient Arrival Protocol:</span>
-              </div>
-              <div>· Please arrive 10 minutes before your slot for digital registration.</div>
-              <div>· Bring a government-issued photo ID (NRIC / Passport).</div>
-              <div>· Free parking available at the medical center garage.</div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2 font-mono-ledger text-xs">
-              <button
-                onClick={() =>
-                  addToast({
-                    type: "success",
-                    title: "Calendar Exported",
-                    message: "iCalendar (.ics) downloaded to device.",
-                  })
-                }
-                className="bg-[var(--clay)] text-white px-6 py-2.5 rounded-xl font-semibold hover:opacity-95 flex items-center justify-center gap-1.5 shadow-sm"
-              >
-                <CalendarCheck className="w-4 h-4" />
-                <span>Add to Calendar (.ics)</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab("mybookings")}
-                className="border border-[var(--mist)] bg-[var(--surface)] text-[var(--ink)] px-6 py-2.5 rounded-xl hover:border-[var(--clay)] transition-colors"
-              >
-                View in My Consultations
-              </button>
-            </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       )}
 
-      {/* VIEW 4: MY BOOKINGS */}
-      {activeTab === "mybookings" && (
+      {/* VIEW: MY APPOINTMENTS */}
+      {activeTab === "appointments" && (
         <div className="space-y-6">
-          <div className="backdrop-blur-xl bg-white/85/85 border border-white/70 p-6 sm:p-8 rounded-3xl shadow-sm space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[var(--mist)] gap-3">
+          {/* Upcoming Appointments */}
+          <div className="rounded-3xl backdrop-blur-xl bg-white/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--mist)]">
               <div>
                 <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
-                  Upcoming Consultations
+                  Upcoming Appointments
                 </h3>
-                <p className="text-sm text-[var(--muted)] font-mono-ledger mt-0.5">
-                  Scheduled care appointments & modification controls
+                <p className="text-sm text-[var(--muted)] mt-1">
+                  Your scheduled medical visits
                 </p>
               </div>
-
-              <button
-                onClick={() => setActiveTab("search")}
-                className="font-mono-ledger text-sm font-semibold text-[var(--clay)] border border-[var(--clay)] px-5 py-2.5 rounded-xl hover:bg-[var(--clay)] hover:text-white transition-all shadow-xs self-start sm:self-auto"
-              >
-                + Book New Care
-              </button>
             </div>
 
-            <div className="divide-y divide-[var(--mist)] border border-[var(--mist)] rounded-2xl overflow-hidden">
-              {bookings.filter((b) => b.status === "confirmed" || b.status === "pending").length === 0 ? (
-                <div className="p-12 text-center text-sm font-mono-ledger text-[var(--muted)]">
-                  No upcoming appointments. Click '+ Book New Care' to browse practitioners.
+            <div className="space-y-4">
+              {upcomingBookings.length === 0 ? (
+                <div className="text-center py-12 text-[var(--muted)] font-mono-ledger">
+                  No upcoming appointments
                 </div>
               ) : (
-                bookings
-                  .filter((b) => b.status === "confirmed" || b.status === "pending")
-                  .map((b) => (
-                    <div key={b.id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-5 hover:bg-[var(--paper)]/40 transition-colors">
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-2.5">
-                          <span className="font-mono-ledger text-xs font-bold text-[var(--clay)] px-2.5 py-0.5 rounded-full bg-[var(--clay)]/10 border border-[var(--clay)]/20">
-                            {b.reference}
-                          </span>
-                          <span
-                            className={`badge-ledger rounded-full text-xs font-semibold px-3 py-0.5 ${
-                              b.status === "confirmed" ? "badge-confirmed" : "badge-pending"
-                            }`}
-                          >
-                            {b.status === "confirmed" ? "Confirmed" : "Pending Clinic Triage"}
-                          </span>
-                        </div>
-                        <div className="font-bold text-base sm:text-lg text-[var(--ink)]">
-                          {b.serviceName}
-                        </div>
-                        <div className="text-sm font-sans-ledger text-[var(--muted)]">
-                          {b.doctorName} · {b.clinicName}
-                        </div>
-                        <div className="text-sm font-sans-ledger text-[var(--ink)] flex items-center gap-3 pt-1">
-                          <div className="flex items-center gap-1.5 font-medium">
-                            <Calendar className="w-4 h-4 text-[var(--clay)] shrink-0" />
-                            <span>{b.date}</span>
+                upcomingBookings.map((booking) => {
+                  const doctor = doctors.find(d => d.id === booking.doctorId);
+                  const center = doctor ? centers.find(c => c.id === doctor.centerId) : null;
+                  return (
+                    <div
+                      key={booking.id}
+                      className="p-6 rounded-2xl border border-[var(--mist)] bg-[var(--surface)] shadow-xs hover:border-[var(--clay)]/40 transition-all space-y-4"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="flex flex-wrap items-center gap-2.5 mb-2">
+                            <span className="font-mono-ledger text-sm font-bold text-[var(--clay)]">
+                              {booking.reference}
+                            </span>
+                            <span
+                              className={`badge-ledger text-xs font-semibold px-3 py-1 rounded-full ${
+                                booking.status === "PENDING"
+                                  ? "badge-pending"
+                                  : booking.status === "CONFIRMED"
+                                  ? "badge-confirmed"
+                                  : "badge-completed"
+                              }`}
+                            >
+                              {booking.status}
+                            </span>
                           </div>
-                          <span>·</span>
-                          <div className="flex items-center gap-1.5 font-medium">
-                            <Clock className="w-4 h-4 text-[var(--clay)] shrink-0" />
-                            <span>{b.time}</span>
-                          </div>
-                          <span>·</span>
-                          <span className="text-[var(--sage)] font-bold font-mono-ledger text-base">{formatCurrency(b.price)}</span>
-                        </div>
-                      </div>
 
-                      {/* Mini Actions */}
-                      <div className="flex items-center gap-2 font-mono-ledger text-sm flex-none">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">
+                                Doctor
+                              </span>
+                              <span className="font-semibold text-[var(--ink)]">{doctor?.name || 'Unknown'}</span>
+                            </div>
+                            <div>
+                              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">
+                                Location
+                              </span>
+                              <span className="text-[var(--ink)]">{center?.name || 'Unknown Center'}</span>
+                            </div>
+                            <div>
+                              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">
+                                Date & Time
+                              </span>
+                              <span className="font-semibold text-[var(--ink)]">{booking.date} at {booking.time}</span>
+                            </div>
+                            <div>
+                              <span className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider block mb-1">
+                                Fee
+                              </span>
+                              <span className="font-bold text-[var(--sage)]">{formatCurrency(booking.price)}</span>
+                            </div>
+                          </div>
+                        </div>
+
                         <button
-                          onClick={() => setReschedulingBooking(b)}
-                          className="px-4 py-2 border border-[var(--mist)] rounded-xl text-[var(--ink)] font-semibold hover:border-[var(--clay)] hover:text-[var(--clay)] transition-all shadow-2xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedBooking(booking);
+                          }}
+                          className="px-4 py-2 border border-[var(--mist)] rounded-xl text-sm font-semibold text-[var(--muted)] hover:text-[var(--clay)] hover:border-[var(--clay)] transition-colors"
                         >
-                          Reschedule
-                        </button>
-                        <button
-                          onClick={() => setCancellingBooking(b)}
-                          className="px-4 py-2 border border-[var(--mist)] rounded-xl text-[var(--muted)] hover:border-[var(--clay)] hover:text-[var(--clay)] transition-all"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={() => downloadReceipt(b)}
-                          className="p-2.5 border border-[var(--mist)] rounded-xl text-[var(--muted)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-all"
-                          title="Download receipt slip"
-                        >
-                          <Download className="w-4 h-4" />
+                          View Details
                         </button>
                       </div>
                     </div>
-                  ))
+                  );
+                })
               )}
             </div>
           </div>
 
-          {/* Past History Table */}
-          <div className="backdrop-blur-xl bg-white/85/85 border border-white/70 p-6 sm:p-8 rounded-3xl shadow-sm space-y-5">
-            <div className="pb-3 border-b border-[var(--mist)]">
-              <h3 className="font-bold text-lg text-[var(--ink)]">
-                Past Consultations History
-              </h3>
-              <p className="text-sm text-[var(--muted)] mt-1">
-                Completed health visits & medical receipts
-              </p>
-            </div>
+          {/* Past Appointments */}
+          {pastBookings.length > 0 && (
+            <div className="rounded-3xl backdrop-blur-xl bg-white/85 border border-white/70 shadow-sm p-6 sm:p-8 space-y-6">
+              <div className="pb-4 border-b border-[var(--mist)]">
+                <h3 className="font-bold text-xl sm:text-2xl text-[var(--ink)]">
+                  Past Appointments
+                </h3>
+              </div>
 
-            <div className="divide-y divide-[var(--mist)] border border-[var(--mist)] rounded-2xl overflow-hidden bg-[var(--surface)]">
-              {bookings
-                .filter((b) => b.status === "completed" || b.status === "cancelled")
-                .map((b) => (
-                  <div key={b.id} className="p-4 flex items-center justify-between text-sm hover:bg-[var(--paper)]/50 transition-colors">
-                    <div className="flex-1">
-                      <div className="font-bold text-[var(--ink)]">
-                        {b.serviceName}
+              <div className="space-y-3">
+                {pastBookings.slice(0, 5).map((booking) => {
+                  const doctor = doctors.find(d => d.id === booking.doctorId);
+                  return (
+                    <div
+                      key={booking.id}
+                      className="p-4 rounded-xl border border-[var(--mist)] bg-[var(--paper)] text-sm flex justify-between items-center"
+                    >
+                      <div>
+                        <div className="font-semibold text-[var(--ink)] mb-1">{doctor?.name || 'Unknown'}</div>
+                        <div className="text-xs text-[var(--muted)]">{booking.date} · {booking.reference}</div>
                       </div>
-                      <div className="text-xs text-[var(--muted)] mt-0.5">
-                        {b.doctorName} · {b.clinicName} · {b.date}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                      <span className="font-mono-ledger font-bold text-base text-[var(--ink)]">
-                        {formatCurrency(b.price)}
-                      </span>
                       <span
-                        className={`badge-ledger rounded-full text-xs font-semibold px-3 py-1 ${
-                          b.status === "completed" ? "badge-completed" : "badge-muted"
+                        className={`badge-ledger text-xs font-semibold px-3 py-1 rounded-full ${
+                          booking.status === "COMPLETED" ? "badge-completed" : "badge-pending"
                         }`}
                       >
-                        {b.status === "completed" ? "Completed" : "Cancelled"}
+                        {booking.status}
                       </span>
-                      {b.status === "completed" && (
-                        <button
-                          onClick={() => downloadReceipt(b)}
-                          className="p-2 border border-[var(--mist)] rounded-lg text-[var(--muted)] hover:text-[var(--sage)] hover:border-[var(--sage)] transition-all"
-                          title="Download receipt"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                      )}
                     </div>
-                  </div>
-                ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: RESCHEDULE */}
-      {reschedulingBooking && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="backdrop-blur-2xl bg-white/95/95 border border-white/80 p-6 sm:p-8 max-w-lg w-full shadow-2xl rounded-3xl space-y-5">
-            <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
-              <h3 className="font-bold text-lg sm:text-xl text-[var(--ink)]">
-                Reschedule {reschedulingBooking.reference}
-              </h3>
-              <button
-                onClick={() => setReschedulingBooking(null)}
-                className="text-[var(--muted)] hover:text-[var(--ink)] p-1 rounded-full hover:bg-[var(--paper)] transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="text-sm text-[var(--muted)] leading-relaxed">
-              Select an alternative open slot for{" "}
-              <span className="font-semibold text-[var(--ink)]">{reschedulingBooking.serviceName}</span> with{" "}
-              {reschedulingBooking.doctorName}.
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
-                New Target Day
-              </label>
-              <select
-                value={newRescheduleDate}
-                onChange={(e) => setNewRescheduleDate(e.target.value)}
-                className="w-full p-3.5 border border-[var(--mist)] bg-[var(--surface)] text-sm font-semibold text-[var(--ink)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
-              >
-                <option value="Tue 30 Sep">Tue 30 Sep</option>
-                <option value="Wed 1 Oct">Wed 1 Oct</option>
-                <option value="Thu 2 Oct">Thu 2 Oct</option>
-                <option value="Fri 3 Oct">Fri 3 Oct</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
-                Available Open Time
-              </label>
-              <div className="grid grid-cols-3 gap-2.5 text-sm font-semibold">
-                {["10:00", "11:30", "14:15", "15:00", "16:30"].map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setNewRescheduleTime(t)}
-                    className={`py-3 rounded-xl border text-center transition-all ${
-                      newRescheduleTime === t
-                        ? "border-[var(--clay)] bg-[var(--clay)] text-white shadow-xs"
-                        : "border-[var(--mist)] text-[var(--ink)] bg-[var(--surface)] hover:border-[var(--muted)]"
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
-
-            <div className="flex gap-3 pt-3 border-t border-[var(--mist)] text-sm">
-              <button
-                onClick={() => setReschedulingBooking(null)}
-                className="flex-1 py-3 border border-[var(--mist)] text-[var(--muted)] font-semibold rounded-xl hover:bg-[var(--paper)] transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={executeReschedule}
-                className="flex-1 py-3 bg-[var(--clay)] text-white font-semibold rounded-xl hover:opacity-95 shadow-sm shadow-[var(--clay)]/20"
-              >
-                Confirm Reschedule
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       )}
 
-      {/* MODAL: CANCEL */}
-      {cancellingBooking && (
+      {/* VIEW: MY PROFILE */}
+      {activeTab === "profile" && (
+        <PatientProfileTab />
+      )}
+
+      {/* MODAL: BOOKING DETAILS */}
+      {selectedBooking && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="backdrop-blur-2xl bg-white/95/95 border border-white/80 p-6 sm:p-8 max-w-lg w-full shadow-2xl rounded-3xl space-y-5">
+          <div className="rounded-3xl bg-[var(--surface)] border border-white/70 p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5">
             <div className="flex justify-between items-center pb-3 border-b border-[var(--mist)]">
               <h3 className="font-bold text-lg sm:text-xl text-[var(--ink)]">
-                Cancel Consultation {cancellingBooking.reference}
+                Appointment Details
               </h3>
               <button
-                onClick={() => setCancellingBooking(null)}
+                onClick={() => setSelectedBooking(null)}
                 className="text-[var(--muted)] hover:text-[var(--ink)] p-1 rounded-full hover:bg-[var(--paper)] transition-colors"
               >
-                <X className="w-5 h-5" />
+                <XCircle className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-4 bg-[var(--paper)] border border-[var(--clay)]/30 text-sm text-[var(--clay)] font-medium rounded-xl leading-relaxed">
-              Cancellation is permitted without penalty since consultation is &gt;24 hours ahead.
+            <div className="space-y-4">
+              <div className="p-4 rounded-xl bg-[var(--paper)] border border-[var(--mist)]">
+                <div className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider mb-2">
+                  Reference Number
+                </div>
+                <div className="font-mono-ledger text-lg font-bold text-[var(--clay)]">
+                  {selectedBooking.reference}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider mb-1">
+                    Date
+                  </div>
+                  <div className="font-semibold text-[var(--ink)]">{selectedBooking.date}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider mb-1">
+                    Time
+                  </div>
+                  <div className="font-semibold text-[var(--ink)]">{selectedBooking.time}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider mb-1">
+                    Fee
+                  </div>
+                  <div className="font-bold text-[var(--sage)]">{formatCurrency(selectedBooking.price)}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider mb-1">
+                    Status
+                  </div>
+                  <span
+                    className={`badge-ledger text-xs font-semibold px-3 py-1 rounded-full ${
+                      selectedBooking.status === "PENDING"
+                        ? "badge-pending"
+                        : selectedBooking.status === "CONFIRMED"
+                        ? "badge-confirmed"
+                        : "badge-completed"
+                    }`}
+                  >
+                    {selectedBooking.status}
+                  </span>
+                </div>
+              </div>
+
+              {selectedBooking.patientNotes && (
+                <div className="p-4 rounded-xl bg-[var(--paper)] border border-[var(--mist)]">
+                  <div className="text-xs uppercase font-semibold text-[var(--muted)] tracking-wider mb-2">
+                    Your Notes
+                  </div>
+                  <div className="text-sm text-[var(--ink)]">{selectedBooking.patientNotes}</div>
+                </div>
+              )}
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-2">
-                Reason for Cancellation
-              </label>
-              <select
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                className="w-full p-3.5 border border-[var(--mist)] bg-[var(--surface)] text-sm text-[var(--ink)] rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-[var(--clay)]/20"
-              >
-                <option value="Schedule conflict">Schedule conflict</option>
-                <option value="Symptoms improved">Symptoms improved</option>
-                <option value="Need different specialist">Need different specialist</option>
-                <option value="Financial reasons">Financial reasons</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            <div className="flex gap-3 pt-3 border-t border-[var(--mist)] text-sm">
-              <button
-                onClick={() => setCancellingBooking(null)}
-                className="flex-1 py-3 border border-[var(--mist)] text-[var(--muted)] font-semibold rounded-xl hover:bg-[var(--paper)] transition-colors"
-              >
-                Keep Booking
-              </button>
-              <button
-                onClick={executeCancel}
-                className="flex-1 py-3 bg-[var(--clay)] text-white font-semibold rounded-xl hover:opacity-95 shadow-sm shadow-[var(--clay)]/20"
-              >
-                Confirm Cancellation
-              </button>
-            </div>
+            {(selectedBooking.status === "PENDING" || selectedBooking.status === "CONFIRMED") && (
+              <div className="flex gap-3 pt-3 border-t border-[var(--mist)]">
+                <button
+                  onClick={() => setSelectedBooking(null)}
+                  className="flex-1 py-3 rounded-xl border border-[var(--mist)] text-[var(--muted)] font-semibold hover:bg-[var(--paper)] transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => handleCancelBooking(selectedBooking.id)}
+                  className="flex-1 py-3 rounded-xl bg-[var(--clay)] text-white font-semibold hover:opacity-95 shadow-sm shadow-[var(--clay)]/20"
+                >
+                  Cancel Appointment
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
