@@ -1,9 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/middleware/permissions';
-import { getAuthDb } from '@/db/auth-db';
 import { db } from '@/db';
-import { users } from '@/db/schema';
+import { users, accounts } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import * as crypto from 'crypto';
+
+/**
+ * Hash password using the same algorithm as Better Auth (scrypt)
+ */
+async function hashPassword(password: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const salt = crypto.randomBytes(16);
+    const saltHex = salt.toString('hex');
+    
+    const N = 16384;
+    const r = 16;
+    const p = 1;
+    const maxmem = 128 * N * r * 2;
+    
+    crypto.scrypt(
+      password.normalize('NFKC'), 
+      saltHex, 
+      64, 
+      { N, r, p, maxmem }, 
+      (err, derivedKey) => {
+        if (err) reject(err);
+        const hash = `${saltHex}:${derivedKey.toString('hex')}`;
+        resolve(hash);
+      }
+    );
+  });
+}
+
+/**
+ * Generate a random ID (Better Auth format)
+ */
+function generateId(): string {
+  return crypto.randomBytes(16).toString('base64url');
+}
 
 /**
  * Get All Users (Admin Only)
@@ -44,7 +78,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { user, session } = authContext;
+    const { user } = authContext;
 
     // Check if user is admin
     if (user.role !== 'ADMIN') {
@@ -52,11 +86,18 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { authUid, email, name } = body;
+    const { email, name, phone, password } = body;
 
-    if (!authUid || !email || !name) {
+    if (!email || !name || !password) {
       return NextResponse.json(
-        { error: 'Missing required fields: authUid, email, name' },
+        { error: 'Missing required fields: email, name, password' },
+        { status: 400 }
+      );
+    }
+
+    if (password.length < 8) {
+      return NextResponse.json(
+        { error: 'Password must be at least 8 characters long' },
         { status: 400 }
       );
     }
@@ -65,23 +106,43 @@ export async function POST(req: NextRequest) {
     const existing = await db
       .select()
       .from(users)
-      .where(eq(users.email, email))
+      .where(eq(users.email, email.toLowerCase().trim()))
       .limit(1);
 
     if (existing.length > 0) {
       return NextResponse.json({ error: 'User with this email already exists' }, { status: 400 });
     }
 
-    // Create new admin user
+    // Generate user ID
+    const userId = generateId();
+
+    // Create user record
     const newAdmin = await db
       .insert(users)
       .values({
-        authUid,
-        email,
-        name,
+        id: userId,
+        email: email.toLowerCase().trim(),
+        name: name.trim(),
+        phone: phone?.trim() || null,
         role: 'ADMIN',
+        emailVerified: true, // Auto-verify admin users
+        authUid: null,
       })
       .returning();
+
+    // Create account record with password
+    const accountId = generateId();
+    const hashedPassword = await hashPassword(password);
+
+    await db
+      .insert(accounts)
+      .values({
+        id: accountId,
+        accountId: userId,
+        providerId: 'credential',
+        userId: userId,
+        password: hashedPassword,
+      });
 
     return NextResponse.json(
       { user: newAdmin[0], message: 'Admin user created successfully' },

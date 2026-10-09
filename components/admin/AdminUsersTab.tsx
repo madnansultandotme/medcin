@@ -18,7 +18,7 @@ export function AdminUsersTab() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newAdmin, setNewAdmin] = useState({ email: '', name: '', authUid: '' });
+  const [newAdmin, setNewAdmin] = useState({ email: '', name: '', phone: '', password: '' });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -58,7 +58,7 @@ export function AdminUsersTab() {
       }
 
       setSuccess('Admin user created successfully!');
-      setNewAdmin({ email: '', name: '', authUid: '' });
+      setNewAdmin({ email: '', name: '', phone: '', password: '' });
       setShowAddModal(false);
       fetchUsers();
     } catch (err) {
@@ -235,7 +235,7 @@ export function AdminUsersTab() {
               Add New Admin User
             </h3>
             <p className="text-sm text-[var(--muted)] dark:text-[#A1B8CB] mb-6">
-              First create the user in Neon Auth Console, then add them here with their Auth UID.
+              Create a new admin user with email and password authentication.
             </p>
 
             <form onSubmit={handleAddAdmin} className="space-y-4">
@@ -269,18 +269,32 @@ export function AdminUsersTab() {
 
               <div>
                 <label className="block text-sm font-medium mb-2 text-[var(--ink)] dark:text-[#EAF5FF]">
-                  Neon Auth UID *
+                  Phone (optional)
                 </label>
                 <input
-                  type="text"
+                  type="tel"
+                  value={newAdmin.phone}
+                  onChange={(e) => setNewAdmin({ ...newAdmin, phone: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-[var(--mist)] dark:border-[#244766] rounded-lg bg-white dark:bg-[#081B2D] text-[var(--ink)] dark:text-[#EAF5FF] focus:ring-2 focus:ring-[var(--clay)] transition"
+                  placeholder="+1234567890"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 text-[var(--ink)] dark:text-[#EAF5FF]">
+                  Password *
+                </label>
+                <input
+                  type="password"
                   required
-                  value={newAdmin.authUid}
-                  onChange={(e) => setNewAdmin({ ...newAdmin, authUid: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-[var(--mist)] dark:border-[#244766] rounded-lg bg-white dark:bg-[#081B2D] text-[var(--ink)] dark:text-[#EAF5FF] focus:ring-2 focus:ring-[var(--clay)] font-mono text-sm transition"
-                  placeholder="f8383928-1dbc-4c11-b40c-50831a9b8c23"
+                  minLength={8}
+                  value={newAdmin.password}
+                  onChange={(e) => setNewAdmin({ ...newAdmin, password: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-[var(--mist)] dark:border-[#244766] rounded-lg bg-white dark:bg-[#081B2D] text-[var(--ink)] dark:text-[#EAF5FF] focus:ring-2 focus:ring-[var(--clay)] transition"
+                  placeholder="Minimum 8 characters"
                 />
                 <p className="mt-1 text-xs text-[var(--muted)] dark:text-[#A1B8CB]">
-                  Get this from Neon Console → Auth → Users
+                  Must be at least 8 characters long
                 </p>
               </div>
 
@@ -289,7 +303,7 @@ export function AdminUsersTab() {
                   type="button"
                   onClick={() => {
                     setShowAddModal(false);
-                    setNewAdmin({ email: '', name: '', authUid: '' });
+                    setNewAdmin({ email: '', name: '', phone: '', password: '' });
                     setError(null);
                   }}
                   className="flex-1 px-4 py-2.5 border border-[var(--mist)] dark:border-[#244766] rounded-lg font-semibold hover:bg-[var(--paper)] dark:hover:bg-[#244766] transition"
