@@ -1,13 +1,38 @@
 'use client';
 
 import Link from 'next/link';
-import { Clock, CheckCircle, Mail, Shield } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Clock, CheckCircle, Mail, Shield, LogOut } from 'lucide-react';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 export default function UnderReviewPage() {
+  const router = useRouter();
+  const { signOut } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-purple-50 to-gray-50 dark:from-gray-900 dark:to-gray-800">
       <div className="w-full max-w-2xl">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 text-center">
+          {/* Logout Button - Top Right */}
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </button>
+          </div>
+
           {/* Icon */}
           <div className="inline-flex rounded-full bg-amber-100 dark:bg-amber-900/30 p-4 mb-6">
             <Clock className="h-12 w-12 text-amber-600 dark:text-amber-400" />
@@ -95,14 +120,6 @@ export default function UnderReviewPage() {
               Contact our support team
             </a>
           </p>
-
-          {/* Action */}
-          <Link
-            href="/login"
-            className="inline-block px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition"
-          >
-            Go to Login
-          </Link>
         </div>
       </div>
     </div>

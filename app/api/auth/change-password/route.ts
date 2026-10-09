@@ -1,50 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth/get-session';
+import { auth } from '@/lib/auth/server';
+import { headers } from 'next/headers';
 
 /**
- * Change Password
+ * Change Password API
  * 
- * Allows authenticated users to change their password.
- * Note: This requires Neon Auth Better Auth integration.
+ * Uses Better Auth's built-in changePassword endpoint
+ * Requires: currentPassword, newPassword
+ * Optional: revokeOtherSessions (invalidates all other sessions)
  */
 export async function POST(req: NextRequest) {
   try {
-    const { user, session } = await getSession();
-
-    if (!user || !session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const body = await req.json();
-    const { currentPassword, newPassword } = body;
+    const { currentPassword, newPassword, revokeOtherSessions } = body;
 
+    // Validate required fields
     if (!currentPassword || !newPassword) {
       return NextResponse.json(
-        { error: 'Missing required fields: currentPassword, newPassword' },
+        { error: 'Current password and new password are required' },
         { status: 400 }
       );
     }
 
+    // Validate new password length
     if (newPassword.length < 8) {
       return NextResponse.json(
-        { error: 'New password must be at least 8 characters' },
+        { error: 'New password must be at least 8 characters long' },
         { status: 400 }
       );
     }
 
-    // Note: Password change needs to be handled by Neon Auth
-    // This is a placeholder that returns instructions
-    return NextResponse.json({
-      message: 'Password change must be done through Neon Auth',
-      instructions: {
-        method1: 'Use Neon Console: Go to your project → Neon Auth → Users → Select user → Change password',
-        method2: 'Use password reset flow: Click "Forgot Password" on login page',
-        note: 'Direct password change via API is not yet supported by Neon Auth'
-      }
-    }, { status: 501 }); // 501 Not Implemented
+    // Use Better Auth's changePassword endpoint
+    const headersList = await headers();
+    
+    const result = await auth.api.changePassword({
+      body: {
+        currentPassword,
+        newPassword,
+        revokeOtherSessions: revokeOtherSessions ?? false,
+      },
+      headers: headersList,
+    });
 
-  } catch (error) {
+    if (!result) {
+      return NextResponse.json(
+        { error: 'Failed to change password. Please check your current password.' },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Password changed successfully',
+      sessionRevoked: revokeOtherSessions,
+    });
+
+  } catch (error: any) {
     console.error('Change password error:', error);
-    return NextResponse.json({ error: 'Failed to change password' }, { status: 500 });
+    
+    // Better Auth throws specific errors
+    if (error.message?.includes('Invalid password')) {
+      return NextResponse.json(
+        { error: 'Current password is incorrect' },
+        { status: 401 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to change password' },
+      { status: 500 }
+    );
   }
 }

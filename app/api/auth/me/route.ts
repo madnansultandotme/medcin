@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth/get-session';
-import { db } from '@/db';
-import { users } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { getAuthenticatedUser } from '@/lib/middleware/permissions';
 
 /**
  * Get Current User Profile
@@ -11,23 +8,16 @@ import { eq } from 'drizzle-orm';
  */
 export async function GET() {
   try {
-    const { user: authUser } = await requireAuth();
+    const authContext = await getAuthenticatedUser();
 
-    // Get user profile from database
-    const profile = await db
-      .select()
-      .from(users)
-      .where(eq(users.authUid, authUser.id))
-      .limit(1);
-
-    if (profile.length === 0) {
+    if (!authContext) {
       return NextResponse.json(
-        { error: 'User profile not found' },
-        { status: 404 }
+        { error: 'Unauthorized' },
+        { status: 401 }
       );
     }
 
-    return NextResponse.json({ user: profile[0] });
+    return NextResponse.json({ user: authContext.user });
   } catch (error) {
     return NextResponse.json(
       { error: 'Unauthorized' },

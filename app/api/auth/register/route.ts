@@ -7,8 +7,9 @@ import { rateLimit, RateLimits } from '@/lib/middleware/rate-limit';
 /**
  * User Registration Sync API
  * 
- * Called after Neon Auth creates an account to sync user to database.
- * This creates the user record in our users table.
+ * Called after Better Auth creates an account to update user role and additional info.
+ * Better Auth already creates the user record with id, email, name.
+ * This endpoint updates role, phone, etc.
  */
 export async function POST(req: NextRequest) {
   // Apply rate limiting
@@ -19,50 +20,42 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { authUid, email, name, role, phone } = body;
+    const { userId, role, phone } = body;
 
     // Validate required fields
-    if (!authUid || !email || !name) {
+    if (!userId) {
       return NextResponse.json(
-        { error: 'Missing required fields: authUid, email, name' },
+        { error: 'Missing required field: userId' },
         { status: 400 }
       );
     }
 
-    // Check if user already exists
-    const existing = await db
-      .select()
-      .from(users)
-      .where(eq(users.authUid, authUid))
-      .limit(1);
+    // Update user record with additional info
+    const updatedUser = await db
+      .update(users)
+      .set({
+        role: role || 'PATIENT',
+        phone: phone || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
 
-    if (existing.length > 0) {
+    if (updatedUser.length === 0) {
       return NextResponse.json(
-        { user: existing[0], message: 'User already exists' },
-        { status: 200 }
+        { error: 'User not found' },
+        { status: 404 }
       );
     }
 
-    // Create new user record
-    const newUser = await db
-      .insert(users)
-      .values({
-        authUid,
-        email,
-        name,
-        role: role || 'PATIENT',
-        phone: phone || null,
-      })
-      .returning();
-
     return NextResponse.json(
-      { user: newUser[0], message: 'User created successfully' },
-      { status: 201 }
+      { user: updatedUser[0], message: 'User updated successfully' },
+      { status: 200 }
     );
   } catch (error) {
-    console.error('User registration error:', error);
+    console.error('User registration sync error:', error);
     return NextResponse.json(
-      { error: 'Failed to create user' },
+      { error: 'Failed to update user' },
       { status: 500 }
     );
   }

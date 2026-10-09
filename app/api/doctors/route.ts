@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/get-session';
-import { getAuthDb } from '@/db/auth-db';
+
 import { db } from '@/db';
 import { doctors, centers } from '@/db/schema';
 import { eq, and, ilike } from 'drizzle-orm';
@@ -9,8 +9,10 @@ import { getAuthenticatedUser, requireCenter, getUserCenterId } from '@/lib/midd
 /**
  * Get Doctors
  * 
- * Returns list of doctors, optionally filtered by search/category.
- * Public endpoint (no auth required for browsing).
+ * Returns list of doctors.
+ * - For admin with centerId param: returns all doctors for that center
+ * - For authenticated center owners without centerId: returns ALL their doctors (including inactive)
+ * - For public/other users: returns only active doctors, optionally filtered by centerId
  */
 export async function GET(req: NextRequest) {
   try {
@@ -18,6 +20,9 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search');
     const category = searchParams.get('category');
     const centerId = searchParams.get('centerId');
+
+    // Check if user is authenticated
+    const authContext = await getAuthenticatedUser();
 
     // Build query conditions
     const conditions = [];
@@ -29,15 +34,27 @@ export async function GET(req: NextRequest) {
     if (category) {
       conditions.push(eq(doctors.category, category));
     }
-    
+
+    // Handle centerId filtering and active status
     if (centerId) {
+      // If centerId is explicitly provided, use it (for admin viewing specific center)
       conditions.push(eq(doctors.centerId, centerId));
+      // If user is admin, show all doctors; otherwise only active
+      if (!authContext || authContext.user.role !== 'ADMIN') {
+        conditions.push(eq(doctors.active, true));
+      }
+    } else if (authContext?.user.role === 'CENTER') {
+      // For center owners without centerId param, show all their doctors
+      const userCenterId = await getUserCenterId(authContext.user.id);
+      if (userCenterId) {
+        conditions.push(eq(doctors.centerId, userCenterId));
+      }
+    } else {
+      // For public browsing without centerId, show only active
+      conditions.push(eq(doctors.active, true));
     }
 
-    // Only show active doctors
-    conditions.push(eq(doctors.active, true));
-
-    // Query doctors (public access, no auth needed)
+    // Query doctors
     const doctorsList = await db
       .select()
       .from(doctors)
@@ -61,7 +78,7 @@ export async function GET(req: NextRequest) {
  * Create Doctor
  * 
  * Creates a new doctor profile (center owners only).
- * Centers can only create doctors for their own center.
+ * Auto-detects center from authenticated user.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -74,27 +91,7 @@ export async function POST(req: NextRequest) {
     const { context } = result;
     const { user, session } = context;
 
-    const body = await req.json();
-    const {
-      centerId,
-      name,
-      role,
-      category,
-      price,
-      licenseNumber,
-      bio,
-      imageUrl,
-    } = body;
-
-    // Validate required fields
-    if (!centerId || !name || !role || !category || !price || !licenseNumber) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    // Verify the center belongs to this user
+    // Get the user's center ID
     const userCenterId = await getUserCenterId(user.id);
     
     if (!userCenterId) {
@@ -104,29 +101,39 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (userCenterId !== centerId) {
+    const body = await req.json();
+    const {
+      name,
+      role,
+      category,
+      price,
+      licenseNumber,
+      bio,
+      imageUrl,
+      active = true,
+    } = body;
+
+    // Validate required fields
+    if (!name || !role || !category || price === undefined || !licenseNumber) {
       return NextResponse.json(
-        { error: 'Forbidden: You can only create doctors for your own center' },
-        { status: 403 }
+        { error: 'Missing required fields: name, role, category, price, licenseNumber' },
+        { status: 400 }
       );
     }
 
-    // Get authenticated database instance
-    const authDb = getAuthDb(session.token);
-
-    // Create doctor
-    const newDoctor = await authDb
+    // Create doctor with auto-detected centerId
+    const newDoctor = await db
       .insert(doctors)
       .values({
-        centerId,
+        centerId: userCenterId,
         name,
         role,
         category,
         price,
         licenseNumber,
-        bio,
-        imageUrl,
-        active: true,
+        bio: bio || null,
+        imageUrl: imageUrl || null,
+        active,
       })
       .returning();
 
@@ -202,10 +209,10 @@ export async function PUT(req: NextRequest) {
     }
 
     // Get authenticated database instance
-    const authDb = getAuthDb(session.token);
+    
 
     // Update doctor
-    const updated = await authDb
+    const updated = await db
       .update(doctors)
       .set({
         ...updates,
@@ -245,8 +252,10 @@ export async function DELETE(req: NextRequest) {
     }
 
     const { user, session } = authContext;
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id');
+    
+    // Get ID from request body
+    const body = await req.json();
+    const { id } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -286,11 +295,8 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    // Get authenticated database instance
-    const authDb = getAuthDb(session.token);
-
     // Soft delete - set active to false
-    const updated = await authDb
+    const updated = await db
       .update(doctors)
       .set({
         active: false,

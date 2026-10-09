@@ -1,34 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth/get-session';
-import { getAuthDb } from '@/db/auth-db';
+import { getAuthenticatedUser, getUserCenterId } from '@/lib/middleware/permissions';
+
 import { db } from '@/db';
-import { services } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { services, doctors } from '@/db/schema';
+import { eq, inArray } from 'drizzle-orm';
 
 /**
  * Get Services
  * 
- * Returns services offered by a doctor.
- * Public endpoint for browsing services.
+ * Returns services:
+ * - If doctorId provided: returns services for that doctor
+ * - If authenticated center owner and no doctorId: returns all services for their center's doctors
+ * - Otherwise: error
  */
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const doctorId = searchParams.get('doctorId');
 
-    if (!doctorId) {
+    // Check if user is authenticated
+    const authContext = await getAuthenticatedUser();
+
+    let servicesList = [];
+
+    if (doctorId) {
+      // Query services for specific doctor
+      servicesList = await db
+        .select()
+        .from(services)
+        .where(eq(services.doctorId, doctorId))
+        .limit(100);
+    } else if (authContext?.user.role === 'CENTER') {
+      // For center owners, get all services for their doctors
+      const userCenterId = await getUserCenterId(authContext.user.id);
+      
+      if (!userCenterId) {
+        return NextResponse.json(
+          { error: 'Center not found for this user' },
+          { status: 404 }
+        );
+      }
+
+      // First get all doctors for this center
+      const centerDoctors = await db
+        .select({ id: doctors.id })
+        .from(doctors)
+        .where(eq(doctors.centerId, userCenterId));
+
+      const doctorIds = centerDoctors.map(d => d.id);
+
+      if (doctorIds.length === 0) {
+        return NextResponse.json({
+          services: [],
+          count: 0,
+        });
+      }
+
+      // Get all services for these doctors
+      servicesList = await db
+        .select()
+        .from(services)
+        .where(inArray(services.doctorId, doctorIds))
+        .limit(100);
+    } else {
       return NextResponse.json(
-        { error: 'Doctor ID is required' },
+        { error: 'Doctor ID is required or you must be an authenticated center owner' },
         { status: 400 }
       );
     }
-
-    // Query services
-    const servicesList = await db
-      .select()
-      .from(services)
-      .where(eq(services.doctorId, doctorId))
-      .limit(100);
 
     return NextResponse.json({
       services: servicesList,
@@ -51,14 +90,16 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const { session } = await getSession();
+    const authContext = await getAuthenticatedUser();
 
-    if (!session) {
+    if (!authContext) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+
+    const { session } = authContext;
 
     const body = await req.json();
     const { doctorId, name, duration, price, description } = body;
@@ -72,10 +113,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Get authenticated database instance
-    const authDb = getAuthDb(session.token);
+    
 
     // Create service
-    const newService = await authDb
+    const newService = await db
       .insert(services)
       .values({
         doctorId,
@@ -106,14 +147,16 @@ export async function POST(req: NextRequest) {
  */
 export async function PUT(req: NextRequest) {
   try {
-    const { session } = await getSession();
+    const authContext = await getAuthenticatedUser();
 
-    if (!session) {
+    if (!authContext) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+
+    const { session } = authContext;
 
     const body = await req.json();
     const { id, ...updates } = body;
@@ -126,10 +169,10 @@ export async function PUT(req: NextRequest) {
     }
 
     // Get authenticated database instance
-    const authDb = getAuthDb(session.token);
+    
 
     // Update service
-    const updated = await authDb
+    const updated = await db
       .update(services)
       .set({
         ...updates,
@@ -162,17 +205,20 @@ export async function PUT(req: NextRequest) {
  */
 export async function DELETE(req: NextRequest) {
   try {
-    const { session } = await getSession();
+    const authContext = await getAuthenticatedUser();
 
-    if (!session) {
+    if (!authContext) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id');
+    const { session } = authContext;
+
+    // Get ID from request body
+    const body = await req.json();
+    const { id } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -181,11 +227,8 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    // Get authenticated database instance
-    const authDb = getAuthDb(session.token);
-
     // Delete service
-    const deleted = await authDb
+    const deleted = await db
       .delete(services)
       .where(eq(services.id, id))
       .returning();

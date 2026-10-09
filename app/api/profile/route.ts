@@ -2,59 +2,67 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { users, patientProfiles, centers } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { getSession } from '@/lib/auth/get-session';
+import { getAuthenticatedUser } from '@/lib/middleware/permissions';
+import { getAuthDb } from '@/db/auth-db';
+import { unstable_cache } from 'next/cache';
 
 /**
  * Profile API
  * 
  * Handles profile updates for all user roles.
  * Users can update their own profile information.
+ * Implements caching to reduce database queries.
  */
 
-// GET /api/profile - Get current user's profile
-export async function GET(req: NextRequest) {
-  try {
-    const { user } = await getSession();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Get user data
-    const dbUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.authUid, user.id))
-      .limit(1);
-
-    if (!dbUser.length) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    const userData = dbUser[0];
+// Cache profile data for 5 minutes
+const getCachedProfile = unstable_cache(
+  async (userId: string, role: string) => {
     let profileData = null;
 
     // Get role-specific profile data
-    if (userData.role === 'PATIENT') {
+    if (role === 'PATIENT') {
       const profile = await db
         .select()
         .from(patientProfiles)
-        .where(eq(patientProfiles.userId, userData.id))
+        .where(eq(patientProfiles.userId, userId))
         .limit(1);
 
       profileData = profile.length > 0 ? profile[0] : null;
-    } else if (userData.role === 'CENTER') {
+    } else if (role === 'CENTER') {
       const center = await db
         .select()
         .from(centers)
-        .where(eq(centers.userId, userData.id))
+        .where(eq(centers.userId, userId))
         .limit(1);
 
       profileData = center.length > 0 ? center[0] : null;
     }
 
+    return profileData;
+  },
+  ['user-profile'],
+  {
+    revalidate: 300, // Cache for 5 minutes
+    tags: ['profile'],
+  }
+);
+
+// GET /api/profile - Get current user's profile
+export async function GET(req: NextRequest) {
+  try {
+    const authContext = await getAuthenticatedUser();
+
+    if (!authContext) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { user } = authContext;
+
+    // Get cached profile data
+    const profileData = await getCachedProfile(user.id, user.role);
+
     return NextResponse.json({
-      user: userData,
+      user: user,
       profile: profileData,
     });
   } catch (error) {
@@ -69,28 +77,15 @@ export async function GET(req: NextRequest) {
 // POST /api/profile - Update current user's profile
 export async function POST(req: NextRequest) {
   try {
-    const { user } = await getSession();
+    const authContext = await getAuthenticatedUser();
 
-    if (!user) {
+    if (!authContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { user } = authContext;
     const body = await req.json();
-    const { name, phone, photoUrl, role, profileData } = body;
-
-    // Get user
-    const dbUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.authUid, user.id))
-      .limit(1);
-
-    if (!dbUser.length) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    const userId = dbUser[0].id;
-    const userRole = dbUser[0].role;
+    const { name, phone, photoUrl, profileData } = body;
 
     // Update user table
     const updates: any = {
@@ -104,15 +99,15 @@ export async function POST(req: NextRequest) {
     await db
       .update(users)
       .set(updates)
-      .where(eq(users.id, userId));
+      .where(eq(users.id, user.id));
 
     // Update role-specific profile
-    if (profileData && userRole === 'PATIENT') {
+    if (profileData && user.role === 'PATIENT') {
       // Check if patient profile exists
       const existingProfile = await db
         .select()
         .from(patientProfiles)
-        .where(eq(patientProfiles.userId, userId))
+        .where(eq(patientProfiles.userId, user.id))
         .limit(1);
 
       if (existingProfile.length > 0) {
@@ -123,17 +118,17 @@ export async function POST(req: NextRequest) {
             ...profileData,
             updatedAt: new Date(),
           })
-          .where(eq(patientProfiles.userId, userId));
+          .where(eq(patientProfiles.userId, user.id));
       } else {
         // Create new profile
         await db
           .insert(patientProfiles)
           .values({
-            userId,
+            userId: user.id,
             ...profileData,
           });
       }
-    } else if (profileData && userRole === 'CENTER') {
+    } else if (profileData && user.role === 'CENTER') {
       // Update center data
       await db
         .update(centers)
@@ -141,7 +136,7 @@ export async function POST(req: NextRequest) {
           ...profileData,
           updatedAt: new Date(),
         })
-        .where(eq(centers.userId, userId));
+        .where(eq(centers.userId, user.id));
     }
 
     return NextResponse.json({

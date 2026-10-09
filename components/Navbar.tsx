@@ -92,12 +92,13 @@ export function Navbar() {
             {isAuthenticated ? (
               <>
                 <NotificationsBell />
-                {isDashboardRoute && (
+                {!isDashboardRoute && (
                   <Link
                     href="/portal"
-                    className="px-3 py-1.5 text-xs text-[var(--muted)] hover:text-[var(--ink)] transition-all"
+                    className="px-4 py-1.5 font-mono-ledger text-xs font-bold bg-[var(--clay)] text-white hover:opacity-95 transition-opacity inline-flex items-center gap-1.5 rounded-full shadow-sm"
                   >
-                    Switch Workspace
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>Go to Dashboard</span>
                   </Link>
                 )}
                 <button
@@ -113,16 +114,16 @@ export function Navbar() {
               <>
                 <Link
                   href="/login"
-                  className="flex items-center gap-2 px-4 py-2 border-2 border-[var(--sage)] rounded-full text-[var(--sage)] font-sans-ledger text-sm hover:bg-[var(--sage)] hover:text-white transition-all font-semibold shadow-sm"
+                  className="flex items-center gap-2 px-5 py-2.5 border-2 border-[var(--sage)] rounded-full text-[var(--sage)] font-sans-ledger text-sm hover:bg-[var(--sage)] hover:text-white transition-all font-semibold shadow-sm"
                 >
                   <User className="w-4 h-4" />
                   <span>Sign In</span>
                 </Link>
                 <Link
                   href="/signup"
-                  className="px-4 py-1.5 font-mono-ledger text-xs font-bold bg-[var(--clay)] text-white hover:opacity-95 transition-opacity inline-flex items-center gap-1.5 rounded-full shadow-sm"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-[var(--clay)] text-white hover:bg-[var(--clay)]/90 transition-all rounded-full shadow-sm font-sans-ledger text-sm font-semibold"
                 >
-                  <Calendar className="w-3.5 h-3.5" />
+                  <Calendar className="w-4 h-4" />
                   <span>Get Started</span>
                 </Link>
               </>
@@ -151,13 +152,16 @@ export function Navbar() {
                   <p className="text-[var(--muted)] text-xs">{user?.email}</p>
                 </div>
                 <div className="grid grid-cols-1 gap-1">
-                  <Link
-                    href="/portal"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="py-2 px-3 rounded-lg hover:bg-[var(--paper)] text-[var(--ink)]"
-                  >
-                    Switch Workspace
-                  </Link>
+                  {!isDashboardRoute && (
+                    <Link
+                      href="/portal"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="py-2.5 px-3 rounded-lg bg-[var(--clay)] text-white font-bold text-center flex items-center justify-center gap-2"
+                    >
+                      <Calendar className="w-4 h-4" />
+                      <span>Go to Dashboard</span>
+                    </Link>
+                  )}
                   <button
                     onClick={handleSignOut}
                     className="py-2 px-3 rounded-lg hover:bg-[var(--paper)] text-[var(--ink)] text-left"

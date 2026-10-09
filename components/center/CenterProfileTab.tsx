@@ -1,25 +1,38 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User, Phone, Mail, Save, Eye, EyeOff, AlertCircle, CheckCircle, Building2, MapPin, Clock } from 'lucide-react';
+import { User, Phone, Mail, Save, Eye, EyeOff, AlertCircle, CheckCircle, Building2, MapPin, Clock, Upload, Image as ImageIcon, X } from 'lucide-react';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
+import { ASEAN_COUNTRIES, getCitiesForCountry, formatFullAddress } from '@/lib/data/locations';
+import { PlacesAutocomplete } from '@/components/maps/PlacesAutocomplete';
+import { MapDisplay } from '@/components/maps/MapDisplay';
 
 interface ProfileData {
   name: string;
   email: string;
   phone: string;
+  photoUrl?: string;
 }
 
 interface CenterData {
   centerName: string;
   category: string;
-  address: string;
+  city: string;
+  country: string;
+  streetAddress: string;
+  address: string; // Legacy full address
+  latitude?: number;
+  longitude?: number;
+  placeId?: string;
+  formattedAddress?: string;
   centerEmail: string;
   centerPhone: string;
   licenseNumber: string;
   operatingHours: string;
   amenities: string[];
+  logoUrl?: string;
+  coverImageUrl?: string;
 }
 
 const categories = [
@@ -49,16 +62,26 @@ export default function CenterProfileTab() {
     name: '',
     email: '',
     phone: '',
+    photoUrl: '',
   });
   const [centerData, setCenterData] = useState<CenterData>({
     centerName: '',
     category: '',
+    city: 'Singapore',
+    country: 'SG',
+    streetAddress: '',
     address: '',
+    latitude: undefined,
+    longitude: undefined,
+    placeId: '',
+    formattedAddress: '',
     centerEmail: '',
     centerPhone: '',
     licenseNumber: '',
     operatingHours: '',
     amenities: [],
+    logoUrl: '',
+    coverImageUrl: '',
   });
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -72,6 +95,9 @@ export default function CenterProfileTab() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Fetch profile data
   useEffect(() => {
@@ -89,24 +115,113 @@ export default function CenterProfileTab() {
           name: data.user.name || '',
           email: data.user.email || '',
           phone: data.user.phone || '',
+          photoUrl: data.user.photoUrl || '',
         });
 
         // Set center data if exists
         if (data.profile) {
+          console.log('Center profile data:', data.profile);
           setCenterData({
             centerName: data.profile.name || '',
             category: data.profile.category || '',
+            city: data.profile.city || 'Singapore',
+            country: data.profile.country || 'SG',
+            streetAddress: data.profile.streetAddress || '',
             address: data.profile.address || '',
+            latitude: data.profile.latitude,
+            longitude: data.profile.longitude,
+            placeId: data.profile.placeId || '',
+            formattedAddress: data.profile.formattedAddress || '',
             centerEmail: data.profile.email || '',
             centerPhone: data.profile.phone || '',
             licenseNumber: data.profile.licenseNumber || '',
             operatingHours: data.profile.operatingHours || '',
             amenities: data.profile.amenities || [],
+            logoUrl: data.profile.logoUrl || '',
+            coverImageUrl: data.profile.coverImageUrl || '',
           });
+          console.log('Logo URL:', data.profile.logoUrl);
+          console.log('Cover URL:', data.profile.coverImageUrl);
         }
       }
     } catch (error) {
       console.error('Failed to fetch profile:', error);
+    }
+  };
+
+  const handleImageUpload = async (file: File, type: 'logo' | 'cover' | 'photo') => {
+    try {
+      if (!file.type.startsWith('image/')) {
+        setMessage({ type: 'error', text: 'Please select an image file' });
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        setMessage({ type: 'error', text: 'Image must be less than 5MB' });
+        return;
+      }
+
+      if (type === 'logo') {
+        setUploadingLogo(true);
+      } else if (type === 'cover') {
+        setUploadingCover(true);
+      } else {
+        setUploadingPhoto(true);
+      }
+      setMessage(null);
+
+      // Step 1: Get presigned upload URL
+      const uploadUrlResponse = await fetch('/api/upload?action=get-upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: file.name,
+          contentType: file.type,
+          folder: type === 'logo' ? 'center-logos' : type === 'cover' ? 'center-covers' : 'profile-photos',
+        }),
+      });
+
+      if (!uploadUrlResponse.ok) {
+        const error = await uploadUrlResponse.json();
+        throw new Error(error.error || 'Failed to get upload URL');
+      }
+
+      const { uploadUrl, method, publicUrl } = await uploadUrlResponse.json();
+
+      // Step 2: Upload file directly to presigned URL
+      const uploadResponse = await fetch(uploadUrl, {
+        method: method || 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload file');
+      }
+
+      // Step 3: Update state with public URL
+      if (type === 'logo') {
+        setCenterData(prev => ({ ...prev, logoUrl: publicUrl }));
+      } else if (type === 'cover') {
+        setCenterData(prev => ({ ...prev, coverImageUrl: publicUrl }));
+      } else {
+        setOwnerData(prev => ({ ...prev, photoUrl: publicUrl }));
+      }
+
+      setMessage({ type: 'success', text: `${type === 'logo' ? 'Logo' : type === 'cover' ? 'Cover image' : 'Profile photo'} uploaded successfully!` });
+    } catch (error) {
+      console.error('Upload error:', error);
+      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Failed to upload image' });
+    } finally {
+      if (type === 'logo') {
+        setUploadingLogo(false);
+      } else if (type === 'cover') {
+        setUploadingCover(false);
+      } else {
+        setUploadingPhoto(false);
+      }
     }
   };
 
@@ -131,14 +246,24 @@ export default function CenterProfileTab() {
         body: JSON.stringify({
           name: ownerData.name,
           phone: ownerData.phone,
+          photoUrl: ownerData.photoUrl,
           profileData: {
             name: centerData.centerName,
             category: centerData.category,
-            address: centerData.address,
+            city: centerData.city,
+            country: centerData.country,
+            streetAddress: centerData.streetAddress,
+            address: centerData.formattedAddress || formatFullAddress(centerData.city, centerData.country, centerData.streetAddress),
+            latitude: centerData.latitude,
+            longitude: centerData.longitude,
+            placeId: centerData.placeId,
+            formattedAddress: centerData.formattedAddress,
             email: centerData.centerEmail,
             phone: centerData.centerPhone,
             operatingHours: centerData.operatingHours,
             amenities: centerData.amenities,
+            logoUrl: centerData.logoUrl,
+            coverImageUrl: centerData.coverImageUrl,
           },
         }),
       });
@@ -243,6 +368,84 @@ export default function CenterProfileTab() {
         )}
 
         <form onSubmit={handleUpdateProfile} className="space-y-4">
+          {/* Profile Photo Upload */}
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+              Profile Photo
+            </label>
+            {ownerData.photoUrl && ownerData.photoUrl.trim() !== '' ? (
+              <div className="space-y-3">
+                <div className="relative inline-block">
+                  <img
+                    src={ownerData.photoUrl}
+                    alt="Profile photo"
+                    className="w-24 h-24 object-cover rounded-full border-2 border-gray-200 dark:border-gray-700"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="file"
+                    id="photoChange"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file, 'photo');
+                    }}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="photoChange"
+                    className={`inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition font-medium ${
+                      uploadingPhoto ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <Upload className="h-4 w-4" />
+                    {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setOwnerData({ ...ownerData, photoUrl: '' })}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium"
+                    disabled={uploadingPhoto}
+                  >
+                    <X className="h-4 w-4" />
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-4">
+                <div className="w-24 h-24 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                  <User className="h-8 w-8 text-gray-400" />
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    id="photoUpload"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file, 'photo');
+                    }}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="photoUpload"
+                    className={`inline-flex items-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg cursor-pointer transition font-medium ${
+                      uploadingPhoto ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <Upload className="h-4 w-4" />
+                    {uploadingPhoto ? 'Uploading...' : 'Upload Photo'}
+                  </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Recommended: Square image, max 5MB
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div>
             <label htmlFor="ownerName" className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
               Your Full Name *
@@ -322,6 +525,168 @@ export default function CenterProfileTab() {
             />
           </div>
 
+          {/* Logo Upload */}
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+              Center Logo
+            </label>
+            {/* Debug info */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="text-xs text-gray-500 mb-2">
+                Logo URL: {centerData.logoUrl || '(empty)'}
+              </div>
+            )}
+            {centerData.logoUrl && centerData.logoUrl.trim() !== '' ? (
+              <div className="space-y-3">
+                <div className="relative inline-block">
+                  <img
+                    src={centerData.logoUrl}
+                    alt="Center logo"
+                    className="w-32 h-32 object-cover rounded-xl border-2 border-gray-200 dark:border-gray-700"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="file"
+                    id="logoChange"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file, 'logo');
+                    }}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="logoChange"
+                    className={`inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition font-medium ${
+                      uploadingLogo ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <Upload className="h-4 w-4" />
+                    {uploadingLogo ? 'Uploading...' : 'Change Logo'}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setCenterData({ ...centerData, logoUrl: '' })}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium"
+                    disabled={uploadingLogo}
+                  >
+                    <X className="h-4 w-4" />
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-4">
+                <div className="w-32 h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                  <ImageIcon className="h-8 w-8 text-gray-400" />
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    id="logoUpload"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file, 'logo');
+                    }}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="logoUpload"
+                    className={`inline-flex items-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg cursor-pointer transition font-medium ${
+                      uploadingLogo ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <Upload className="h-4 w-4" />
+                    {uploadingLogo ? 'Uploading...' : 'Upload Logo'}
+                  </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Recommended: Square image, max 5MB
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Cover Image Upload */}
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+              Cover Image
+            </label>
+            {centerData.coverImageUrl && centerData.coverImageUrl.trim() !== '' ? (
+              <div className="space-y-3">
+                <div className="relative">
+                  <img
+                    src={centerData.coverImageUrl}
+                    alt="Center cover"
+                    className="w-full h-48 object-cover rounded-xl border-2 border-gray-200 dark:border-gray-700"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="file"
+                    id="coverChange"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file, 'cover');
+                    }}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="coverChange"
+                    className={`inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition font-medium ${
+                      uploadingCover ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <Upload className="h-4 w-4" />
+                    {uploadingCover ? 'Uploading...' : 'Change Cover'}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setCenterData({ ...centerData, coverImageUrl: '' })}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium"
+                    disabled={uploadingCover}
+                  >
+                    <X className="h-4 w-4" />
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                  <ImageIcon className="h-12 w-12 text-gray-400" />
+                </div>
+                <div>
+                  <input
+                    type="file"
+                    id="coverUpload"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file, 'cover');
+                    }}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="coverUpload"
+                    className={`inline-flex items-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg cursor-pointer transition font-medium ${
+                      uploadingCover ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <Upload className="h-4 w-4" />
+                    {uploadingCover ? 'Uploading...' : 'Upload Cover Image'}
+                  </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Recommended: 1200x400px, max 5MB
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div>
             <label htmlFor="category" className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
               Category *
@@ -340,19 +705,128 @@ export default function CenterProfileTab() {
             </select>
           </div>
 
+          {/* Google Places Autocomplete for Address */}
           <div>
-            <label htmlFor="address" className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-              Full Address *
+            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+              Location * (Search for your center)
             </label>
-            <textarea
-              id="address"
-              required
-              value={centerData.address}
-              onChange={(e) => setCenterData({ ...centerData, address: e.target.value })}
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#1769AA] focus:border-transparent transition"
-              rows={2}
+            <PlacesAutocomplete
+              onPlaceSelect={(place) => {
+                // Map country code to our system
+                const countryMapping: Record<string, string> = {
+                  'SG': 'SG',
+                  'TH': 'TH',
+                  'MY': 'MY',
+                  'VN': 'VN',
+                  'ID': 'ID',
+                  'PH': 'PH',
+                };
+                
+                setCenterData({
+                  ...centerData,
+                  country: countryMapping[place.countryCode] || 'SG',
+                  city: place.city,
+                  streetAddress: place.streetAddress,
+                  address: place.formattedAddress,
+                  latitude: place.latitude,
+                  longitude: place.longitude,
+                  placeId: place.placeId,
+                  formattedAddress: place.formattedAddress,
+                });
+              }}
+              defaultValue={centerData.formattedAddress || centerData.address}
+              placeholder="Search for your center location (e.g., Medical Tower Bangkok)"
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Start typing to search for your center's address
+            </p>
           </div>
+
+          {/* Map Display */}
+          {centerData.latitude && centerData.longitude && (
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                Map Location
+              </label>
+              <MapDisplay
+                latitude={centerData.latitude}
+                longitude={centerData.longitude}
+                title={centerData.centerName}
+                height="250px"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Click "Open in Maps" to verify the location
+              </p>
+            </div>
+          )}
+
+          {/* Manual Override (Optional) */}
+          <details className="group">
+            <summary className="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#1769AA] transition">
+              Advanced: Manual Address Entry
+            </summary>
+            <div className="mt-3 space-y-3 pl-4 border-l-2 border-gray-200 dark:border-gray-700">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="country" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    Country
+                  </label>
+                  <select
+                    id="country"
+                    value={centerData.country}
+                    onChange={(e) => {
+                      const newCountry = e.target.value;
+                      const cities = getCitiesForCountry(newCountry);
+                      setCenterData({ 
+                        ...centerData, 
+                        country: newCountry,
+                        city: cities.length > 0 ? cities[0].name : ''
+                      });
+                    }}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#1769AA] focus:border-transparent transition text-sm"
+                  >
+                    {Object.entries(ASEAN_COUNTRIES).map(([code, country]) => (
+                      <option key={code} value={code}>
+                        {country.flag} {country.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="city" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    City
+                  </label>
+                  <select
+                    id="city"
+                    value={centerData.city}
+                    onChange={(e) => setCenterData({ ...centerData, city: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#1769AA] focus:border-transparent transition text-sm"
+                  >
+                    {getCitiesForCountry(centerData.country).map((city) => (
+                      <option key={city.name} value={city.name}>
+                        {city.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="streetAddress" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                  Street Address
+                </label>
+                <textarea
+                  id="streetAddress"
+                  value={centerData.streetAddress}
+                  onChange={(e) => setCenterData({ ...centerData, streetAddress: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#1769AA] focus:border-transparent transition text-sm"
+                  placeholder="Building number, street name, unit/suite number"
+                  rows={2}
+                />
+              </div>
+            </div>
+          </details>
 
           <div className="grid grid-cols-2 gap-4">
             <div>

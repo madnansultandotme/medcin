@@ -5,7 +5,7 @@ import { authenticatedRole, anonymousRole, crudPolicy, authUid } from 'drizzle-o
 
 // Enums
 export const userRoleEnum = pgEnum('user_role', ['ADMIN', 'CENTER', 'PATIENT']);
-export const centerStatusEnum = pgEnum('center_status', ['PENDING', 'ACTIVE', 'SUSPENDED']);
+export const centerStatusEnum = pgEnum('center_status', ['PENDING', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'SUSPENDED']);
 export const bookingStatusEnum = pgEnum('booking_status', ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED']);
 export const slotStatusEnum = pgEnum('slot_status', ['AVAILABLE', 'BOOKED', 'BLOCKED']);
 export const disputeStatusEnum = pgEnum('dispute_status', ['OPEN', 'RESOLVED', 'CLOSED']);
@@ -35,9 +35,11 @@ export const doctorSpecializations = pgTable('doctor_specializations', {
 // Users table - Maps Neon Auth UID to our user data
 export const users = pgTable('users', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  authUid: text('auth_uid').notNull().unique(), // Neon Auth user ID from auth.user_id()
+  authUid: text('auth_uid').unique(), // Neon Auth user ID - nullable for Better Auth compatibility
   email: text('email').notNull().unique(),
   name: text('name').notNull(),
+  emailVerified: boolean('email_verified').default(false).notNull(), // Required by Better Auth
+  image: text('image'), // Required by Better Auth
   phone: text('phone'),
   photoUrl: text('photo_url'),
   role: userRoleEnum('role').notNull().default('PATIENT'),
@@ -76,7 +78,14 @@ export const centers = pgTable('centers', {
   userId: text('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   category: text('category').notNull(),
-  address: text('address').notNull(),
+  address: text('address').notNull(), // Legacy full address (kept for backward compatibility)
+  city: text('city'), // City name (e.g., "Singapore", "Bangkok")
+  country: text('country'), // Country code (e.g., "SG", "TH", "MY")
+  streetAddress: text('street_address'), // Street address line
+  latitude: real('latitude'), // Latitude coordinate
+  longitude: real('longitude'), // Longitude coordinate
+  placeId: text('place_id'), // Google Places ID
+  formattedAddress: text('formatted_address'), // Google-formatted address
   email: text('email').notNull(),
   phone: text('phone').notNull(),
   licenseNumber: text('license_number').notNull(),
@@ -85,6 +94,7 @@ export const centers = pgTable('centers', {
   coverImageUrl: text('cover_image_url'),
   operatingHours: text('operating_hours'),
   amenities: text('amenities').array().default([]),
+  completedRegistration: boolean('completed_registration').default(false).notNull(),
   submittedTime: timestamp('submitted_time').defaultNow().notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -157,7 +167,7 @@ export const services = pgTable('services', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   doctorId: text('doctor_id').notNull().references(() => doctors.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
-  duration: text('duration').notNull(),
+  duration: integer('duration').notNull(), // Duration in minutes
   price: real('price').notNull(),
   description: text('description'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -364,5 +374,45 @@ export const settings = pgTable('settings', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   key: text('key').notNull().unique(),
   value: text('value').notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ============================================================================
+// Better Auth Tables (for local auth server)
+// ============================================================================
+
+export const sessions = pgTable('sessions', {
+  id: text('id').primaryKey(),
+  expiresAt: timestamp('expires_at').notNull(),
+  token: text('token').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+});
+
+export const accounts = pgTable('accounts', {
+  id: text('id').primaryKey(),
+  accountId: text('account_id').notNull(),
+  providerId: text('provider_id').notNull(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  accessToken: text('access_token'),
+  refreshToken: text('refresh_token'),
+  idToken: text('id_token'),
+  accessTokenExpiresAt: timestamp('access_token_expires_at'),
+  refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
+  scope: text('scope'),
+  password: text('password'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const verifications = pgTable('verifications', {
+  id: text('id').primaryKey(),
+  identifier: text('identifier').notNull(),
+  value: text('value').notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

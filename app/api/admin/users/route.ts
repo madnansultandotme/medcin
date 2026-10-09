@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth/get-session';
+import { getAuthenticatedUser } from '@/lib/middleware/permissions';
 import { getAuthDb } from '@/db/auth-db';
 import { db } from '@/db';
 import { users } from '@/db/schema';
@@ -10,20 +10,16 @@ import { eq } from 'drizzle-orm';
  */
 export async function GET(req: NextRequest) {
   try {
-    const { user, session } = await getSession();
+    const authContext = await getAuthenticatedUser();
 
-    if (!user || !session) {
+    if (!authContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin
-    const userRecord = await db
-      .select()
-      .from(users)
-      .where(eq(users.authUid, user.id))
-      .limit(1);
+    const { user } = authContext;
 
-    if (userRecord.length === 0 || userRecord[0].role !== 'ADMIN') {
+    // Check if user is admin
+    if (user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
@@ -42,20 +38,16 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const { user, session } = await getSession();
+    const authContext = await getAuthenticatedUser();
 
-    if (!user || !session) {
+    if (!authContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin
-    const userRecord = await db
-      .select()
-      .from(users)
-      .where(eq(users.authUid, user.id))
-      .limit(1);
+    const { user, session } = authContext;
 
-    if (userRecord.length === 0 || userRecord[0].role !== 'ADMIN') {
+    // Check if user is admin
+    if (user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
@@ -106,20 +98,16 @@ export async function POST(req: NextRequest) {
  */
 export async function PUT(req: NextRequest) {
   try {
-    const { user, session } = await getSession();
+    const authContext = await getAuthenticatedUser();
 
-    if (!user || !session) {
+    if (!authContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin
-    const userRecord = await db
-      .select()
-      .from(users)
-      .where(eq(users.authUid, user.id))
-      .limit(1);
+    const { user } = authContext;
 
-    if (userRecord.length === 0 || userRecord[0].role !== 'ADMIN') {
+    // Check if user is admin
+    if (user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
@@ -166,20 +154,16 @@ export async function PUT(req: NextRequest) {
  */
 export async function DELETE(req: NextRequest) {
   try {
-    const { user, session } = await getSession();
+    const authContext = await getAuthenticatedUser();
 
-    if (!user || !session) {
+    if (!authContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin
-    const userRecord = await db
-      .select()
-      .from(users)
-      .where(eq(users.authUid, user.id))
-      .limit(1);
+    const { user } = authContext;
 
-    if (userRecord.length === 0 || userRecord[0].role !== 'ADMIN') {
+    // Check if user is admin
+    if (user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
@@ -191,7 +175,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Prevent self-deletion
-    if (userRecord[0].id === userId) {
+    if (user.id === userId) {
       return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 });
     }
 

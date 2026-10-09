@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, getSession } from '@/lib/auth/get-session';
-import { getAuthDb } from '@/db/auth-db';
+
 import { db } from '@/db';
 import { bookings, users, patientProfiles, doctors, centers } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -208,11 +208,11 @@ export async function POST(req: NextRequest) {
     const reference = `BK-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
     // Get authenticated database instance
-    const authDb = getAuthDb(session.token);
+    
 
     // Create booking and update slot in a transaction-like manner
     // 1. Create booking
-    const newBooking = await authDb
+    const newBooking = await db
       .insert(bookings)
       .values({
         reference,
@@ -230,7 +230,7 @@ export async function POST(req: NextRequest) {
       .returning();
 
     // 2. Mark slot as booked
-    await authDb
+    await db
       .update(slots)
       .set({
         status: 'BOOKED',
@@ -364,7 +364,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // Get authenticated database instance
-    const authDb = getAuthDb(session.token);
+    
 
     const updateData: any = {
       updatedAt: new Date(),
@@ -375,7 +375,7 @@ export async function PUT(req: NextRequest) {
     if (cancellationReason) updateData.cancellationReason = cancellationReason;
 
     // Update booking
-    const updated = await authDb
+    const updated = await db
       .update(bookings)
       .set(updateData)
       .where(eq(bookings.id, id))

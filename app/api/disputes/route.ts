@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth, getSession } from '@/lib/auth/get-session';
-import { getAuthDb } from '@/db/auth-db';
+import { getAuthenticatedUser } from '@/lib/middleware/permissions';
+
 import { db } from '@/db';
-import { disputes, users } from '@/db/schema';
+import { disputes } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 /**
@@ -15,12 +15,21 @@ import { eq } from 'drizzle-orm';
  */
 export async function GET(req: NextRequest) {
   try {
-    const { user, session } = await requireAuth();
+    const authContext = await getAuthenticatedUser();
+
+    if (!authContext) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { session } = authContext;
 
     // Get authenticated database instance (RLS enforces filtering)
-    const authDb = getAuthDb(session.token);
+    
 
-    const disputesList = await authDb
+    const disputesList = await db
       .select()
       .from(disputes)
       .limit(100);
@@ -44,7 +53,16 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const { user, session } = await requireAuth();
+    const authContext = await getAuthenticatedUser();
+
+    if (!authContext) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { user, session } = authContext;
     const body = await req.json();
 
     const { bookingId, title, description, amount } = body;
@@ -57,29 +75,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get user's database record
-    const userRecord = await db
-      .select()
-      .from(users)
-      .where(eq(users.authUid, user.id))
-      .limit(1);
-
-    if (userRecord.length === 0) {
-      return NextResponse.json(
-        { error: 'User profile not found' },
-        { status: 404 }
-      );
-    }
-
     // Get authenticated database instance
-    const authDb = getAuthDb(session.token);
+    
 
     // Create dispute
-    const newDispute = await authDb
+    const newDispute = await db
       .insert(disputes)
       .values({
         bookingId,
-        reporterId: userRecord[0].id,
+        reporterId: user.id,
         title,
         description,
         amount,
@@ -107,7 +111,16 @@ export async function POST(req: NextRequest) {
  */
 export async function PUT(req: NextRequest) {
   try {
-    const { session } = await requireAuth();
+    const authContext = await getAuthenticatedUser();
+
+    if (!authContext) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { session } = authContext;
     const body = await req.json();
 
     const { id, status, resolutionNote, clinicStatement } = body;
@@ -120,7 +133,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // Get authenticated database instance
-    const authDb = getAuthDb(session.token);
+    
 
     const updateData: any = {
       updatedAt: new Date(),
@@ -136,7 +149,7 @@ export async function PUT(req: NextRequest) {
     if (clinicStatement) updateData.clinicStatement = clinicStatement;
 
     // Update dispute - RLS ensures only authorized users
-    const updated = await authDb
+    const updated = await db
       .update(disputes)
       .set(updateData)
       .where(eq(disputes.id, id))

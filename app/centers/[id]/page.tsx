@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Star, MapPin, ArrowLeft, Building2, Stethoscope, Phone, Mail, Clock } from "lucide-react";
 import { useBranding } from "@/lib/branding";
+import { MapDisplay } from "@/components/maps/MapDisplay";
 
 interface Center {
   id: string;
@@ -16,6 +17,9 @@ interface Center {
   logoUrl?: string;
   coverImageUrl?: string;
   operatingHours?: string;
+  amenities?: string[];
+  latitude?: number;
+  longitude?: number;
 }
 
 interface Doctor {
@@ -111,20 +115,32 @@ export default function CenterProfilePage() {
 
   return (
     <div className="min-h-screen bg-[var(--paper)]">
+      {/* Cover Image */}
+      {center.coverImageUrl && (
+        <div className="h-64 md:h-80 bg-gradient-to-r from-[var(--clay)] to-[var(--sage)] relative overflow-hidden">
+          <img 
+            src={center.coverImageUrl} 
+            alt={`${center.name} cover`}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-[var(--surface)] border-b border-[var(--mist)]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className={`max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 ${center.coverImageUrl ? '-mt-16' : 'py-6'}`}>
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-[var(--muted)] hover:text-[var(--ink)] mb-6 transition-colors"
+            className={`flex items-center gap-2 text-[var(--muted)] hover:text-[var(--ink)] mb-6 transition-colors ${center.coverImageUrl ? 'relative z-10' : ''}`}
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="font-semibold">Back</span>
           </button>
 
-          <div className="flex flex-col md:flex-row gap-6 items-start">
+          <div className={`flex flex-col md:flex-row gap-6 items-start ${center.coverImageUrl ? 'pb-6' : ''}`}>
             {/* Center Logo */}
-            <div className="w-32 h-32 rounded-3xl bg-white border-2 border-[var(--mist)] p-4 flex items-center justify-center flex-none overflow-hidden shadow-lg">
+            <div className={`w-32 h-32 rounded-3xl bg-white border-2 border-[var(--mist)] p-4 flex items-center justify-center flex-none overflow-hidden shadow-lg ${center.coverImageUrl ? 'relative z-10' : ''}`}>
               {center.logoUrl ? (
                 <img src={center.logoUrl} alt={center.name} className="w-full h-full object-contain" />
               ) : (
@@ -277,6 +293,24 @@ export default function CenterProfilePage() {
                   </div>
                 )}
 
+                {center.amenities && center.amenities.length > 0 && (
+                  <div>
+                    <div className="text-xs uppercase font-semibold text-[var(--muted)] mb-2">
+                      Amenities
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {center.amenities.map((amenity) => (
+                        <span
+                          key={amenity}
+                          className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--sage)]/10 text-[var(--sage)] border border-[var(--sage)]/20"
+                        >
+                          {amenity}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <div className="text-xs uppercase font-semibold text-[var(--muted)] mb-1">
                     Status
@@ -307,6 +341,21 @@ export default function CenterProfilePage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Map Location */}
+                {center.latitude && center.longitude && (
+                  <div className="pt-4 border-t border-[var(--mist)]">
+                    <div className="text-xs uppercase font-semibold text-[var(--muted)] mb-2">
+                      Location on Map
+                    </div>
+                    <MapDisplay
+                      latitude={center.latitude}
+                      longitude={center.longitude}
+                      title={center.name}
+                      height="200px"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>

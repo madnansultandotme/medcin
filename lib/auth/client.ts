@@ -2,25 +2,19 @@
  * Neon Better Auth Client Configuration
  * 
  * This creates the auth client for the entire application.
- * Import this client wherever you need auth functionality.
+ * Now pointing to our local Better Auth server at /api/auth
  */
 
-import { createAuthClient } from '@neondatabase/neon-js/auth';
-import { BetterAuthReactAdapter } from '@neondatabase/neon-js/auth/react/adapters';
+import { createAuthClient } from 'better-auth/react';
 
-// Validate environment variable
-const authUrl = process.env.NEXT_PUBLIC_NEON_AUTH_URL;
+// Use local Better Auth server
+const authUrl = typeof window !== 'undefined'
+  ? `${window.location.origin}/api/auth`
+  : `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/auth`;
 
-if (!authUrl) {
-  throw new Error(
-    'Missing NEXT_PUBLIC_NEON_AUTH_URL environment variable. ' +
-    'Add it to .env.local with your Neon Auth URL.'
-  );
-}
-
-// Create auth client with React adapter for hooks support
-export const authClient = createAuthClient(authUrl, {
-  adapter: BetterAuthReactAdapter(),
+// Create auth client
+export const authClient = createAuthClient({
+  baseURL: authUrl,
 });
 
 // Type-safe auth client

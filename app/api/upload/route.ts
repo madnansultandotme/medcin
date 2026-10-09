@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/middleware/permissions';
+import { createNeonClient } from '@neon/sdk';
 
 /**
  * Upload API using Neon Storage
  * 
  * Handles file uploads (profile photos, documents, etc.)
- * Stores files in Neon Storage bucket
+ * Stores files in Neon Object Storage
  */
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -15,6 +16,15 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'im
 const NEON_PROJECT_ID = process.env.NEON_PROJECT_ID || 'purple-bird-20622592';
 const NEON_BRANCH_ID = process.env.NEON_BRANCH_ID || 'br-red-morning-b4lxqc1h';
 const NEON_BUCKET_NAME = 'uploads';
+
+// Initialize Neon client
+const getNeonClient = () => {
+  const apiKey = process.env.NEON_API_KEY;
+  if (!apiKey) {
+    throw new Error('NEON_API_KEY not configured');
+  }
+  return createNeonClient({ apiKey });
+};
 
 /**
  * Step 1: Get presigned upload URL
@@ -34,6 +44,12 @@ export async function POST(req: NextRequest) {
     const { user } = authContext;
     const { searchParams } = new URL(req.url);
     const action = searchParams.get('action');
+
+    console.log('[Upload API] Request received:', {
+      action,
+      url: req.url,
+      searchParams: Array.from(searchParams.entries()),
+    });
 
     if (action === 'get-upload-url') {
       // Get presigned upload URL
@@ -64,56 +80,52 @@ export async function POST(req: NextRequest) {
       const extension = filename.split('.').pop();
       const objectKey = `${folder || 'profiles'}/${user.id}_${timestamp}_${randomString}.${extension}`;
 
-      // Get presigned URL from Neon
-      const neonApiKey = process.env.NEON_API_KEY;
-      
-      if (!neonApiKey) {
-        return NextResponse.json(
-          { error: 'Neon API key not configured' },
-          { status: 500 }
-        );
-      }
+      try {
+        // Get Neon client
+        const neon = getNeonClient();
 
-      const presignResponse = await fetch('https://console.neon.tech/api/v2/storage/presign', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${neonApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          project_id: NEON_PROJECT_ID,
-          branch_id: NEON_BRANCH_ID,
-          bucket_name: NEON_BUCKET_NAME,
-          object_key: objectKey,
+        // Generate presigned URL using Neon SDK
+        const result = await neon.storage.objects.presign({
+          projectId: NEON_PROJECT_ID,
+          branchId: NEON_BRANCH_ID,
+          bucketName: NEON_BUCKET_NAME,
+          objectKey,
           operation: 'upload',
           content_type: contentType,
           expires_in_seconds: 3600, // 1 hour
-        }),
-      });
+        });
 
-      if (!presignResponse.ok) {
-        const errorData = await presignResponse.json();
-        console.error('Neon presign error:', errorData);
+        if (result.error) {
+          throw new Error(result.error.message || 'Failed to generate presigned URL');
+        }
+
+        const presign = result.data;
+
+        // Return presigned URL info
+        const publicUrl = `${presign.url.split('?')[0]}`; // URL without query params
+
+        return NextResponse.json({
+          uploadUrl: presign.url,
+          method: presign.method || 'PUT',
+          uploadHeaders: presign.headers || {},
+          publicUrl,
+          objectKey,
+        });
+      } catch (error: any) {
+        console.error('Neon presign error:', error);
         return NextResponse.json(
-          { error: 'Failed to generate upload URL' },
+          { 
+            error: 'Failed to generate upload URL', 
+            details: error.message 
+          },
           { status: 500 }
         );
       }
-
-      const { presigned_url } = await presignResponse.json();
-
-      // Return presigned URL and public URL
-      const publicUrl = `https://storage.neon.tech/${NEON_BUCKET_NAME}/${objectKey}`;
-
-      return NextResponse.json({
-        uploadUrl: presigned_url,
-        publicUrl,
-        objectKey,
-      });
     }
 
+    console.log('[Upload API] No matching action, returning 400. Action was:', action);
     return NextResponse.json(
-      { error: 'Invalid action' },
+      { error: 'Invalid action', receivedAction: action },
       { status: 400 }
     );
   } catch (error) {
@@ -158,39 +170,33 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const neonApiKey = process.env.NEON_API_KEY;
-    
-    if (!neonApiKey) {
-      return NextResponse.json(
-        { error: 'Neon API key not configured' },
-        { status: 500 }
-      );
-    }
+    try {
+      // Get Neon client
+      const neon = getNeonClient();
 
-    // Delete from Neon Storage
-    const deleteResponse = await fetch(
-      `https://console.neon.tech/api/v2/storage/objects?project_id=${NEON_PROJECT_ID}&branch_id=${NEON_BRANCH_ID}&bucket_name=${NEON_BUCKET_NAME}&object_key=${encodeURIComponent(objectKey)}`,
-      {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${neonApiKey}`,
-        },
+      // Delete from Neon Storage
+      const result = await neon.storage.objects.delete({
+        projectId: NEON_PROJECT_ID,
+        branchId: NEON_BRANCH_ID,
+        bucketName: NEON_BUCKET_NAME,
+        objectKey,
+      });
+
+      if (result.error) {
+        throw new Error(result.error.message || 'Failed to delete file');
       }
-    );
 
-    if (!deleteResponse.ok && deleteResponse.status !== 404) {
-      const errorData = await deleteResponse.json();
-      console.error('Neon delete error:', errorData);
+      return NextResponse.json({
+        success: true,
+        message: 'File deleted successfully',
+      });
+    } catch (error: any) {
+      console.error('Neon delete error:', error);
       return NextResponse.json(
-        { error: 'Failed to delete file' },
+        { error: 'Failed to delete file', details: error.message },
         { status: 500 }
       );
     }
-
-    return NextResponse.json({
-      success: true,
-      message: 'File deleted successfully',
-    });
   } catch (error) {
     console.error('File delete error:', error);
     return NextResponse.json(

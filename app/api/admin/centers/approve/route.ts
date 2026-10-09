@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth/get-session';
-import { getAuthDb } from '@/db/auth-db';
+import { getAuthenticatedUser } from '@/lib/middleware/permissions';
+
 import { centers, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { sendCenterApprovalEmail, sendCenterRejectionEmail } from '@/lib/email';
+import { db } from '@/db';
 
 /**
  * Approve or Reject Center Application
@@ -12,17 +13,26 @@ import { sendCenterApprovalEmail, sendCenterRejectionEmail } from '@/lib/email';
  */
 export async function POST(req: NextRequest) {
   try {
-    const { user, session } = await getSession();
+    const authContext = await getAuthenticatedUser();
 
-    if (!user || !session) {
+    if (!authContext) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
+    const { user, session } = authContext;
+
     // Check if user is admin
-    const authDb = getAuthDb(session.token);
+    if (user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Forbidden: Admin access required' },
+        { status: 403 }
+      );
+    }
+
+    
     
     // Parse request body
     const body = await req.json();
@@ -43,9 +53,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Update center status
-    const newStatus = action === 'APPROVE' ? 'ACTIVE' : 'SUSPENDED';
+    const newStatus = action === 'APPROVE' ? 'APPROVED' : 'SUSPENDED';
     
-    const updated = await authDb
+    const updated = await db
       .update(centers)
       .set({
         status: newStatus,
@@ -62,7 +72,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get center owner details for email notification
-    const centerWithOwner = await authDb
+    const centerWithOwner = await db
       .select({
         center: centers,
         owner: users,

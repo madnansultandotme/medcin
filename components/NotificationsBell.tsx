@@ -110,10 +110,12 @@ export default function NotificationsBell() {
   // Fetch on mount and when dropdown opens
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000); // Poll every 30s
+    // Poll every 5 minutes instead of 30 seconds to reduce session checks
+    const interval = setInterval(fetchNotifications, 300000); // 5 minutes
     return () => clearInterval(interval);
   }, []);
 
+  // Only fetch when dropdown is opened, not on every open
   useEffect(() => {
     if (isOpen) {
       fetchNotifications();

@@ -2,10 +2,11 @@
  * Server-Side Session Helper
  * 
  * Use this in API routes and Server Components to get the current user.
- * Neon Better Auth handles JWT verification automatically.
+ * Now using local Better Auth instance.
  */
 
-import { cookies } from 'next/headers';
+import { headers } from 'next/headers';
+import { auth } from './server';
 
 interface User {
   id: string;
@@ -28,41 +29,32 @@ export async function getSession(): Promise<{
   session: Session | null;
 }> {
   try {
-    const cookieStore = await cookies();
-    const authUrl = process.env.NEXT_PUBLIC_NEON_AUTH_URL;
-
-    if (!authUrl) {
-      console.error('NEXT_PUBLIC_NEON_AUTH_URL not set');
-      return { user: null, session: null };
-    }
-
-    // Get session cookie
-    const sessionToken = cookieStore.get('better-auth.session_token');
+    const headersList = await headers();
     
-    if (!sessionToken) {
-      return { user: null, session: null };
-    }
-
-    // Validate session with Neon Auth
-    const response = await fetch(`${authUrl}/api/auth/get-session`, {
-      headers: {
-        'Cookie': `better-auth.session_token=${sessionToken.value}`,
-      },
-      credentials: 'include',
+    console.log('[getSession] Checking session with Better Auth...');
+    
+    // Use Better Auth's built-in session validation
+    const sessionData = await auth.api.getSession({
+      headers: headersList
     });
 
-    if (!response.ok) {
+    console.log('[getSession] Session data:', {
+      hasSession: !!sessionData,
+      hasUser: !!sessionData?.user,
+      userEmail: sessionData?.user?.email
+    });
+
+    if (!sessionData) {
+      console.log('[getSession] No session found');
       return { user: null, session: null };
     }
 
-    const data = await response.json();
-    
     return {
-      user: data.user ?? null,
-      session: data.session ?? null,
+      user: sessionData.user as any,
+      session: sessionData.session as any,
     };
   } catch (error) {
-    console.error('Failed to get session:', error);
+    console.error('[getSession] Error:', error);
     return { user: null, session: null };
   }
 }

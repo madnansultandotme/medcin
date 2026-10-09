@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, getUserCenterId } from '@/lib/middleware/permissions';
-import { getAuthDb } from '@/db/auth-db';
+
 import { db } from '@/db';
 import { slots, doctors } from '@/db/schema';
 import { eq, and, gte, lte } from 'drizzle-orm';
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get authenticated database instance
-    const authDb = getAuthDb(session.token);
+    
 
     // Prepare slots for insertion
     const slotsToInsert = slotsData.map((slot: any) => ({
@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
     }));
 
     // Insert slots
-    const newSlots = await authDb
+    const newSlots = await db
       .insert(slots)
       .values(slotsToInsert)
       .returning();
@@ -213,7 +213,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // Get authenticated database instance
-    const authDb = getAuthDb(session.token);
+    
 
     // Build update object
     const updateData: any = {
@@ -225,7 +225,7 @@ export async function PUT(req: NextRequest) {
     if (endTime) updateData.endTime = endTime;
 
     // Update slot
-    const updated = await authDb
+    const updated = await db
       .update(slots)
       .set(updateData)
       .where(eq(slots.id, id))
@@ -246,7 +246,7 @@ export async function PUT(req: NextRequest) {
 
 /**
  * DELETE - Delete slots
- * Query param: id (single slot) or doctorId + date (all slots for doctor on date)
+ * Body: { id } (single slot) or { doctorId, date } (all slots for doctor on date)
  */
 export async function DELETE(req: NextRequest) {
   try {
@@ -260,10 +260,8 @@ export async function DELETE(req: NextRequest) {
     }
 
     const { user, session } = authContext;
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id');
-    const doctorId = searchParams.get('doctorId');
-    const date = searchParams.get('date');
+    const body = await req.json();
+    const { id, doctorId, date } = body;
 
     if (!id && (!doctorId || !date)) {
       return NextResponse.json(
@@ -273,7 +271,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Get authenticated database instance
-    const authDb = getAuthDb(session.token);
+    
 
     let deleted;
 
@@ -314,7 +312,7 @@ export async function DELETE(req: NextRequest) {
         );
       }
 
-      deleted = await authDb
+      deleted = await db
         .delete(slots)
         .where(eq(slots.id, id))
         .returning();
@@ -349,7 +347,7 @@ export async function DELETE(req: NextRequest) {
         );
       }
 
-      deleted = await authDb
+      deleted = await db
         .delete(slots)
         .where(
           and(

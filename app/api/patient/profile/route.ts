@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth/get-session';
-import { getAuthDb } from '@/db/auth-db';
+import { getAuthenticatedUser } from '@/lib/middleware/permissions';
+
 import { db } from '@/db';
-import { patientProfiles, users } from '@/db/schema';
+import { patientProfiles } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 /**
@@ -12,29 +12,22 @@ import { eq } from 'drizzle-orm';
  */
 export async function GET() {
   try {
-    const { user, session } = await requireAuth();
+    const authContext = await getAuthenticatedUser();
 
-    // Get user's database record
-    const userRecord = await db
-      .select()
-      .from(users)
-      .where(eq(users.authUid, user.id))
-      .limit(1);
-
-    if (userRecord.length === 0) {
+    if (!authContext) {
       return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
+        { error: 'Unauthorized' },
+        { status: 401 }
       );
     }
 
-    // Get authenticated database instance (RLS enforces user can only see their own)
-    const authDb = getAuthDb(session.token);
+    const { user } = authContext;
 
-    const profile = await authDb
+    // Get patient profile
+    const profile = await db
       .select()
       .from(patientProfiles)
-      .where(eq(patientProfiles.userId, userRecord[0].id))
+      .where(eq(patientProfiles.userId, user.id))
       .limit(1);
 
     if (profile.length === 0) {
@@ -61,7 +54,16 @@ export async function GET() {
  */
 export async function POST(req: NextRequest) {
   try {
-    const { user, session } = await requireAuth();
+    const authContext = await getAuthenticatedUser();
+
+    if (!authContext) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { user, session } = authContext;
     const body = await req.json();
 
     const {
@@ -76,25 +78,11 @@ export async function POST(req: NextRequest) {
       preferredLanguage,
     } = body;
 
-    // Get user's database record
-    const userRecord = await db
-      .select()
-      .from(users)
-      .where(eq(users.authUid, user.id))
-      .limit(1);
-
-    if (userRecord.length === 0) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
     // Check if profile already exists
     const existing = await db
       .select()
       .from(patientProfiles)
-      .where(eq(patientProfiles.userId, userRecord[0].id))
+      .where(eq(patientProfiles.userId, user.id))
       .limit(1);
 
     if (existing.length > 0) {
@@ -105,13 +93,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Get authenticated database instance
-    const authDb = getAuthDb(session.token);
+    
 
     // Create profile
-    const newProfile = await authDb
+    const newProfile = await db
       .insert(patientProfiles)
       .values({
-        userId: userRecord[0].id,
+        userId: user.id,
         location,
         photoUrl,
         emergencyName,
@@ -144,7 +132,16 @@ export async function POST(req: NextRequest) {
  */
 export async function PUT(req: NextRequest) {
   try {
-    const { user, session } = await requireAuth();
+    const authContext = await getAuthenticatedUser();
+
+    if (!authContext) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { user, session } = authContext;
     const body = await req.json();
 
     const { id, ...updates } = body;
@@ -157,10 +154,10 @@ export async function PUT(req: NextRequest) {
     }
 
     // Get authenticated database instance
-    const authDb = getAuthDb(session.token);
+    
 
     // Update profile - RLS ensures user can only update their own
-    const updated = await authDb
+    const updated = await db
       .update(patientProfiles)
       .set({
         ...updates,

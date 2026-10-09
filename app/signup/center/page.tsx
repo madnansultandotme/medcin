@@ -7,6 +7,8 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { Building2, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
+import { OperatingHoursInput, scheduleToString, type WeeklySchedule } from '@/components/center/OperatingHoursInput';
+import { ASEAN_COUNTRIES, getCitiesForCountry, formatFullAddress } from '@/lib/data/locations';
 
 export default function CenterSignupPage() {
   const [step, setStep] = useState(1);
@@ -22,11 +24,14 @@ export default function CenterSignupPage() {
     // Center Info
     centerName: '',
     category: '',
-    address: '',
+    country: 'SG', // Default to Singapore
+    city: 'Singapore',
+    streetAddress: '',
+    address: '', // Legacy field (auto-generated from structured address)
     centerEmail: '',
     centerPhone: '',
     licenseNumber: '',
-    operatingHours: '',
+    operatingHours: null as WeeklySchedule | null,
     amenities: [] as string[],
   });
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +62,7 @@ export default function CenterSignupPage() {
     'Insurance Accepted',
   ];
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 1) {
       // Validate step 1
       if (!formData.name || !formData.email || !formData.password) {
@@ -72,9 +77,82 @@ export default function CenterSignupPage() {
         setError('Password must be at least 8 characters');
         return;
       }
+
+      setError(null);
+      setLoading(true);
+
+      try {
+        // Check if user already exists
+        const checkResponse = await fetch('/api/auth/check-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: formData.email }),
+        });
+
+        if (checkResponse.ok) {
+          const checkData = await checkResponse.json();
+          
+          if (checkData.exists) {
+            // User exists, check if they're a center with incomplete registration
+            if (checkData.user.role === 'CENTER' && checkData.center) {
+              if (!checkData.center.completedRegistration) {
+                // User has incomplete registration, let them continue to step 2
+                setLoading(false);
+                setStep(2);
+                return;
+              } else {
+                // User already completed registration
+                setError('An account with this email already exists. Please sign in instead.');
+                setLoading(false);
+                return;
+              }
+            } else {
+              // User exists but is not a center
+              setError('An account with this email already exists. Please sign in instead.');
+              setLoading(false);
+              return;
+            }
+          }
+        }
+
+        // User doesn't exist, create new account
+        // Step 1: Create auth account
+        await signUp(formData.email, formData.password, formData.name, 'CENTER', formData.phone);
+
+        // Step 2: Create initial center record with completedRegistration: false
+        const response = await fetch('/api/centers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name + "'s Center", // Temporary name
+            category: 'General Practice', // Temporary category
+            address: 'Pending', // Temporary address
+            email: formData.email,
+            phone: formData.phone || '',
+            licenseNumber: 'PENDING', // Temporary license
+            operatingHours: 'Mon-Fri: 09:00-17:00',
+            amenities: [],
+            status: 'PENDING',
+            completedRegistration: false, // Mark as incomplete
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to create center record');
+        }
+
+        // Successfully created account and center, proceed to step 2
+        setLoading(false);
+        setStep(2);
+      } catch (err: any) {
+        setError(err.message || 'Failed to create account');
+        setLoading(false);
+      }
+    } else {
+      setError(null);
+      setStep(2);
     }
-    setError(null);
-    setStep(2);
   };
 
   const toggleAmenity = (amenity: string) => {
@@ -91,7 +169,7 @@ export default function CenterSignupPage() {
     setError(null);
 
     // Validate step 2
-    if (!formData.centerName || !formData.category || !formData.address || !formData.licenseNumber) {
+    if (!formData.centerName || !formData.category || !formData.city || !formData.country || !formData.streetAddress || !formData.licenseNumber) {
       setError('Please fill in all required fields');
       return;
     }
@@ -99,28 +177,43 @@ export default function CenterSignupPage() {
     setLoading(true);
 
     try {
-      // Step 1: Create auth account
-      await signUp(formData.email, formData.password, formData.name, 'CENTER', formData.phone);
+      // Fetch the user's center ID (created in step 1)
+      const centersResponse = await fetch('/api/centers');
+      if (!centersResponse.ok) {
+        throw new Error('Failed to fetch center');
+      }
 
-      // Step 2: Create center profile
+      const centersData = await centersResponse.json();
+      const userCenter = centersData.centers?.find((c: any) => c.email === formData.email);
+
+      if (!userCenter) {
+        throw new Error('Center record not found. Please try again.');
+      }
+
+      // Update the center with complete details
       const response = await fetch('/api/centers', {
-        method: 'POST',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id: userCenter.id,
           name: formData.centerName,
           category: formData.category,
-          address: formData.address,
+          city: formData.city,
+          country: formData.country,
+          streetAddress: formData.streetAddress,
+          address: formatFullAddress(formData.city, formData.country, formData.streetAddress),
           email: formData.centerEmail || formData.email,
           phone: formData.centerPhone || formData.phone,
           licenseNumber: formData.licenseNumber,
-          operatingHours: formData.operatingHours || 'Mon-Fri: 9AM-6PM',
+          operatingHours: formData.operatingHours ? scheduleToString(formData.operatingHours) : 'Mon-Fri: 09:00-17:00',
           amenities: formData.amenities,
           status: 'PENDING', // Awaiting admin approval
+          completedRegistration: true, // Mark as complete
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create center profile');
+        throw new Error('Failed to update center profile');
       }
 
       // Redirect to under review page
@@ -272,9 +365,10 @@ export default function CenterSignupPage() {
 
               <button
                 type="submit"
-                className="w-full py-3 px-4 bg-[#1769AA] hover:bg-[#2F80B7] text-white font-semibold rounded-lg transition shadow-sm"
+                disabled={loading}
+                className="w-full py-3 px-4 bg-[#1769AA] hover:bg-[#2F80B7] text-white font-semibold rounded-lg transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Continue to Center Details
+                {loading ? 'Creating Account...' : 'Continue to Center Details'}
               </button>
             </form>
           )}
@@ -315,19 +409,79 @@ export default function CenterSignupPage() {
                 </select>
               </div>
 
+              {/* Structured Address Fields */}
               <div>
-                <label htmlFor="address" className="block text-sm font-medium mb-2 text-[#102A43] dark:text-[#EAF5FF]">
-                  Full Address *
+                <label className="block text-sm font-medium mb-2 text-[#102A43] dark:text-[#EAF5FF]">
+                  Location *
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Country Selection */}
+                  <div>
+                    <label htmlFor="country" className="block text-xs text-[#5C7185] dark:text-[#A1B8CB] mb-1">
+                      Country
+                    </label>
+                    <select
+                      id="country"
+                      required
+                      value={formData.country}
+                      onChange={(e) => {
+                        const newCountry = e.target.value;
+                        const cities = getCitiesForCountry(newCountry);
+                        setFormData({ 
+                          ...formData, 
+                          country: newCountry,
+                          city: cities.length > 0 ? cities[0].name : ''
+                        });
+                      }}
+                      className="w-full px-3 py-2.5 rounded-lg border border-[#D7E7F5] dark:border-[#244766] bg-white dark:bg-[#081B2D] text-[#102A43] dark:text-[#EAF5FF] focus:ring-2 focus:ring-[#1769AA] focus:border-transparent transition text-sm"
+                    >
+                      {Object.entries(ASEAN_COUNTRIES).map(([code, country]) => (
+                        <option key={code} value={code}>
+                          {country.flag} {country.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* City Selection */}
+                  <div>
+                    <label htmlFor="city" className="block text-xs text-[#5C7185] dark:text-[#A1B8CB] mb-1">
+                      City
+                    </label>
+                    <select
+                      id="city"
+                      required
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      className="w-full px-3 py-2.5 rounded-lg border border-[#D7E7F5] dark:border-[#244766] bg-white dark:bg-[#081B2D] text-[#102A43] dark:text-[#EAF5FF] focus:ring-2 focus:ring-[#1769AA] focus:border-transparent transition text-sm"
+                    >
+                      {getCitiesForCountry(formData.country).map((city) => (
+                        <option key={city.name} value={city.name}>
+                          {city.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Street Address */}
+              <div>
+                <label htmlFor="streetAddress" className="block text-sm font-medium mb-2 text-[#102A43] dark:text-[#EAF5FF]">
+                  Street Address *
                 </label>
                 <textarea
-                  id="address"
+                  id="streetAddress"
                   required
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  value={formData.streetAddress}
+                  onChange={(e) => setFormData({ ...formData, streetAddress: e.target.value })}
                   className="w-full px-4 py-3 rounded-lg border border-[#D7E7F5] dark:border-[#244766] bg-white dark:bg-[#081B2D] text-[#102A43] dark:text-[#EAF5FF] focus:ring-2 focus:ring-[#1769AA] focus:border-transparent transition"
-                  placeholder="123 Health Street, Medical District, City, State, ZIP"
+                  placeholder="Building number, street name, unit/suite number"
                   rows={2}
                 />
+                <p className="text-xs text-[#5C7185] dark:text-[#A1B8CB] mt-1">
+                  Example: 123 Medical Tower, Suite 5-10, Orchard Road
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -376,16 +530,9 @@ export default function CenterSignupPage() {
               </div>
 
               <div>
-                <label htmlFor="operatingHours" className="block text-sm font-medium mb-2 text-[#102A43] dark:text-[#EAF5FF]">
-                  Operating Hours
-                </label>
-                <input
-                  id="operatingHours"
-                  type="text"
-                  value={formData.operatingHours}
-                  onChange={(e) => setFormData({ ...formData, operatingHours: e.target.value })}
-                  className="w-full px-4 py-3 rounded-lg border border-[#D7E7F5] dark:border-[#244766] bg-white dark:bg-[#081B2D] text-[#102A43] dark:text-[#EAF5FF] focus:ring-2 focus:ring-[#1769AA] focus:border-transparent transition"
-                  placeholder="Mon-Fri: 9AM-6PM, Sat: 9AM-2PM"
+                <OperatingHoursInput
+                  value={formData.operatingHours || undefined}
+                  onChange={(schedule) => setFormData({ ...formData, operatingHours: schedule })}
                 />
               </div>
 

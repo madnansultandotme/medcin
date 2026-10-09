@@ -33,18 +33,33 @@ export async function getAuthenticatedUser(): Promise<AuthContext | null> {
   try {
     const { user: authUser, session } = await getSession();
 
+    console.log('[getAuthenticatedUser] Session check:', { 
+      hasUser: !!authUser, 
+      hasSession: !!session,
+      userId: authUser?.id 
+    });
+
     if (!authUser || !session) {
+      console.log('[getAuthenticatedUser] No auth user or session');
       return null;
     }
 
-    // Get full user record from database
+    // Get full user record from database using Better Auth user ID
+    // Better Auth user.id maps directly to users.id (primary key)
     const userRecord = await db
       .select()
       .from(users)
-      .where(eq(users.authUid, authUser.id))
+      .where(eq(users.id, authUser.id))
       .limit(1);
 
+    console.log('[getAuthenticatedUser] User lookup:', {
+      userId: authUser.id,
+      found: userRecord.length > 0,
+      email: userRecord[0]?.email
+    });
+
     if (userRecord.length === 0) {
+      console.log('[getAuthenticatedUser] User not found in database (should not happen with Better Auth)');
       return null;
     }
 
@@ -53,7 +68,7 @@ export async function getAuthenticatedUser(): Promise<AuthContext | null> {
       session,
     };
   } catch (error) {
-    console.error('Get authenticated user error:', error);
+    console.error('[getAuthenticatedUser] Error:', error);
     return null;
   }
 }

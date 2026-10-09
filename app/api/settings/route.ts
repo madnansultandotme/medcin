@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth, getSession } from '@/lib/auth/get-session';
-import { getAuthDb } from '@/db/auth-db';
+import { getAuthenticatedUser } from '@/lib/middleware/permissions';
+
 import { db } from '@/db';
-import { settings, users } from '@/db/schema';
+import { settings } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 /**
@@ -60,7 +60,16 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const { user, session } = await requireAuth();
+    const authContext = await getAuthenticatedUser();
+
+    if (!authContext) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { user, session } = authContext;
     const body = await req.json();
 
     const { key, value } = body;
@@ -74,13 +83,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user is admin
-    const userRecord = await db
-      .select()
-      .from(users)
-      .where(eq(users.authUid, user.id))
-      .limit(1);
-
-    if (userRecord.length === 0 || userRecord[0].role !== 'ADMIN') {
+    if (user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Admin access required' },
         { status: 403 }
@@ -102,10 +105,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Get authenticated database instance
-    const authDb = getAuthDb(session.token);
+    
 
     // Create setting
-    const newSetting = await authDb
+    const newSetting = await db
       .insert(settings)
       .values({
         key,
@@ -133,7 +136,16 @@ export async function POST(req: NextRequest) {
  */
 export async function PUT(req: NextRequest) {
   try {
-    const { user, session } = await requireAuth();
+    const authContext = await getAuthenticatedUser();
+
+    if (!authContext) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { user, session } = authContext;
     const body = await req.json();
 
     const { id, key, value } = body;
@@ -146,13 +158,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // Check if user is admin
-    const userRecord = await db
-      .select()
-      .from(users)
-      .where(eq(users.authUid, user.id))
-      .limit(1);
-
-    if (userRecord.length === 0 || userRecord[0].role !== 'ADMIN') {
+    if (user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Admin access required' },
         { status: 403 }
@@ -160,7 +166,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // Get authenticated database instance
-    const authDb = getAuthDb(session.token);
+    
 
     const updateData: any = {
       updatedAt: new Date(),
@@ -170,7 +176,7 @@ export async function PUT(req: NextRequest) {
     if (value) updateData.value = value;
 
     // Update setting
-    const updated = await authDb
+    const updated = await db
       .update(settings)
       .set(updateData)
       .where(eq(settings.id, id))
@@ -200,7 +206,16 @@ export async function PUT(req: NextRequest) {
  */
 export async function DELETE(req: NextRequest) {
   try {
-    const { user, session } = await requireAuth();
+    const authContext = await getAuthenticatedUser();
+
+    if (!authContext) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { user, session } = authContext;
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
@@ -212,13 +227,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Check if user is admin
-    const userRecord = await db
-      .select()
-      .from(users)
-      .where(eq(users.authUid, user.id))
-      .limit(1);
-
-    if (userRecord.length === 0 || userRecord[0].role !== 'ADMIN') {
+    if (user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Admin access required' },
         { status: 403 }
@@ -226,10 +235,10 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Get authenticated database instance
-    const authDb = getAuthDb(session.token);
+    
 
     // Delete setting
-    const deleted = await authDb
+    const deleted = await db
       .delete(settings)
       .where(eq(settings.id, id))
       .returning();

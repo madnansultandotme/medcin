@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useBranding } from "@/lib/branding";
+import { ASEAN_COUNTRIES } from "@/lib/data/locations";
 import {
   Search,
   ArrowRight,
@@ -23,6 +24,7 @@ import {
   Award,
   Sparkles,
   Globe2,
+} from "lucide-react";
 } from "lucide-react";
 
 interface HeroSlide {
@@ -44,9 +46,26 @@ export default function LandingPage() {
   const { branding, formatCurrency } = useBranding();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [selectedCountryTab, setSelectedCountryTab] = useState("all");
+  const [selectedCountryTab, setSelectedCountryTab] = useState("SG");
   const [selectedSpecialty, setSelectedSpecialty] = useState("All");
   const [selectedCity, setSelectedCity] = useState("Singapore");
+
+  // ASEAN Countries and Cities Data Structure (using the same data from locations.ts for consistency)
+  const countriesData = ASEAN_COUNTRIES;
+
+  // Get cities for selected country
+  const getAvailableCities = () => {
+    return countriesData[selectedCountryTab as keyof typeof countriesData]?.cities || [];
+  };
+
+  // Update city when country changes
+  const handleCountryChange = (countryCode: string) => {
+    setSelectedCountryTab(countryCode);
+    const cities = countriesData[countryCode as keyof typeof countriesData]?.cities || [];
+    if (cities.length > 0) {
+      setSelectedCity(cities[0].name);
+    }
+  };
 
   // Hero Slider Data for Thailand, Singapore, Malaysia
   const heroSlides: HeroSlide[] = [
@@ -340,7 +359,7 @@ export default function LandingPage() {
                       </span>
                     </div>
                     <h3 className="font-bold text-base text-[var(--ink)] mt-1">
-                      Book Across Singapore, Thailand & Malaysia
+                      Book Across {Object.values(countriesData).map(c => c.name).join(', ').replace(/, ([^,]*)$/, ' & $1')}
                     </h3>
                   </div>
 
@@ -350,53 +369,21 @@ export default function LandingPage() {
                       Target Geography
                     </label>
                     <div className="grid grid-cols-3 gap-1.5 font-mono-ledger text-xs">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedCountryTab("SG");
-                          setSelectedCity("Singapore");
-                        }}
-                        className={`py-2 px-2 border text-center transition-all flex items-center justify-center gap-1 rounded-xl ${
-                          selectedCountryTab === "SG"
-                            ? "border-[var(--clay)] bg-[var(--clay)] text-white font-bold"
-                            : "border-[var(--mist)] bg-white/50 text-[var(--ink)] hover:border-[var(--clay)]"
-                        }`}
-                      >
-                        <span>🇸🇬</span>
-                        <span>Singapore</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedCountryTab("TH");
-                          setSelectedCity("Bangkok");
-                        }}
-                        className={`py-2 px-2 border text-center transition-all flex items-center justify-center gap-1 rounded-xl ${
-                          selectedCountryTab === "TH"
-                            ? "border-[var(--clay)] bg-[var(--clay)] text-white font-bold"
-                            : "border-[var(--mist)] bg-white/50 text-[var(--ink)] hover:border-[var(--clay)]"
-                        }`}
-                      >
-                        <span>🇹🇭</span>
-                        <span>Thailand</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedCountryTab("MY");
-                          setSelectedCity("Kuala Lumpur");
-                        }}
-                        className={`py-2 px-2 border text-center transition-all flex items-center justify-center gap-1 rounded-xl ${
-                          selectedCountryTab === "MY"
-                            ? "border-[var(--clay)] bg-[var(--clay)] text-white font-bold"
-                            : "border-[var(--mist)] bg-white/50 text-[var(--ink)] hover:border-[var(--clay)]"
-                        }`}
-                      >
-                        <span>🇲🇾</span>
-                        <span>Malaysia</span>
-                      </button>
+                      {Object.entries(countriesData).map(([code, country]) => (
+                        <button
+                          key={code}
+                          type="button"
+                          onClick={() => handleCountryChange(code)}
+                          className={`py-2 px-2 border text-center transition-all flex items-center justify-center gap-1 rounded-xl ${
+                            selectedCountryTab === code
+                              ? "border-[var(--clay)] bg-[var(--clay)] text-white font-bold"
+                              : "border-[var(--mist)] bg-white/50 text-[var(--ink)] hover:border-[var(--clay)]"
+                          }`}
+                        >
+                          <span>{country.flag}</span>
+                          <span>{country.name}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
 
@@ -428,12 +415,11 @@ export default function LandingPage() {
                         onChange={(e) => setSelectedCity(e.target.value)}
                         className="w-full p-2.5 border border-[var(--mist)] bg-white/80/80 text-xs font-mono-ledger text-[var(--ink)] focus:outline-none focus:border-[var(--clay)] backdrop-blur-md rounded-xl"
                       >
-                        <option value="Singapore">Singapore (Novena · Orchard)</option>
-                        <option value="Bangkok">Bangkok (Sukhumvit · Sathorn)</option>
-                        <option value="Kuala Lumpur">Kuala Lumpur (KLCC · Bangsar)</option>
-                        <option value="Phuket">Phuket (Laguna · Patong)</option>
-                        <option value="Penang">Penang (George Town)</option>
-                        <option value="Chiang Mai">Chiang Mai (Nimman)</option>
+                        {getAvailableCities().map((city) => (
+                          <option key={city.name} value={city.name}>
+                            {city.name} ({city.areas})
+                          </option>
+                        ))}
                       </select>
                     </div>
 

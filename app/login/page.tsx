@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
 
 export default function LoginPage() {
@@ -17,8 +18,9 @@ export default function LoginPage() {
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
-  const { signIn, signInWithGoogle } = useAuth();
+  const { signIn } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,11 +29,38 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await signIn(formData.email, formData.password);
-      router.push('/portal'); // Redirect after successful login
+      const result = await signIn(formData.email, formData.password);
+      
+      // Check user role and redirect accordingly
+      const userResponse = await fetch('/api/auth/me');
+      if (userResponse.ok) {
+        const { user } = await userResponse.json();
+        
+        if (user.role === 'CENTER') {
+          // Use database-level access check
+          const accessResponse = await fetch('/api/centers/access');
+          if (accessResponse.ok) {
+            const accessData = await accessResponse.json();
+            
+            if (!accessData.hasAccess && accessData.redirectPath) {
+              router.push(accessData.redirectPath);
+              return;
+            }
+          }
+          router.push('/center');
+        } else if (user.role === 'ADMIN') {
+          router.push('/admin');
+        } else if (user.role === 'PATIENT') {
+          router.push('/patient');
+        } else {
+          router.push('/portal');
+        }
+      } else {
+        // Default redirect if we can't fetch user info
+        router.push('/portal');
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
-    } finally {
       setLoading(false);
     }
   };
@@ -39,7 +68,8 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     try {
       setError(null);
-      await signInWithGoogle();
+      // TODO: Implement Google sign-in
+      setError('Google sign-in is not yet implemented');
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Google');
     }
@@ -85,15 +115,29 @@ export default function LoginPage() {
               <label htmlFor="password" className="block text-sm font-medium mb-2 text-[#102A43] dark:text-[#EAF5FF]">
                 Password
               </label>
-              <input
-                id="password"
-                type="password"
-                required
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg border border-[#D7E7F5] dark:border-[#244766] bg-white dark:bg-[#081B2D] text-[#102A43] dark:text-[#EAF5FF] focus:ring-2 focus:ring-[#1769AA] focus:border-transparent transition"
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full px-4 py-3 pr-12 rounded-lg border border-[#D7E7F5] dark:border-[#244766] bg-white dark:bg-[#081B2D] text-[#102A43] dark:text-[#EAF5FF] focus:ring-2 focus:ring-[#1769AA] focus:border-transparent transition"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#5C7185] dark:text-[#A1B8CB] hover:text-[#1769AA] dark:hover:text-[#55A9E6] transition"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center justify-between text-sm">
