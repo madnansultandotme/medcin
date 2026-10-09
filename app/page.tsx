@@ -25,7 +25,6 @@ import {
   Sparkles,
   Globe2,
 } from "lucide-react";
-} from "lucide-react";
 
 interface HeroSlide {
   id: string;
