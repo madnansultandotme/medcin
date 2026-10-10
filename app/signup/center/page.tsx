@@ -9,6 +9,8 @@ import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import { OperatingHoursInput, scheduleToString, type WeeklySchedule } from '@/components/center/OperatingHoursInput';
 import { ASEAN_COUNTRIES, getCitiesForCountry, formatFullAddress } from '@/lib/data/locations';
+import { PlacesAutocomplete } from '@/components/maps/PlacesAutocomplete';
+import { MapDisplay } from '@/components/maps/MapDisplay';
 
 export default function CenterSignupPage() {
   const [step, setStep] = useState(1);
@@ -28,6 +30,10 @@ export default function CenterSignupPage() {
     city: 'Singapore',
     streetAddress: '',
     address: '', // Legacy field (auto-generated from structured address)
+    latitude: null as number | null,
+    longitude: null as number | null,
+    placeId: '',
+    formattedAddress: '',
     centerEmail: '',
     centerPhone: '',
     licenseNumber: '',
@@ -169,8 +175,8 @@ export default function CenterSignupPage() {
     setError(null);
 
     // Validate step 2
-    if (!formData.centerName || !formData.category || !formData.city || !formData.country || !formData.streetAddress || !formData.licenseNumber) {
-      setError('Please fill in all required fields');
+    if (!formData.centerName || !formData.category || !formData.formattedAddress || !formData.licenseNumber) {
+      setError('Please fill in all required fields including location');
       return;
     }
 
@@ -201,7 +207,11 @@ export default function CenterSignupPage() {
           city: formData.city,
           country: formData.country,
           streetAddress: formData.streetAddress,
-          address: formatFullAddress(formData.city, formData.country, formData.streetAddress),
+          address: formData.formattedAddress || formatFullAddress(formData.city, formData.country, formData.streetAddress),
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+          placeId: formData.placeId,
+          formattedAddress: formData.formattedAddress,
           email: formData.centerEmail || formData.email,
           phone: formData.centerPhone || formData.phone,
           licenseNumber: formData.licenseNumber,
@@ -409,79 +419,51 @@ export default function CenterSignupPage() {
                 </select>
               </div>
 
-              {/* Structured Address Fields */}
+              {/* Location with Google Places Autocomplete */}
               <div>
                 <label className="block text-sm font-medium mb-2 text-[#102A43] dark:text-[#EAF5FF]">
                   Location *
                 </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Country Selection */}
-                  <div>
-                    <label htmlFor="country" className="block text-xs text-[#5C7185] dark:text-[#A1B8CB] mb-1">
-                      Country
-                    </label>
-                    <select
-                      id="country"
-                      required
-                      value={formData.country}
-                      onChange={(e) => {
-                        const newCountry = e.target.value;
-                        const cities = getCitiesForCountry(newCountry);
-                        setFormData({ 
-                          ...formData, 
-                          country: newCountry,
-                          city: cities.length > 0 ? cities[0].name : ''
-                        });
-                      }}
-                      className="w-full px-3 py-2.5 rounded-lg border border-[#D7E7F5] dark:border-[#244766] bg-white dark:bg-[#081B2D] text-[#102A43] dark:text-[#EAF5FF] focus:ring-2 focus:ring-[#1769AA] focus:border-transparent transition text-sm"
-                    >
-                      {Object.entries(ASEAN_COUNTRIES).map(([code, country]) => (
-                        <option key={code} value={code}>
-                          {country.flag} {country.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* City Selection */}
-                  <div>
-                    <label htmlFor="city" className="block text-xs text-[#5C7185] dark:text-[#A1B8CB] mb-1">
-                      City
-                    </label>
-                    <select
-                      id="city"
-                      required
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      className="w-full px-3 py-2.5 rounded-lg border border-[#D7E7F5] dark:border-[#244766] bg-white dark:bg-[#081B2D] text-[#102A43] dark:text-[#EAF5FF] focus:ring-2 focus:ring-[#1769AA] focus:border-transparent transition text-sm"
-                    >
-                      {getCitiesForCountry(formData.country).map((city) => (
-                        <option key={city.name} value={city.name}>
-                          {city.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Street Address */}
-              <div>
-                <label htmlFor="streetAddress" className="block text-sm font-medium mb-2 text-[#102A43] dark:text-[#EAF5FF]">
-                  Street Address *
-                </label>
-                <textarea
-                  id="streetAddress"
-                  required
-                  value={formData.streetAddress}
-                  onChange={(e) => setFormData({ ...formData, streetAddress: e.target.value })}
-                  className="w-full px-4 py-3 rounded-lg border border-[#D7E7F5] dark:border-[#244766] bg-white dark:bg-[#081B2D] text-[#102A43] dark:text-[#EAF5FF] focus:ring-2 focus:ring-[#1769AA] focus:border-transparent transition"
-                  placeholder="Building number, street name, unit/suite number"
-                  rows={2}
+                <PlacesAutocomplete
+                  onPlaceSelect={(place: { formattedAddress: string; city: string; country: string; streetAddress: string; latitude: number; longitude: number; placeId: string }) => {
+                    setFormData({
+                      ...formData,
+                      formattedAddress: place.formattedAddress,
+                      streetAddress: place.streetAddress,
+                      city: place.city,
+                      country: place.country,
+                      latitude: place.latitude,
+                      longitude: place.longitude,
+                      placeId: place.placeId,
+                    });
+                  }}
                 />
-                <p className="text-xs text-[#5C7185] dark:text-[#A1B8CB] mt-1">
-                  Example: 123 Medical Tower, Suite 5-10, Orchard Road
+                <p className="text-xs text-[#5C7185] dark:text-[#A1B8CB] mt-2">
+                  Search for your center's address using Google Maps
                 </p>
+                
+                {/* Show Map Preview if location selected */}
+                {formData.latitude && formData.longitude && (
+                  <div className="mt-4">
+                    <MapDisplay
+                      latitude={formData.latitude}
+                      longitude={formData.longitude}
+                      title={formData.centerName || 'Your Center'}
+                    />
+                  </div>
+                )}
+                
+                {/* Show selected address */}
+                {formData.formattedAddress && (
+                  <div className="mt-3 p-3 bg-[#D7E7F5] dark:bg-[#244766] rounded-lg">
+                    <p className="text-sm text-[#102A43] dark:text-[#EAF5FF] font-medium">
+                      Selected Address:
+                    </p>
+                    <p className="text-sm text-[#5C7185] dark:text-[#A1B8CB] mt-1">
+                      {formData.formattedAddress}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
