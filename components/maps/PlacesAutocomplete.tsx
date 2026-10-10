@@ -3,6 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { MapPin } from 'lucide-react';
 
+// Global flag to track if script is loading or loaded
+let isScriptLoading = false;
+let isScriptLoaded = false;
+const scriptLoadCallbacks: (() => void)[] = [];
+
 interface PlaceResult {
   formattedAddress: string;
   city: string;
@@ -43,8 +48,41 @@ export function PlacesAutocomplete({
     }
 
     // Check if already loaded
-    if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+    if (typeof window !== 'undefined' && window.google?.maps?.places) {
+      isScriptLoaded = true;
       setIsLoaded(true);
+      return;
+    }
+
+    // If script is already loaded globally
+    if (isScriptLoaded) {
+      setIsLoaded(true);
+      return;
+    }
+
+    // If script is loading, add callback
+    if (isScriptLoading) {
+      scriptLoadCallbacks.push(() => setIsLoaded(true));
+      return;
+    }
+
+    // Start loading script
+    isScriptLoading = true;
+
+    // Check if script tag already exists
+    const existingScript = document.querySelector(
+      'script[src*="maps.googleapis.com"]'
+    );
+
+    if (existingScript) {
+      // Script exists but might not be loaded yet
+      existingScript.addEventListener('load', () => {
+        isScriptLoaded = true;
+        isScriptLoading = false;
+        setIsLoaded(true);
+        scriptLoadCallbacks.forEach(cb => cb());
+        scriptLoadCallbacks.length = 0;
+      });
       return;
     }
 
@@ -55,120 +93,146 @@ export function PlacesAutocomplete({
     script.defer = true;
 
     script.onload = () => {
+      isScriptLoaded = true;
+      isScriptLoading = false;
       setIsLoaded(true);
+      scriptLoadCallbacks.forEach(cb => cb());
+      scriptLoadCallbacks.length = 0;
     };
 
     script.onerror = () => {
+      isScriptLoading = false;
       setError('Failed to load Google Maps API');
+      scriptLoadCallbacks.length = 0;
     };
 
     document.head.appendChild(script);
+
+    return () => {
+      // Cleanup callback if component unmounts during loading
+      const index = scriptLoadCallbacks.findIndex(cb => cb === setIsLoaded);
+      if (index > -1) {
+        scriptLoadCallbacks.splice(index, 1);
+      }
+    };
   }, []);
 
   useEffect(() => {
     if (!isLoaded || !inputRef.current) return;
 
-    // Initialize Autocomplete with proper options
-    const options: google.maps.places.AutocompleteOptions = {
-      types: ['establishment', 'geocode'],
-      componentRestrictions: { country: countries },
-      fields: [
-        'formatted_address',
-        'address_components',
-        'geometry',
-        'place_id',
-        'name',
-      ],
-    };
+    // Wait for google.maps.places to be available
+    if (!window.google?.maps?.places?.Autocomplete) {
+      console.error('Google Maps Places library not loaded');
+      setError('Google Maps Places library not available');
+      return;
+    }
 
-    autocompleteRef.current = new google.maps.places.Autocomplete(
-      inputRef.current,
-      options
-    );
-
-    // Listen for place selection
-    const listener = autocompleteRef.current.addListener('place_changed', () => {
-      const place = autocompleteRef.current?.getPlace();
-
-      if (!place || !place.geometry || !place.geometry.location) {
-        console.error('No details available for input:', place?.name);
-        return;
-      }
-
-      // Extract address components
-      const addressComponents = place.address_components || [];
-      let city = '';
-      let country = '';
-      let countryCode = '';
-      let streetNumber = '';
-      let route = '';
-      let locality = '';
-      let administrativeArea = '';
-      let sublocality = '';
-
-      for (const component of addressComponents) {
-        const types = component.types;
-
-        if (types.includes('street_number')) {
-          streetNumber = component.long_name;
-        }
-        if (types.includes('route')) {
-          route = component.long_name;
-        }
-        if (types.includes('sublocality') || types.includes('sublocality_level_1')) {
-          sublocality = component.long_name;
-        }
-        if (types.includes('locality')) {
-          locality = component.long_name;
-          city = component.long_name;
-        }
-        if (types.includes('administrative_area_level_1')) {
-          administrativeArea = component.long_name;
-          if (!city) city = component.long_name;
-        }
-        if (types.includes('country')) {
-          country = component.long_name;
-          countryCode = component.short_name;
-        }
-      }
-
-      // Build street address
-      const streetParts = [streetNumber, route, sublocality].filter(Boolean);
-      let streetAddress = '';
-      
-      if (place.name && !streetParts.some(part => place.name?.includes(part))) {
-        streetAddress = place.name;
-        if (streetParts.length > 0) {
-          streetAddress += ', ' + streetParts.join(' ');
-        }
-      } else {
-        streetAddress = streetParts.join(' ') || place.formatted_address?.split(',')[0] || '';
-      }
-
-      // Extract coordinates
-      const latitude = place.geometry.location.lat();
-      const longitude = place.geometry.location.lng();
-
-      const placeResult: PlaceResult = {
-        formattedAddress: place.formatted_address || '',
-        city: city || locality || administrativeArea || '',
-        country: country,
-        countryCode: countryCode.toUpperCase(),
-        streetAddress: streetAddress,
-        latitude,
-        longitude,
-        placeId: place.place_id || '',
+    try {
+      // Initialize Autocomplete with proper options
+      const options: google.maps.places.AutocompleteOptions = {
+        types: ['establishment', 'geocode'],
+        componentRestrictions: { country: countries },
+        fields: [
+          'formatted_address',
+          'address_components',
+          'geometry',
+          'place_id',
+          'name',
+        ],
       };
 
-      console.log('Place selected:', placeResult);
-      onPlaceSelect(placeResult);
-    });
+      autocompleteRef.current = new google.maps.places.Autocomplete(
+        inputRef.current,
+        options
+      );
 
-    return () => {
-      if (listener) {
-        google.maps.event.removeListener(listener);
-      }
-    };
+      // Listen for place selection
+      const listener = autocompleteRef.current.addListener('place_changed', () => {
+        const place = autocompleteRef.current?.getPlace();
+
+        if (!place || !place.geometry || !place.geometry.location) {
+          console.error('No details available for input:', place?.name);
+          return;
+        }
+
+        // Extract address components
+        const addressComponents = place.address_components || [];
+        let city = '';
+        let country = '';
+        let countryCode = '';
+        let streetNumber = '';
+        let route = '';
+        let locality = '';
+        let administrativeArea = '';
+        let sublocality = '';
+
+        for (const component of addressComponents) {
+          const types = component.types;
+
+          if (types.includes('street_number')) {
+            streetNumber = component.long_name;
+          }
+          if (types.includes('route')) {
+            route = component.long_name;
+          }
+          if (types.includes('sublocality') || types.includes('sublocality_level_1')) {
+            sublocality = component.long_name;
+          }
+          if (types.includes('locality')) {
+            locality = component.long_name;
+            city = component.long_name;
+          }
+          if (types.includes('administrative_area_level_1')) {
+            administrativeArea = component.long_name;
+            if (!city) city = component.long_name;
+          }
+          if (types.includes('country')) {
+            country = component.long_name;
+            countryCode = component.short_name;
+          }
+        }
+
+        // Build street address
+        const streetParts = [streetNumber, route, sublocality].filter(Boolean);
+        let streetAddress = '';
+        
+        if (place.name && !streetParts.some(part => place.name?.includes(part))) {
+          streetAddress = place.name;
+          if (streetParts.length > 0) {
+            streetAddress += ', ' + streetParts.join(' ');
+          }
+        } else {
+          streetAddress = streetParts.join(' ') || place.formatted_address?.split(',')[0] || '';
+        }
+
+        // Extract coordinates
+        const latitude = place.geometry.location.lat();
+        const longitude = place.geometry.location.lng();
+
+        const placeResult: PlaceResult = {
+          formattedAddress: place.formatted_address || '',
+          city: city || locality || administrativeArea || '',
+          country: country,
+          countryCode: countryCode.toUpperCase(),
+          streetAddress: streetAddress,
+          latitude,
+          longitude,
+          placeId: place.place_id || '',
+        };
+
+        console.log('Place selected:', placeResult);
+        onPlaceSelect(placeResult);
+      });
+
+      return () => {
+        if (listener) {
+          google.maps.event.removeListener(listener);
+        }
+      };
+    } catch (err) {
+      console.error('Error initializing Autocomplete:', err);
+      setError('Failed to initialize autocomplete');
+    }
   }, [isLoaded, onPlaceSelect, countries]);
 
   if (error) {
