@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { MapPin } from 'lucide-react';
+import { loadPlacesLibrary } from '@/lib/utils/google-maps-loader';
 
 interface PlaceResult {
   formattedAddress: string;
@@ -59,16 +60,8 @@ export function PlacesAutocomplete({
 
     async function initAutocomplete() {
       try {
-        // Wait for google.maps to be available
-        if (!window.google?.maps?.importLibrary) {
-          console.error('Google Maps not loaded');
-          setError('Google Maps not loaded');
-          setIsLoading(false);
-          return;
-        }
-
-        // Load the Places library using importLibrary
-        const placesLibrary = await window.google.maps.importLibrary('places') as any;
+        // Load the Places library using the centralized loader
+        const placesLibrary = await loadPlacesLibrary() as any;
         
         if (!placesLibrary) {
           throw new Error('Failed to load Places library');
@@ -210,36 +203,8 @@ export function PlacesAutocomplete({
       }
     }
 
-    // Check if Google Maps is already loaded
-    if (window.google?.maps && typeof window.google.maps.importLibrary === 'function') {
-      initAutocomplete();
-    } else {
-      // Load the Google Maps script
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
-      script.async = true;
-      script.defer = true;
-
-      script.onload = () => {
-        // Give the API a moment to initialize
-        setTimeout(() => {
-          if (window.google?.maps && typeof window.google.maps.importLibrary === 'function') {
-            initAutocomplete();
-          } else {
-            console.error('Google Maps API loaded but importLibrary not available');
-            setError('Failed to initialize Google Maps');
-            setIsLoading(false);
-          }
-        }, 200);
-      };
-
-      script.onerror = () => {
-        setError('Failed to load Google Maps script');
-        setIsLoading(false);
-      };
-
-      document.head.appendChild(script);
-    }
+    // Initialize autocomplete
+    initAutocomplete();
 
     return () => {
       isMounted = false;

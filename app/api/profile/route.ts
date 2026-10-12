@@ -61,8 +61,19 @@ export async function GET(req: NextRequest) {
     // Get cached profile data
     const profileData = await getCachedProfile(user.id, user.role);
 
+    console.log('[Profile API] Fetched user:', { 
+      userId: user.id, 
+      photoUrl: (user as any).photoUrl, 
+      image: (user as any).image 
+    });
+
     return NextResponse.json({
-      user: user,
+      user: {
+        ...user,
+        // Ensure photoUrl is always the same as image for consistency
+        photoUrl: (user as any).photoUrl || (user as any).image,
+        image: (user as any).image || (user as any).photoUrl,
+      },
       profile: profileData,
     });
   } catch (error) {
@@ -94,12 +105,19 @@ export async function POST(req: NextRequest) {
 
     if (name) updates.name = name;
     if (phone !== undefined) updates.phone = phone;
-    if (photoUrl !== undefined) updates.photoUrl = photoUrl;
+    if (photoUrl !== undefined) {
+      updates.photoUrl = photoUrl;
+      updates.image = photoUrl; // Also update image field for Better Auth compatibility
+    }
+
+    console.log('[Profile API] Updating user:', { userId: user.id, updates });
 
     await db
       .update(users)
       .set(updates)
       .where(eq(users.id, user.id));
+    
+    console.log('[Profile API] User updated successfully');
 
     // Update role-specific profile
     if (profileData && user.role === 'PATIENT') {

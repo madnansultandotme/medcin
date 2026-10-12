@@ -208,6 +208,8 @@ export default function CenterProfileTab() {
         setCenterData(prev => ({ ...prev, coverImageUrl: publicUrl }));
       } else {
         setOwnerData(prev => ({ ...prev, photoUrl: publicUrl }));
+        // Auto-save profile photo to database
+        await savePhotoToDatabase(publicUrl);
       }
 
       setMessage({ type: 'success', text: `${type === 'logo' ? 'Logo' : type === 'cover' ? 'Cover image' : 'Profile photo'} uploaded successfully!` });
@@ -232,6 +234,26 @@ export default function CenterProfileTab() {
         ? prev.amenities.filter(a => a !== amenity)
         : [...prev.amenities, amenity]
     }));
+  };
+
+  // Save profile photo to database immediately after upload
+  const savePhotoToDatabase = async (photoUrl: string) => {
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          photoUrl: photoUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        console.error('Failed to save photo:', data.error);
+      }
+    } catch (error) {
+      console.error('Error saving photo:', error);
+    }
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -858,17 +880,26 @@ export default function CenterProfileTab() {
 
           <div>
             <label htmlFor="licenseNumber" className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-              Medical License Number
+              Medical License Number *
             </label>
             <input
               id="licenseNumber"
               type="text"
-              disabled
-              value={centerData.licenseNumber}
-              className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+              required
+              disabled={!!(centerData.licenseNumber && centerData.licenseNumber !== 'PENDING')}
+              value={centerData.licenseNumber === 'PENDING' ? '' : centerData.licenseNumber}
+              onChange={(e) => setCenterData({ ...centerData, licenseNumber: e.target.value })}
+              className={`w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 ${
+                centerData.licenseNumber && centerData.licenseNumber !== 'PENDING'
+                  ? 'bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                  : 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#1769AA] focus:border-transparent'
+              } transition`}
+              placeholder="MLC-2024-001"
             />
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              License number cannot be changed. Contact support if correction needed.
+              {centerData.licenseNumber && centerData.licenseNumber !== 'PENDING'
+                ? 'License number cannot be changed. Contact support if correction needed.'
+                : 'Enter your medical license number'}
             </p>
           </div>
 

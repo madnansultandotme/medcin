@@ -90,6 +90,13 @@ export default function CenterDetailPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    licenseNumber: '',
+    email: '',
+    phone: '',
+  });
 
   // Dialog states
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -135,6 +142,14 @@ export default function CenterDetailPage() {
         }
         
         setCenter(centerData);
+
+        // Initialize edit form
+        setEditForm({
+          name: centerData.name,
+          licenseNumber: centerData.licenseNumber,
+          email: centerData.email,
+          phone: centerData.phone,
+        });
 
         // Fetch user info
         const usersResponse = await fetch('/api/admin/users');
@@ -250,6 +265,60 @@ export default function CenterDetailPage() {
     });
   };
 
+  const handleSaveEdit = async () => {
+    if (!center) return;
+
+    setProcessing(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/centers', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: center.id,
+          name: editForm.name,
+          licenseNumber: editForm.licenseNumber,
+          email: editForm.email,
+          phone: editForm.phone,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update center');
+      }
+
+      const result = await response.json();
+      setCenter(result.center);
+      setIsEditing(false);
+      
+      setAlertDialog({
+        isOpen: true,
+        title: 'Center Updated',
+        message: 'Center information has been successfully updated.',
+        type: 'success',
+      });
+    } catch (err: any) {
+      setError(err.message || 'Failed to update center');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    if (center) {
+      setEditForm({
+        name: center.name,
+        licenseNumber: center.licenseNumber,
+        email: center.email,
+        phone: center.phone,
+      });
+    }
+    setIsEditing(false);
+    setError(null);
+  };
+
   const formatDuration = (minutes: number): string => {
     if (minutes < 60) return `${minutes} min`;
     const hours = Math.floor(minutes / 60);
@@ -362,15 +431,52 @@ export default function CenterDetailPage() {
 
           {/* Basic Information */}
           <div className="bg-[var(--surface)] rounded-2xl border border-[var(--mist)] p-6">
-            <h3 className="text-lg font-semibold text-[var(--ink)] mb-4 flex items-center gap-2 font-sans-ledger">
-              <Building2 className="h-5 w-5" />
-              Center Information
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-[var(--ink)] flex items-center gap-2 font-sans-ledger">
+                <Building2 className="h-5 w-5" />
+                Center Information
+              </h3>
+              {!isEditing ? (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="px-3 py-1.5 text-sm bg-[var(--sage)] text-white rounded-lg hover:opacity-90 transition"
+                >
+                  Edit
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCancelEdit}
+                    disabled={processing}
+                    className="px-3 py-1.5 text-sm border border-[var(--mist)] text-[var(--ink)] rounded-lg hover:bg-[var(--paper)] transition disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    disabled={processing}
+                    className="px-3 py-1.5 text-sm bg-[var(--sage)] text-white rounded-lg hover:opacity-90 transition disabled:opacity-50"
+                  >
+                    {processing ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+              )}
+            </div>
             
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-[var(--muted)] font-medium block mb-1 font-sans-ledger">Center Name</label>
-                <p className="text-[var(--ink)] font-sans-ledger">{center.name}</p>
+                <label className="text-sm text-[var(--muted)] font-medium block mb-1 font-sans-ledger">Center Name *</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-[var(--mist)] rounded-lg focus:ring-2 focus:ring-[var(--sage)] focus:border-transparent transition font-sans-ledger"
+                    placeholder="Center name"
+                  />
+                ) : (
+                  <p className="text-[var(--ink)] font-sans-ledger">{center.name}</p>
+                )}
               </div>
 
               <div>
@@ -379,8 +485,18 @@ export default function CenterDetailPage() {
               </div>
 
               <div>
-                <label className="text-sm text-[var(--muted)] font-medium block mb-1 font-sans-ledger">License Number</label>
-                <p className="text-[var(--ink)] font-mono-ledger font-semibold">{center.licenseNumber}</p>
+                <label className="text-sm text-[var(--muted)] font-medium block mb-1 font-sans-ledger">License Number *</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editForm.licenseNumber}
+                    onChange={(e) => setEditForm({ ...editForm, licenseNumber: e.target.value })}
+                    className="w-full px-3 py-2 border border-[var(--mist)] rounded-lg focus:ring-2 focus:ring-[var(--sage)] focus:border-transparent transition font-mono-ledger"
+                    placeholder="MLC-2024-001"
+                  />
+                ) : (
+                  <p className="text-[var(--ink)] font-mono-ledger font-semibold">{center.licenseNumber}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -424,7 +540,7 @@ export default function CenterDetailPage() {
             <div className="space-y-3">
               <div className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-[var(--muted)] mt-0.5 flex-shrink-0" />
-                <div>
+                <div className="flex-1">
                   <label className="text-sm text-[var(--muted)] font-medium block mb-1 font-sans-ledger">Address</label>
                   <p className="text-[var(--ink)] font-sans-ledger">{center.address}</p>
                 </div>
@@ -432,21 +548,41 @@ export default function CenterDetailPage() {
 
               <div className="flex items-start gap-3">
                 <Mail className="h-5 w-5 text-[var(--muted)] mt-0.5 flex-shrink-0" />
-                <div>
-                  <label className="text-sm text-[var(--muted)] font-medium block mb-1 font-sans-ledger">Email</label>
-                  <a href={`mailto:${center.email}`} className="text-[var(--sage)] hover:underline font-sans-ledger">
-                    {center.email}
-                  </a>
+                <div className="flex-1">
+                  <label className="text-sm text-[var(--muted)] font-medium block mb-1 font-sans-ledger">Email *</label>
+                  {isEditing ? (
+                    <input
+                      type="email"
+                      value={editForm.email}
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                      className="w-full px-3 py-2 border border-[var(--mist)] rounded-lg focus:ring-2 focus:ring-[var(--sage)] focus:border-transparent transition font-sans-ledger"
+                      placeholder="center@example.com"
+                    />
+                  ) : (
+                    <a href={`mailto:${center.email}`} className="text-[var(--sage)] hover:underline font-sans-ledger">
+                      {center.email}
+                    </a>
+                  )}
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
                 <Phone className="h-5 w-5 text-[var(--muted)] mt-0.5 flex-shrink-0" />
-                <div>
-                  <label className="text-sm text-[var(--muted)] font-medium block mb-1 font-sans-ledger">Phone</label>
-                  <a href={`tel:${center.phone}`} className="text-[var(--sage)] hover:underline font-sans-ledger">
-                    {center.phone}
-                  </a>
+                <div className="flex-1">
+                  <label className="text-sm text-[var(--muted)] font-medium block mb-1 font-sans-ledger">Phone *</label>
+                  {isEditing ? (
+                    <input
+                      type="tel"
+                      value={editForm.phone}
+                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                      className="w-full px-3 py-2 border border-[var(--mist)] rounded-lg focus:ring-2 focus:ring-[var(--sage)] focus:border-transparent transition font-sans-ledger"
+                      placeholder="+65 1234 5678"
+                    />
+                  ) : (
+                    <a href={`tel:${center.phone}`} className="text-[var(--sage)] hover:underline font-sans-ledger">
+                      {center.phone}
+                    </a>
+                  )}
                 </div>
               </div>
             </div>

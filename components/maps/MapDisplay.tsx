@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { MapPin, ExternalLink } from 'lucide-react';
+import { loadMapsLibrary } from '@/lib/utils/google-maps-loader';
 
 interface MapDisplayProps {
   latitude: number;
@@ -31,27 +32,15 @@ export function MapDisplay({
       return;
     }
 
-    // Check if already loaded
-    if (typeof google !== 'undefined' && google.maps) {
-      setIsLoaded(true);
-      return;
-    }
-
-    // Load Google Maps API
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&loading=async`;
-    script.async = true;
-    script.defer = true;
-
-    script.onload = () => {
-      setIsLoaded(true);
-    };
-
-    script.onerror = () => {
-      setError('Failed to load Google Maps');
-    };
-
-    document.head.appendChild(script);
+    // Load Google Maps library using centralized loader
+    loadMapsLibrary()
+      .then(() => {
+        setIsLoaded(true);
+      })
+      .catch((err) => {
+        console.error('Failed to load Maps library:', err);
+        setError('Failed to load Google Maps');
+      });
   }, []);
 
   useEffect(() => {

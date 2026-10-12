@@ -135,7 +135,7 @@ export default function CenterSignupPage() {
             address: 'Pending', // Temporary address
             email: formData.email,
             phone: formData.phone || '',
-            licenseNumber: 'PENDING', // Temporary license
+            licenseNumber: '', // Empty - to be filled in step 2
             operatingHours: 'Mon-Fri: 09:00-17:00',
             amenities: [],
             status: 'PENDING',
