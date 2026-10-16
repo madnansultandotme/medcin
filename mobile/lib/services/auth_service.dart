@@ -64,7 +64,10 @@ class AuthService {
   }
 
   /// Login user
-  Future<Map<String, dynamic>> signIn(String email, String password) async {
+  Future<Map<String, dynamic>> signIn({
+    required String email,
+    required String password,
+  }) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login'),

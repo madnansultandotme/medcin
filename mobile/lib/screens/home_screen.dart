@@ -58,7 +58,7 @@ class HomeScreen extends StatelessWidget {
                                     backgroundColor:
                                         Theme.of(context).primaryColor,
                                     child: Text(
-                                      user.name[0].toUpperCase(),
+                                      (user['name'] as String? ?? 'U')[0].toUpperCase(),
                                       style: const TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold,
@@ -81,7 +81,7 @@ class HomeScreen extends StatelessWidget {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          user.name,
+                                          user['name'] as String? ?? 'User',
                                           style: const TextStyle(
                                             fontSize: 20,
                                             fontWeight: FontWeight.bold,
@@ -102,7 +102,7 @@ class HomeScreen extends StatelessWidget {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      user.email,
+                                      user['email'] as String? ?? 'No email',
                                       style: TextStyle(
                                         color: Colors.grey[700],
                                         fontSize: 14,
@@ -118,7 +118,7 @@ class HomeScreen extends StatelessWidget {
                                       size: 20, color: Colors.grey[600]),
                                   const SizedBox(width: 8),
                                   Text(
-                                    'Role: ${user.role}',
+                                    'Role: ${user['role'] as String? ?? 'user'}',
                                     style: TextStyle(
                                       color: Colors.grey[700],
                                       fontSize: 14,
@@ -141,7 +141,7 @@ class HomeScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
 
-                      if (user.role == 'patient') ...[
+                      if (user['role'] == 'patient') ...[
                         _buildActionCard(
                           context,
                           icon: Icons.search,
@@ -173,7 +173,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ],
 
-                      if (user.role == 'center') ...[
+                      if (user['role'] == 'center') ...[
                         _buildActionCard(
                           context,
                           icon: Icons.person_add,
@@ -204,7 +204,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ],
 
-                      if (user.role == 'admin') ...[
+                      if (user['role'] == 'admin') ...[
                         _buildActionCard(
                           context,
                           icon: Icons.business,

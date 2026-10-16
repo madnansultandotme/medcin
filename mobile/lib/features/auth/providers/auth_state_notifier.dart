@@ -1,15 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../domain/repositories/auth_repository.dart';
-import '../data/repositories/local_auth_repository.dart';
+import '../../../services/auth_service.dart';
 import '../domain/models/user_model.dart';
 import 'auth_state.dart';
 
 part 'auth_state_notifier.g.dart';
 
-/// Auth repository provider - Keep it simple to avoid circular dependencies
-final authRepositoryProvider = Provider<IAuthRepository>((ref) {
-  return LocalAuthRepository();
+/// Auth service provider
+final authServiceProvider = Provider<AuthService>((ref) {
+  return AuthService();
 });
 
 /// Auth state notifier for managing authentication state
@@ -26,25 +25,18 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     try {
       state = const AuthState.loading();
       
-      final authRepo = ref.read(authRepositoryProvider);
-      final user = await authRepo.getCurrentUser();
+      final authService = ref.read(authServiceProvider);
+      final session = await authService.refreshSession();
       
-      if (user != null) {
+      if (session != null && session['user'] != null) {
+        final userMap = session['user'] as Map<String, dynamic>;
+        final user = UserModel.fromJson(userMap);
         state = AuthState.authenticated(user);
       } else {
         state = const AuthState.unauthenticated();
       }
-      
-      // Listen to auth state changes
-      authRepo.authStateChanges.listen((user) {
-        if (user != null) {
-          state = AuthState.authenticated(user);
-        } else {
-          state = const AuthState.unauthenticated();
-        }
-      });
     } catch (e) {
-      state = AuthState.error(e.toString());
+      state = const AuthState.unauthenticated();
     }
   }
 
@@ -53,10 +45,16 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     try {
       state = state.copyWith(isLoading: true, error: null);
       
-      final authRepo = ref.read(authRepositoryProvider);
-      final user = await authRepo.signInWithEmail(email, password);
+      final authService = ref.read(authServiceProvider);
+      final result = await authService.signIn(email: email, password: password);
       
-      state = AuthState.authenticated(user);
+      if (result['user'] != null) {
+        final userMap = result['user'] as Map<String, dynamic>;
+        final user = UserModel.fromJson(userMap);
+        state = AuthState.authenticated(user);
+      } else {
+        throw Exception('Invalid response from server');
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -65,7 +63,9 @@ class AuthStateNotifier extends _$AuthStateNotifier {
       
       // Clear error after 3 seconds
       Future.delayed(const Duration(seconds: 3), () {
-        state = state.copyWith(error: null);
+        if (mounted) {
+          state = state.copyWith(error: null);
+        }
       });
     }
   }
@@ -75,10 +75,20 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     try {
       state = state.copyWith(isLoading: true, error: null);
       
-      final authRepo = ref.read(authRepositoryProvider);
-      final user = await authRepo.signUpWithEmail(email, password, name);
+      final authService = ref.read(authServiceProvider);
+      final result = await authService.signUp(
+        email: email,
+        password: password,
+        name: name,
+      );
       
-      state = AuthState.authenticated(user);
+      if (result['user'] != null) {
+        final userMap = result['user'] as Map<String, dynamic>;
+        final user = UserModel.fromJson(userMap);
+        state = AuthState.authenticated(user);
+      } else {
+        throw Exception('Invalid response from server');
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -87,7 +97,9 @@ class AuthStateNotifier extends _$AuthStateNotifier {
       
       // Clear error after 3 seconds
       Future.delayed(const Duration(seconds: 3), () {
-        state = state.copyWith(error: null);
+        if (mounted) {
+          state = state.copyWith(error: null);
+        }
       });
     }
   }
@@ -95,8 +107,8 @@ class AuthStateNotifier extends _$AuthStateNotifier {
   /// Sign out
   Future<void> signOut() async {
     try {
-      final authRepo = ref.read(authRepositoryProvider);
-      await authRepo.signOut();
+      final authService = ref.read(authServiceProvider);
+      await authService.signOut();
       state = const AuthState.unauthenticated();
     } catch (e) {
       state = state.copyWith(error: e.toString().replaceAll('Exception: ', ''));
@@ -108,8 +120,8 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     try {
       state = state.copyWith(isLoading: true, error: null);
       
-      final authRepo = ref.read(authRepositoryProvider);
-      await authRepo.resetPassword(email);
+      final authService = ref.read(authServiceProvider);
+      await authService.forgotPassword(email: email);
       
       state = state.copyWith(isLoading: false);
     } catch (e) {
@@ -120,7 +132,9 @@ class AuthStateNotifier extends _$AuthStateNotifier {
       
       // Clear error after 3 seconds
       Future.delayed(const Duration(seconds: 3), () {
-        state = state.copyWith(error: null);
+        if (mounted) {
+          state = state.copyWith(error: null);
+        }
       });
     }
   }
