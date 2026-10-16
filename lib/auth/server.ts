@@ -13,13 +13,11 @@ import * as schema from "@/db/schema";
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
-    usePlural: true, // Use plural table names (sessions, accounts, verifications)
     schema: {
-      ...schema,
-      user: schema.users, // Map 'user' to our 'users' table
-      session: schema.sessions, // Use our sessions table (plural)
-      account: schema.accounts, // Use our accounts table (plural)
-      verification: schema.verifications, // Use our verifications table (plural)
+      user: schema.users,
+      session: schema.sessions,
+      account: schema.accounts,
+      verification: schema.verifications,
     },
   }),
   emailAndPassword: {
@@ -33,10 +31,13 @@ export const auth = betterAuth({
       maxAge: 60 * 5, // Cache session validation for 5 minutes
     },
   },
-  baseURL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-  trustedOrigins: process.env.NEXT_PUBLIC_APP_URL 
-    ? [process.env.NEXT_PUBLIC_APP_URL, "http://localhost:3000"]
-    : ["http://localhost:3000"],
+  baseURL: process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  trustedOrigins: [
+    process.env.BETTER_AUTH_URL || "",
+    process.env.NEXT_PUBLIC_APP_URL || "",
+    "http://localhost:3000",
+    "https://medcin.vercel.app"
+  ].filter(Boolean),
 });
 
 export type Auth = typeof auth;

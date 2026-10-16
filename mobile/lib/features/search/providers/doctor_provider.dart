@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/repositories/doctor_repository.dart';
-import '../data/repositories/local_doctor_repository.dart';
+import '../data/repositories/api_doctor_repository.dart';
 import '../../../shared/models/doctor.dart';
 
-/// Repository provider
+/// Repository provider - now using API
 final doctorRepositoryProvider = Provider<IDoctorRepository>((ref) {
-  return LocalDoctorRepository();
+  return ApiDoctorRepository();
 });
 
 /// Provider for all doctors
@@ -14,10 +14,10 @@ final allDoctorsProvider = FutureProvider<List<Doctor>>((ref) async {
   return repository.getAllDoctors();
 });
 
-/// Synchronous doctors provider (loads from cache/Hive immediately)
-final doctorsProvider = Provider<List<Doctor>>((ref) {
-  final repository = ref.read(doctorRepositoryProvider) as LocalDoctorRepository;
-  return repository.getCachedDoctors();
+/// Synchronous doctors provider (for immediate access)
+final doctorsProvider = FutureProvider<List<Doctor>>((ref) async {
+  final repository = ref.read(doctorRepositoryProvider);
+  return repository.getAllDoctors();
 });
 
 /// Provider for searching doctors with filters

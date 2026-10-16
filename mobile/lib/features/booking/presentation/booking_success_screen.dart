@@ -9,6 +9,7 @@ import '../../../shared/models/doctor.dart';
 
 class BookingSuccessScreen extends StatefulWidget {
   final String bookingReference;
+  final String bookingId;
   final Doctor doctor;
   final Service service;
   final DateTime selectedDate;
@@ -17,6 +18,7 @@ class BookingSuccessScreen extends StatefulWidget {
   const BookingSuccessScreen({
     super.key,
     required this.bookingReference,
+    required this.bookingId,
     required this.doctor,
     required this.service,
     required this.selectedDate,

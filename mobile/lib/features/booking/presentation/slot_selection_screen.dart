@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/service.dart';
 import '../../../shared/models/doctor.dart';
+import '../../../services/api_service.dart';
 import 'patient_details_screen.dart';
 
 class SlotSelectionScreen extends StatefulWidget {
@@ -22,14 +23,47 @@ class SlotSelectionScreen extends StatefulWidget {
 }
 
 class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
+  final ApiService _apiService = ApiService();
   DateTime _selectedDate = DateTime.now();
-  String? _selectedTimeSlot;
+  Map<String, dynamic>? _selectedSlot;
   
-  final List<String> _timeSlots = [
-    '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM',
-    '11:00 AM', '11:30 AM', '02:00 PM', '02:30 PM',
-    '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM',
-  ];
+  bool _isLoadingSlots = false;
+  List<dynamic> _availableSlots = [];
+  String? _slotsError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSlots();
+  }
+
+  Future<void> _loadSlots() async {
+    setState(() {
+      _isLoadingSlots = true;
+      _slotsError = null;
+    });
+
+    try {
+      final formattedDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
+      final slotsData = await _apiService.getSlots(
+        doctorId: widget.doctor.id,
+        date: formattedDate,
+      );
+      
+      setState(() {
+        _availableSlots = (slotsData['slots'] as List? ?? [])
+          .where((slot) => slot['status'] == 'AVAILABLE')
+          .toList();
+        _isLoadingSlots = false;
+      });
+    } catch (e) {
+      setState(() {
+        _slotsError = e.toString();
+        _availableSlots = [];
+        _isLoadingSlots = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -166,7 +200,60 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                           ),
                     ),
                     const SizedBox(height: 16),
-                    _buildTimeSlots(),
+                    if (_isLoadingSlots)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    else if (_slotsError != null)
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32.0),
+                          child: Column(
+                            children: [
+                              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Failed to load slots',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 8),
+                              ElevatedButton.icon(
+                                onPressed: _loadSlots,
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('Retry'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else if (_availableSlots.isEmpty)
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32.0),
+                          child: Column(
+                            children: [
+                              const Icon(Icons.event_busy, size: 48, color: AppColors.textSecondary),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No available slots',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Please try another date',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      _buildTimeSlots(),
                   ],
                 ),
               ),
@@ -174,7 +261,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: _selectedTimeSlot != null
+      bottomNavigationBar: _selectedSlot != null
           ? Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -197,7 +284,8 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                           doctor: widget.doctor,
                           service: widget.service,
                           selectedDate: _selectedDate,
-                          selectedTime: _selectedTimeSlot!,
+                          selectedTime: _selectedSlot!['time'],
+                          slotId: _selectedSlot!['id'],
                         ),
                       ),
                     );
@@ -290,7 +378,8 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
         itemBuilder: (context, index) {
           final date = DateTime.now().add(Duration(days: index));
           final isSelected = _selectedDate.day == date.day &&
-              _selectedDate.month == date.month;
+              _selectedDate.month == date.month &&
+              _selectedDate.year == date.year;
           
           return Padding(
             padding: const EdgeInsets.only(right: 12),
@@ -298,7 +387,9 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
               onTap: () {
                 setState(() {
                   _selectedDate = date;
+                  _selectedSlot = null; // Reset selection when date changes
                 });
+                _loadSlots(); // Load slots for new date
               },
               child: Container(
                 width: MediaQuery.of(context).size.width * 0.15,
@@ -351,12 +442,12 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
     return Wrap(
       spacing: 12,
       runSpacing: 12,
-      children: _timeSlots.map((slot) {
-        final isSelected = _selectedTimeSlot == slot;
+      children: _availableSlots.map<Widget>((slot) {
+        final isSelected = _selectedSlot?['id'] == slot['id'];
         return GestureDetector(
           onTap: () {
             setState(() {
-              _selectedTimeSlot = slot;
+              _selectedSlot = slot;
             });
           },
           child: Container(
@@ -369,7 +460,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
               ),
             ),
             child: Text(
-              slot,
+              slot['time'] ?? '',
               style: TextStyle(
                 color: isSelected ? Colors.white : AppColors.textPrimary,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,

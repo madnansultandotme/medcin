@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/service.dart';
 import '../../../shared/models/doctor.dart';
+import '../../../services/api_service.dart';
 import 'booking_success_screen.dart';
 
 class BookingConfirmationScreen extends StatefulWidget {
@@ -13,6 +13,7 @@ class BookingConfirmationScreen extends StatefulWidget {
   final Service service;
   final DateTime selectedDate;
   final String selectedTime;
+  final String slotId;
   final String patientName;
   final String patientEmail;
   final String patientPhone;
@@ -24,6 +25,7 @@ class BookingConfirmationScreen extends StatefulWidget {
     required this.service,
     required this.selectedDate,
     required this.selectedTime,
+    required this.slotId,
     required this.patientName,
     required this.patientEmail,
     required this.patientPhone,
@@ -35,14 +37,9 @@ class BookingConfirmationScreen extends StatefulWidget {
 }
 
 class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
+  final ApiService _apiService = ApiService();
   bool _acceptedTerms = false;
   bool _isBooking = false;
-
-  String _generateBookingReference() {
-    final random = Random();
-    final number = random.nextInt(90000) + 10000;
-    return 'MED-SG-$number';
-  }
 
   Future<void> _confirmBooking() async {
     if (!_acceptedTerms) {
@@ -57,24 +54,47 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
 
     setState(() => _isBooking = true);
 
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (mounted) {
-      setState(() => _isBooking = false);
+    try {
+      final formattedDate = DateFormat('yyyy-MM-dd').format(widget.selectedDate);
       
-      final bookingRef = _generateBookingReference();
+      final booking = await _apiService.createBooking(
+        doctorId: widget.doctor.id,
+        slotId: widget.slotId,
+        serviceId: widget.service.id,
+        date: formattedDate,
+        time: widget.selectedTime,
+        price: widget.service.price,
+        notes: widget.notes.isNotEmpty ? widget.notes : null,
+        paymentMethod: 'Pay at Clinic',
+      );
+
+      if (!mounted) return;
+
+      setState(() => _isBooking = false);
       
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => BookingSuccessScreen(
-            bookingReference: bookingRef,
+            bookingReference: booking['reference'],
+            bookingId: booking['id'],
             doctor: widget.doctor,
             service: widget.service,
             selectedDate: widget.selectedDate,
             selectedTime: widget.selectedTime,
           ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() => _isBooking = false);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to create booking: ${e.toString()}'),
+          backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 4),
         ),
       );
     }

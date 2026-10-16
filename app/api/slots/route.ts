@@ -3,7 +3,7 @@ import { getAuthenticatedUser, getUserCenterId } from '@/lib/middleware/permissi
 
 import { db } from '@/db';
 import { slots, doctors } from '@/db/schema';
-import { eq, and, gte, lte } from 'drizzle-orm';
+import { eq, and, gte, lte, inArray } from 'drizzle-orm';
 
 /**
  * Slots Management API
@@ -12,8 +12,9 @@ import { eq, and, gte, lte } from 'drizzle-orm';
  */
 
 /**
- * GET - Get slots for a doctor
- * Query params: doctorId (required), date (optional), startDate (optional), endDate (optional)
+ * GET - Get slots
+ * Query params: doctorId (optional), date (optional), startDate (optional), endDate (optional)
+ * If no doctorId provided and user is CENTER role, returns all slots for their center
  */
 export async function GET(req: NextRequest) {
   try {
@@ -23,35 +24,140 @@ export async function GET(req: NextRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    if (!doctorId) {
+    // If doctorId is provided, fetch slots for that specific doctor
+    if (doctorId) {
+      // Build query conditions
+      const conditions = [eq(slots.doctorId, doctorId)];
+
+      if (date) {
+        conditions.push(eq(slots.date, date));
+      } else if (startDate && endDate) {
+        conditions.push(gte(slots.date, startDate));
+        conditions.push(lte(slots.date, endDate));
+      }
+
+      // Query slots
+      const slotsList = await db
+        .select()
+        .from(slots)
+        .where(and(...conditions))
+        .orderBy(slots.date, slots.startTime)
+        .limit(500);
+
+      return NextResponse.json({
+        slots: slotsList,
+        count: slotsList.length,
+      });
+    }
+
+    // No doctorId - fetch all slots for authenticated user's center
+    const authContext = await getAuthenticatedUser();
+    if (!authContext) {
       return NextResponse.json(
-        { error: 'Doctor ID is required' },
-        { status: 400 }
+        { error: 'Unauthorized' },
+        { status: 401 }
       );
     }
 
-    // Build query conditions
-    const conditions = [eq(slots.doctorId, doctorId)];
+    const { user } = authContext;
 
-    if (date) {
-      conditions.push(eq(slots.date, date));
-    } else if (startDate && endDate) {
-      conditions.push(gte(slots.date, startDate));
-      conditions.push(lte(slots.date, endDate));
+    // Only CENTER users can fetch all their slots without doctorId
+    if (user.role === 'CENTER') {
+      const userCenterId = await getUserCenterId(user.id);
+      
+      if (!userCenterId) {
+        return NextResponse.json(
+          { error: 'Center not found' },
+          { status: 404 }
+        );
+      }
+
+      // Get all doctors for this center
+      const centerDoctors = await db
+        .select()
+        .from(doctors)
+        .where(eq(doctors.centerId, userCenterId));
+
+      // Get all doctors for this center
+      const centerDoctorIds = centerDoctors.map(d => d.id);
+
+      if (centerDoctorIds.length === 0) {
+        return NextResponse.json({
+          slots: [],
+          doctors: [],
+          count: 0,
+        });
+      }
+
+      // Build conditions for center slots
+      const conditions = [];
+      
+      // Filter by date if provided
+      if (date) {
+        conditions.push(eq(slots.date, date));
+      } else if (startDate && endDate) {
+        conditions.push(gte(slots.date, startDate));
+        conditions.push(lte(slots.date, endDate));
+      } else {
+        // Default: only show future slots
+        const today = new Date().toISOString().split('T')[0];
+        conditions.push(gte(slots.date, today));
+      }
+
+      // Query all slots for center's doctors
+      const centerSlots = await db
+        .select()
+        .from(slots)
+        .where(
+          and(
+            ...conditions,
+            // Check if doctorId is in the center's doctors list
+            eq(slots.doctorId, centerDoctorIds[0])
+          )
+        )
+        .orderBy(slots.date, slots.startTime)
+        .limit(500);
+
+      // For multiple doctors, we need to use a different approach
+      // Let's fetch for each doctor and combine
+      const allSlots = [];
+      for (const doctorId of centerDoctorIds) {
+        const doctorSlots = await db
+          .select()
+          .from(slots)
+          .where(
+            and(
+              eq(slots.doctorId, doctorId),
+              ...conditions
+            )
+          );
+        allSlots.push(...doctorSlots);
+      }
+
+      // Transform to ensure camelCase
+      const transformedSlots = allSlots.map(slot => ({
+        id: slot.id,
+        doctorId: slot.doctorId,
+        date: slot.date,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        status: slot.status,
+        createdAt: slot.createdAt,
+        updatedAt: slot.updatedAt,
+      }));
+
+      return NextResponse.json({
+        slots: transformedSlots,
+        doctors: centerDoctors,
+        count: transformedSlots.length,
+      });
     }
 
-    // Query slots
-    const slotsList = await db
-      .select()
-      .from(slots)
-      .where(and(...conditions))
-      .orderBy(slots.date, slots.startTime)
-      .limit(500);
-
-    return NextResponse.json({
-      slots: slotsList,
-      count: slotsList.length,
-    });
+    // For non-CENTER users, doctorId is required
+    return NextResponse.json(
+      { error: 'Doctor ID is required for your role' },
+      { status: 400 }
+    );
   } catch (error) {
     console.error('Slots fetch error:', error);
     return NextResponse.json(

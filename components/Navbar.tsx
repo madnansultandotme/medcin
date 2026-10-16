@@ -95,15 +95,15 @@ export function Navbar() {
                 {!isDashboardRoute && (
                   <Link
                     href="/portal"
-                    className="px-4 py-1.5 font-mono-ledger text-xs font-bold bg-[var(--clay)] text-white hover:opacity-95 transition-opacity inline-flex items-center gap-1.5 rounded-full shadow-sm"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-[var(--clay)] text-white hover:bg-[var(--clay)]/90 transition-all rounded-full shadow-sm font-sans-ledger text-sm font-semibold"
                   >
-                    <Calendar className="w-3.5 h-3.5" />
+                    <Calendar className="w-4 h-4" />
                     <span>Go to Dashboard</span>
                   </Link>
                 )}
                 <button
                   onClick={handleSignOut}
-                  className="flex items-center gap-2 px-4 py-2 border-2 border-[var(--sage)] rounded-full text-[var(--sage)] font-sans-ledger text-sm hover:bg-[var(--sage)] hover:text-white transition-all font-semibold shadow-sm"
+                  className="flex items-center gap-2 px-5 py-2.5 border-2 border-[var(--sage)] rounded-full text-[var(--sage)] font-sans-ledger text-sm hover:bg-[var(--sage)] hover:text-white transition-all font-semibold shadow-sm"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Sign Out</span>

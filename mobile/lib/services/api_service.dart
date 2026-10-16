@@ -2,13 +2,16 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
-/// API Service for all backend calls
-/// This service calls the Next.js API routes, NOT Neon directly
+/// API Service for Mobile Backend (v1)
+/// Base URL: https://medcin.vercel.app/api/mobile/v1
 class ApiService {
   final AuthService _authService = AuthService();
   
-  // Backend URL - TODO: Change to deployed URL in production
-  static const String baseUrl = 'http://localhost:3000/api';
+  // Mobile API Base URL - Production
+  static const String baseUrl = 'https://medcin.vercel.app/api/mobile/v1';
+  
+  // For local development, uncomment this:
+  // static const String baseUrl = 'http://localhost:3000/api/mobile/v1';
 
   /// Helper: Get authorization headers with token
   Future<Map<String, String>> _getHeaders() async {
@@ -16,120 +19,175 @@ class ApiService {
     return {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
-      if (token != null) 'Cookie': 'session=$token',
     };
+  }
+
+  /// Helper: Parse response with standard format
+  Map<String, dynamic> _parseResponse(http.Response response) {
+    final data = jsonDecode(response.body);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return data;
+    }
+    throw Exception(data['error'] ?? 'Request failed');
+  }
+
+  // ==================== HEALTH CHECK ====================
+  
+  /// Check API health status
+  Future<Map<String, dynamic>> checkHealth() async {
+    final response = await http.get(Uri.parse('$baseUrl/health'));
+    return _parseResponse(response);
+  }
+
+  /// Check API version and app requirements
+  Future<Map<String, dynamic>> checkVersion() async {
+    final response = await http.get(Uri.parse('$baseUrl/version'));
+    return _parseResponse(response);
   }
 
   // ==================== DOCTORS ====================
   
-  /// Get list of doctors (public endpoint)
+  /// Get list of doctors with optional filters
   Future<List<dynamic>> getDoctors({
-    String? search,
-    String? category,
-    String? centerId,
+    bool? featured,
+    int? limit,
   }) async {
     final queryParams = <String, String>{};
-    if (search != null) queryParams['search'] = search;
-    if (category != null) queryParams['category'] = category;
-    if (centerId != null) queryParams['centerId'] = centerId;
+    if (featured != null) queryParams['featured'] = featured.toString();
+    if (limit != null) queryParams['limit'] = limit.toString();
 
     final uri = Uri.parse('$baseUrl/doctors').replace(queryParameters: queryParams);
     final response = await http.get(uri);
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['doctors'] ?? [];
-    }
-    throw Exception('Failed to fetch doctors');
+    final data = _parseResponse(response);
+    return data['data']['doctors'] ?? [];
   }
 
-  /// Get doctor by ID
+  /// Search doctors with advanced filters
+  Future<Map<String, dynamic>> searchDoctors({
+    String? query,
+    String? category,
+    double? minPrice,
+    double? maxPrice,
+    double? minRating,
+    String? city,
+    String? country,
+    double? latitude,
+    double? longitude,
+    int? radius,
+    int? page,
+    int? limit,
+  }) async {
+    final queryParams = <String, String>{};
+    if (query != null) queryParams['q'] = query;
+    if (category != null) queryParams['category'] = category;
+    if (minPrice != null) queryParams['minPrice'] = minPrice.toString();
+    if (maxPrice != null) queryParams['maxPrice'] = maxPrice.toString();
+    if (minRating != null) queryParams['rating'] = minRating.toString();
+    if (city != null) queryParams['city'] = city;
+    if (country != null) queryParams['country'] = country;
+    if (latitude != null) queryParams['latitude'] = latitude.toString();
+    if (longitude != null) queryParams['longitude'] = longitude.toString();
+    if (radius != null) queryParams['radius'] = radius.toString();
+    if (page != null) queryParams['page'] = page.toString();
+    if (limit != null) queryParams['limit'] = limit.toString();
+
+    final uri = Uri.parse('$baseUrl/doctors/search').replace(queryParameters: queryParams);
+    final response = await http.get(uri);
+    final data = _parseResponse(response);
+    return data['data'];
+  }
+
+  /// Get doctor by ID with full details
   Future<Map<String, dynamic>> getDoctorById(String id) async {
-    final doctors = await getDoctors();
-    return doctors.firstWhere(
-      (doctor) => doctor['id'] == id,
-      orElse: () => throw Exception('Doctor not found'),
-    );
+    final response = await http.get(Uri.parse('$baseUrl/doctors/$id'));
+    final data = _parseResponse(response);
+    return data['data'];
+  }
+
+  /// Get doctor categories
+  Future<List<dynamic>> getDoctorCategories() async {
+    final response = await http.get(Uri.parse('$baseUrl/doctors/categories'));
+    final data = _parseResponse(response);
+    return data['data']['categories'] ?? [];
   }
 
   // ==================== CENTERS ====================
   
-  /// Get list of centers (public endpoint)
-  Future<List<dynamic>> getCenters({
-    String? search,
+  /// Search medical centers
+  Future<Map<String, dynamic>> searchCenters({
+    String? query,
     String? category,
-    String? status,
+    String? city,
+    String? country,
+    double? latitude,
+    double? longitude,
+    int? radius,
+    int? page,
+    int? limit,
   }) async {
     final queryParams = <String, String>{};
-    if (search != null) queryParams['search'] = search;
+    if (query != null) queryParams['q'] = query;
     if (category != null) queryParams['category'] = category;
-    if (status != null) queryParams['status'] = status;
+    if (city != null) queryParams['city'] = city;
+    if (country != null) queryParams['country'] = country;
+    if (latitude != null) queryParams['latitude'] = latitude.toString();
+    if (longitude != null) queryParams['longitude'] = longitude.toString();
+    if (radius != null) queryParams['radius'] = radius.toString();
+    if (page != null) queryParams['page'] = page.toString();
+    if (limit != null) queryParams['limit'] = limit.toString();
 
     final uri = Uri.parse('$baseUrl/centers').replace(queryParameters: queryParams);
     final response = await http.get(uri);
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['centers'] ?? [];
-    }
-    throw Exception('Failed to fetch centers');
+    final data = _parseResponse(response);
+    return data['data'];
   }
 
-  // ==================== SERVICES ====================
-  
-  /// Get services for a doctor (public endpoint)
-  Future<List<dynamic>> getServices(String doctorId) async {
-    final uri = Uri.parse('$baseUrl/services').replace(
-      queryParameters: {'doctorId': doctorId},
-    );
-    final response = await http.get(uri);
+  /// Get center by ID with full details
+  Future<Map<String, dynamic>> getCenterById(String id) async {
+    final response = await http.get(Uri.parse('$baseUrl/centers/$id'));
+    final data = _parseResponse(response);
+    return data['data'];
+  }
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['services'] ?? [];
-    }
-    throw Exception('Failed to fetch services');
+  /// Get center categories
+  Future<List<dynamic>> getCenterCategories() async {
+    final response = await http.get(Uri.parse('$baseUrl/centers/categories'));
+    final data = _parseResponse(response);
+    return data['data']['categories'] ?? [];
   }
 
   // ==================== SLOTS ====================
   
-  /// Get available slots for a doctor (public endpoint)
-  Future<List<dynamic>> getSlots({
+  /// Get available time slots for a doctor
+  Future<Map<String, dynamic>> getSlots({
     required String doctorId,
     String? date,
-    String? status,
   }) async {
     final queryParams = {'doctorId': doctorId};
     if (date != null) queryParams['date'] = date;
-    if (status != null) queryParams['status'] = status;
 
     final uri = Uri.parse('$baseUrl/slots').replace(queryParameters: queryParams);
     final response = await http.get(uri);
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['slots'] ?? [];
-    }
-    throw Exception('Failed to fetch slots');
+    final data = _parseResponse(response);
+    return data['data'];
   }
 
   // ==================== BOOKINGS ====================
   
   /// Get user's bookings (authenticated)
-  Future<List<dynamic>> getBookings() async {
+  Future<List<dynamic>> getBookings({
+    String? status,
+    int? limit,
+  }) async {
     final headers = await _getHeaders();
-    final response = await http.get(
-      Uri.parse('$baseUrl/bookings'),
-      headers: headers,
-    );
+    final queryParams = <String, String>{};
+    if (status != null) queryParams['status'] = status;
+    if (limit != null) queryParams['limit'] = limit.toString();
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['bookings'] ?? [];
-    } else if (response.statusCode == 401) {
-      throw Exception('Unauthorized - please login');
-    }
-    throw Exception('Failed to fetch bookings');
+    final uri = Uri.parse('$baseUrl/bookings').replace(queryParameters: queryParams);
+    final response = await http.get(uri, headers: headers);
+    final data = _parseResponse(response);
+    return data['data']['bookings'] ?? [];
   }
 
   /// Create a booking (authenticated)
@@ -141,6 +199,7 @@ class ApiService {
     required double price,
     String? serviceId,
     String? notes,
+    String? paymentMethod,
   }) async {
     final headers = await _getHeaders();
     final response = await http.post(
@@ -154,71 +213,61 @@ class ApiService {
         'price': price,
         if (serviceId != null) 'serviceId': serviceId,
         if (notes != null) 'notes': notes,
+        if (paymentMethod != null) 'paymentMethod': paymentMethod,
       }),
     );
-
-    if (response.statusCode == 201) {
-      final data = jsonDecode(response.body);
-      return data['booking'];
-    } else if (response.statusCode == 401) {
-      throw Exception('Unauthorized - please login');
-    }
-    throw Exception('Failed to create booking');
+    final data = _parseResponse(response);
+    return data['data']['booking'];
   }
 
-  /// Update booking status (authenticated)
-  Future<Map<String, dynamic>> updateBooking({
+  /// Get booking details by ID (authenticated)
+  Future<Map<String, dynamic>> getBookingById(String id) async {
+    final headers = await _getHeaders();
+    final response = await http.get(
+      Uri.parse('$baseUrl/bookings/$id'),
+      headers: headers,
+    );
+    final data = _parseResponse(response);
+    return data['data']['booking'];
+  }
+
+  /// Cancel booking (authenticated)
+  Future<Map<String, dynamic>> cancelBooking({
     required String bookingId,
-    String? status,
-    String? notes,
     String? cancellationReason,
   }) async {
     final headers = await _getHeaders();
-    final response = await http.put(
-      Uri.parse('$baseUrl/bookings'),
+    final response = await http.patch(
+      Uri.parse('$baseUrl/bookings/$bookingId'),
       headers: headers,
       body: jsonEncode({
-        'id': bookingId,
-        if (status != null) 'status': status,
-        if (notes != null) 'notes': notes,
+        'action': 'cancel',
         if (cancellationReason != null) 'cancellationReason': cancellationReason,
       }),
     );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['booking'];
-    } else if (response.statusCode == 401) {
-      throw Exception('Unauthorized - please login');
-    }
-    throw Exception('Failed to update booking');
+    final data = _parseResponse(response);
+    return data['data']['booking'];
   }
 
-  // ==================== PATIENT PROFILE ====================
+  // ==================== PROFILE ====================
   
-  /// Get current user's patient profile (authenticated)
-  Future<Map<String, dynamic>?> getPatientProfile() async {
+  /// Get user profile (authenticated)
+  Future<Map<String, dynamic>> getProfile() async {
     final headers = await _getHeaders();
     final response = await http.get(
-      Uri.parse('$baseUrl/patient/profile'),
+      Uri.parse('$baseUrl/profile'),
       headers: headers,
     );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['profile'];
-    } else if (response.statusCode == 404) {
-      return null; // Profile doesn't exist yet
-    } else if (response.statusCode == 401) {
-      throw Exception('Unauthorized - please login');
-    }
-    throw Exception('Failed to fetch profile');
+    final data = _parseResponse(response);
+    return data['data'];
   }
 
-  /// Create patient profile (authenticated)
-  Future<Map<String, dynamic>> createPatientProfile({
-    String? location,
+  /// Update user profile (authenticated)
+  Future<Map<String, dynamic>> updateProfile({
+    String? name,
+    String? phone,
     String? photoUrl,
+    String? location,
     String? emergencyName,
     String? emergencyRelation,
     String? emergencyPhone,
@@ -228,115 +277,152 @@ class ApiService {
     String? preferredLanguage,
   }) async {
     final headers = await _getHeaders();
-    final response = await http.post(
-      Uri.parse('$baseUrl/patient/profile'),
-      headers: headers,
-      body: jsonEncode({
-        if (location != null) 'location': location,
-        if (photoUrl != null) 'photoUrl': photoUrl,
-        if (emergencyName != null) 'emergencyName': emergencyName,
-        if (emergencyRelation != null) 'emergencyRelation': emergencyRelation,
-        if (emergencyPhone != null) 'emergencyPhone': emergencyPhone,
-        if (medicalNotes != null) 'medicalNotes': medicalNotes,
-        if (insuranceProvider != null) 'insuranceProvider': insuranceProvider,
-        if (insurancePolicy != null) 'insurancePolicy': insurancePolicy,
-        if (preferredLanguage != null) 'preferredLanguage': preferredLanguage,
-      }),
-    );
+    final body = <String, dynamic>{};
+    if (name != null) body['name'] = name;
+    if (phone != null) body['phone'] = phone;
+    if (photoUrl != null) body['photoUrl'] = photoUrl;
+    if (location != null) body['location'] = location;
+    if (emergencyName != null) body['emergencyName'] = emergencyName;
+    if (emergencyRelation != null) body['emergencyRelation'] = emergencyRelation;
+    if (emergencyPhone != null) body['emergencyPhone'] = emergencyPhone;
+    if (medicalNotes != null) body['medicalNotes'] = medicalNotes;
+    if (insuranceProvider != null) body['insuranceProvider'] = insuranceProvider;
+    if (insurancePolicy != null) body['insurancePolicy'] = insurancePolicy;
+    if (preferredLanguage != null) body['preferredLanguage'] = preferredLanguage;
 
-    if (response.statusCode == 201) {
-      final data = jsonDecode(response.body);
-      return data['profile'];
-    } else if (response.statusCode == 401) {
-      throw Exception('Unauthorized - please login');
-    }
-    throw Exception('Failed to create profile');
+    final response = await http.patch(
+      Uri.parse('$baseUrl/profile'),
+      headers: headers,
+      body: jsonEncode(body),
+    );
+    final data = _parseResponse(response);
+    return data['data'];
   }
 
-  /// Update patient profile (authenticated)
-  Future<Map<String, dynamic>> updatePatientProfile({
-    required String profileId,
-    String? location,
-    String? photoUrl,
-    String? emergencyName,
-    String? emergencyRelation,
-    String? emergencyPhone,
-    String? medicalNotes,
-    String? insuranceProvider,
-    String? insurancePolicy,
-    String? preferredLanguage,
-  }) async {
-    final headers = await _getHeaders();
-    final response = await http.put(
-      Uri.parse('$baseUrl/patient/profile'),
-      headers: headers,
-      body: jsonEncode({
-        'id': profileId,
-        if (location != null) 'location': location,
-        if (photoUrl != null) 'photoUrl': photoUrl,
-        if (emergencyName != null) 'emergencyName': emergencyName,
-        if (emergencyRelation != null) 'emergencyRelation': emergencyRelation,
-        if (emergencyPhone != null) 'emergencyPhone': emergencyPhone,
-        if (medicalNotes != null) 'medicalNotes': medicalNotes,
-        if (insuranceProvider != null) 'insuranceProvider': insuranceProvider,
-        if (insurancePolicy != null) 'insurancePolicy': insurancePolicy,
-        if (preferredLanguage != null) 'preferredLanguage': preferredLanguage,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['profile'];
-    } else if (response.statusCode == 401) {
-      throw Exception('Unauthorized - please login');
-    }
-    throw Exception('Failed to update profile');
-  }
-
-  // ==================== DISPUTES ====================
+  // ==================== REVIEWS ====================
   
-  /// Get user's disputes (authenticated)
-  Future<List<dynamic>> getDisputes() async {
-    final headers = await _getHeaders();
-    final response = await http.get(
-      Uri.parse('$baseUrl/disputes'),
-      headers: headers,
-    );
+  /// Get reviews for a doctor
+  Future<List<dynamic>> getReviews({
+    required String doctorId,
+    int? limit,
+  }) async {
+    final queryParams = {'doctorId': doctorId};
+    if (limit != null) queryParams['limit'] = limit.toString();
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['disputes'] ?? [];
-    } else if (response.statusCode == 401) {
-      throw Exception('Unauthorized - please login');
-    }
-    throw Exception('Failed to fetch disputes');
+    final uri = Uri.parse('$baseUrl/reviews').replace(queryParameters: queryParams);
+    final response = await http.get(uri);
+    final data = _parseResponse(response);
+    return data['data']['reviews'] ?? [];
   }
 
-  /// Create a dispute (authenticated)
-  Future<Map<String, dynamic>> createDispute({
+  /// Create a review for completed booking (authenticated)
+  Future<Map<String, dynamic>> createReview({
     required String bookingId,
-    required String title,
-    required String description,
-    required double amount,
+    required String doctorId,
+    required int rating,
+    String? comment,
   }) async {
     final headers = await _getHeaders();
     final response = await http.post(
-      Uri.parse('$baseUrl/disputes'),
+      Uri.parse('$baseUrl/reviews'),
       headers: headers,
       body: jsonEncode({
         'bookingId': bookingId,
-        'title': title,
-        'description': description,
-        'amount': amount,
+        'doctorId': doctorId,
+        'rating': rating,
+        if (comment != null) 'comment': comment,
       }),
     );
+    final data = _parseResponse(response);
+    return data['data']['review'];
+  }
 
-    if (response.statusCode == 201) {
-      final data = jsonDecode(response.body);
-      return data['dispute'];
-    } else if (response.statusCode == 401) {
-      throw Exception('Unauthorized - please login');
-    }
-    throw Exception('Failed to create dispute');
+  // ==================== NOTIFICATIONS ====================
+  
+  /// Get user notifications (authenticated)
+  Future<Map<String, dynamic>> getNotifications({
+    bool? unreadOnly,
+    int? limit,
+  }) async {
+    final headers = await _getHeaders();
+    final queryParams = <String, String>{};
+    if (unreadOnly != null) queryParams['unreadOnly'] = unreadOnly.toString();
+    if (limit != null) queryParams['limit'] = limit.toString();
+
+    final uri = Uri.parse('$baseUrl/notifications').replace(queryParameters: queryParams);
+    final response = await http.get(uri, headers: headers);
+    final data = _parseResponse(response);
+    return data['data'];
+  }
+
+  /// Mark all notifications as read (authenticated)
+  Future<void> markAllNotificationsRead() async {
+    final headers = await _getHeaders();
+    await http.patch(
+      Uri.parse('$baseUrl/notifications'),
+      headers: headers,
+    );
+  }
+
+  /// Mark notification as read (authenticated)
+  Future<void> markNotificationRead(String notificationId) async {
+    final headers = await _getHeaders();
+    await http.patch(
+      Uri.parse('$baseUrl/notifications/$notificationId'),
+      headers: headers,
+    );
+  }
+
+  /// Delete notification (authenticated)
+  Future<void> deleteNotification(String notificationId) async {
+    final headers = await _getHeaders();
+    await http.delete(
+      Uri.parse('$baseUrl/notifications/$notificationId'),
+      headers: headers,
+    );
+  }
+
+  // ==================== SUBSCRIPTION ====================
+  
+  /// Get subscription status (authenticated)
+  Future<Map<String, dynamic>> getSubscriptionStatus() async {
+    final headers = await _getHeaders();
+    final response = await http.get(
+      Uri.parse('$baseUrl/subscription'),
+      headers: headers,
+    );
+    final data = _parseResponse(response);
+    return data['data'];
+  }
+
+  /// Activate subscription after in-app purchase (authenticated)
+  Future<Map<String, dynamic>> activateSubscription({
+    required String tier, // 'BASIC' or 'PREMIUM'
+    required String platform, // 'GOOGLE_PLAY' or 'APP_STORE'
+    required String purchaseToken,
+    required int duration, // Duration in months
+  }) async {
+    final headers = await _getHeaders();
+    final response = await http.post(
+      Uri.parse('$baseUrl/subscription'),
+      headers: headers,
+      body: jsonEncode({
+        'tier': tier,
+        'platform': platform,
+        'purchaseToken': purchaseToken,
+        'duration': duration,
+      }),
+    );
+    final data = _parseResponse(response);
+    return data['data'];
+  }
+
+  /// Cancel subscription (authenticated)
+  Future<void> cancelSubscription() async {
+    final headers = await _getHeaders();
+    await http.delete(
+      Uri.parse('$baseUrl/subscription'),
+      headers: headers,
+    );
   }
 }

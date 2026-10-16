@@ -22,7 +22,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final session = await _authService.getSession();
+      final session = await _authService.refreshSession();
       if (session != null && session['user'] != null) {
         _user = session['user'];
       }

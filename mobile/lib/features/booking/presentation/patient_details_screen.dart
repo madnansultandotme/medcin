@@ -15,6 +15,7 @@ class PatientDetailsScreen extends ConsumerStatefulWidget {
   final Service service;
   final DateTime selectedDate;
   final String selectedTime;
+  final String slotId;
   
   const PatientDetailsScreen({
     super.key,
@@ -22,6 +23,7 @@ class PatientDetailsScreen extends ConsumerStatefulWidget {
     required this.service,
     required this.selectedDate,
     required this.selectedTime,
+    required this.slotId,
   });
 
   @override
@@ -289,6 +291,7 @@ class _PatientDetailsScreenState extends ConsumerState<PatientDetailsScreen> {
                       service: widget.service,
                       selectedDate: widget.selectedDate,
                       selectedTime: widget.selectedTime,
+                      slotId: widget.slotId,
                       patientName: _nameController.text,
                       patientEmail: _emailController.text,
                       patientPhone: _phoneController.text,

@@ -2,13 +2,14 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+/// Authentication Service for Mobile API (v1)
+/// Handles user authentication, registration, and session management
 class AuthService {
-  // Neon Auth URL
-  static const String neonAuthUrl =
-      'https://ep-nameless-dust-b4ojh274.neonauth.c-6.us-east-2.aws.neon.tech/neondb/auth';
+  // Mobile API Base URL - Production
+  static const String baseUrl = 'https://medcin.vercel.app/api/mobile/v1';
   
-  // Backend API URL (for user sync and profile data)
-  static const String backendUrl = 'http://localhost:3000'; // TODO: Change to deployed URL in production
+  // For local development, uncomment this:
+  // static const String baseUrl = 'http://localhost:3000/api/mobile/v1';
   
   final _storage = const FlutterSecureStorage();
   
@@ -16,78 +17,57 @@ class AuthService {
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'user_data';
 
-  // Sign Up
+  /// Parse API response
+  Map<String, dynamic> _parseResponse(http.Response response) {
+    final data = jsonDecode(response.body);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return data;
+    }
+    throw Exception(data['error'] ?? 'Request failed');
+  }
+
+  // ==================== AUTHENTICATION ====================
+
+  /// Register new user
   Future<Map<String, dynamic>> signUp({
     required String email,
     required String password,
     required String name,
+    String? phone,
   }) async {
     try {
-      // Step 1: Create account with Neon Auth
-      final signupResponse = await http.post(
-        Uri.parse('$neonAuthUrl/sign-up/email'),
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
           'password': password,
           'name': name,
+          if (phone != null) 'phone': phone,
         }),
       );
 
-      if (signupResponse.statusCode != 200 && signupResponse.statusCode != 201) {
-        final error = jsonDecode(signupResponse.body);
-        throw Exception(error['message'] ?? 'Sign up failed');
-      }
-
-      final authData = jsonDecode(signupResponse.body);
+      final data = _parseResponse(response);
       
-      // Save session token
-      if (authData['token'] != null) {
-        await _storage.write(key: _tokenKey, value: authData['token']);
+      // Save token and user data
+      if (data['data']['token'] != null) {
+        await _storage.write(key: _tokenKey, value: data['data']['token']);
+      }
+      if (data['data']['user'] != null) {
+        await _storage.write(key: _userKey, value: jsonEncode(data['data']['user']));
       }
 
-      // Step 2: Sync user to backend database
-      if (authData['user'] != null && authData['user']['id'] != null) {
-        try {
-          await http.post(
-            Uri.parse('$backendUrl/api/auth/register'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'authUid': authData['user']['id'],
-              'email': email,
-              'name': name,
-              'role': 'PATIENT',
-            }),
-          );
-        } catch (e) {
-          print('Warning: Failed to sync user to backend: $e');
-          // Continue anyway - user is created in Neon Auth
-        }
-
-        // Get full user profile from backend
-        final userData = await _fetchUserProfile(authData['token']);
-        if (userData != null) {
-          await _storage.write(key: _userKey, value: jsonEncode(userData));
-          return {'user': userData, 'token': authData['token']};
-        }
-      }
-
-      // Fallback to Neon Auth user data
-      if (authData['user'] != null) {
-        await _storage.write(key: _userKey, value: jsonEncode(authData['user']));
-      }
-      
-      return authData;
+      return data['data'];
     } catch (e) {
       throw Exception('Sign up failed: $e');
     }
   }
 
-  // Sign In
+  /// Login user
   Future<Map<String, dynamic>> signIn(String email, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('$neonAuthUrl/sign-in/email'),
+        Uri.parse('$baseUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -95,108 +75,34 @@ class AuthService {
         }),
       );
 
-      if (response.statusCode != 200) {
-        final error = jsonDecode(response.body);
-        throw Exception(error['message'] ?? 'Invalid email or password');
-      }
-
-      final authData = jsonDecode(response.body);
+      final data = _parseResponse(response);
       
-      // Save token
-      if (authData['token'] != null) {
-        await _storage.write(key: _tokenKey, value: authData['token']);
+      // Save token and user data
+      if (data['data']['token'] != null) {
+        await _storage.write(key: _tokenKey, value: data['data']['token']);
+      }
+      if (data['data']['user'] != null) {
+        await _storage.write(key: _userKey, value: jsonEncode(data['data']['user']));
       }
 
-      // Get user profile from backend
-      final userData = await _fetchUserProfile(authData['token']);
-      if (userData != null) {
-        await _storage.write(key: _userKey, value: jsonEncode(userData));
-        return {'user': userData, 'token': authData['token']};
-      }
-
-      // Fallback to Neon Auth user data
-      if (authData['user'] != null) {
-        await _storage.write(key: _userKey, value: jsonEncode(authData['user']));
-      }
-
-      return authData;
+      return data['data'];
     } catch (e) {
       throw Exception('Sign in failed: $e');
     }
   }
 
-  // Get current session
-  Future<Map<String, dynamic>?> getSession() async {
-    try {
-      final token = await _storage.read(key: _tokenKey);
-      final userData = await _storage.read(key: _userKey);
-
-      if (token == null) return null;
-
-      // Verify token is still valid
-      final response = await http.get(
-        Uri.parse('$neonAuthUrl/session'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Cookie': 'session=$token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        // Return cached user data if available
-        if (userData != null) {
-          return {
-            'user': jsonDecode(userData),
-            'token': token,
-          };
-        }
-
-        final sessionData = jsonDecode(response.body);
-        return sessionData;
-      }
-
-      // Token invalid, clear storage
-      await signOut();
-      return null;
-    } catch (e) {
-      print('Session check failed: $e');
-      return null;
-    }
-  }
-
-  // Fetch user profile from backend
-  Future<Map<String, dynamic>?> _fetchUserProfile(String token) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$backendUrl/api/auth/me'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Cookie': 'session=$token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data['user'];
-      }
-    } catch (e) {
-      print('Failed to fetch user profile: $e');
-    }
-    return null;
-  }
-
-  // Sign out
+  /// Logout user
   Future<void> signOut() async {
     try {
       final token = await _storage.read(key: _tokenKey);
       
       if (token != null) {
-        // Call backend signout
+        // Call backend logout endpoint
         await http.post(
-          Uri.parse('$neonAuthUrl/sign-out'),
+          Uri.parse('$baseUrl/auth/logout'),
           headers: {
             'Authorization': 'Bearer $token',
-            'Cookie': 'session=$token',
+            'Content-Type': 'application/json',
           },
         );
       }
@@ -209,7 +115,113 @@ class AuthService {
     }
   }
 
-  // Get stored user
+  /// Refresh session token
+  Future<Map<String, dynamic>?> refreshSession() async {
+    try {
+      final token = await _storage.read(key: _tokenKey);
+      if (token == null) return null;
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/refresh'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = _parseResponse(response);
+        
+        // Update stored user data
+        if (data['data']['user'] != null) {
+          await _storage.write(key: _userKey, value: jsonEncode(data['data']['user']));
+        }
+        
+        return data['data'];
+      }
+
+      // Token invalid, clear storage
+      await signOut();
+      return null;
+    } catch (e) {
+      print('Session refresh failed: $e');
+      await signOut();
+      return null;
+    }
+  }
+
+  /// Check if user is authenticated
+  Future<bool> isAuthenticated() async {
+    final token = await _storage.read(key: _tokenKey);
+    if (token == null) return false;
+
+    // Validate token by refreshing
+    final session = await refreshSession();
+    return session != null;
+  }
+
+  // ==================== PASSWORD MANAGEMENT ====================
+
+  /// Request password reset
+  Future<void> forgotPassword(String email) async {
+    try {
+      await http.post(
+        Uri.parse('$baseUrl/auth/forgot-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+    } catch (e) {
+      throw Exception('Password reset request failed: $e');
+    }
+  }
+
+  /// Reset password with token
+  Future<void> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    try {
+      await http.post(
+        Uri.parse('$baseUrl/auth/reset-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'token': token,
+          'newPassword': newPassword,
+        }),
+      );
+    } catch (e) {
+      throw Exception('Password reset failed: $e');
+    }
+  }
+
+  /// Change password (authenticated)
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final token = await _storage.read(key: _tokenKey);
+      if (token == null) throw Exception('Not authenticated');
+
+      await http.post(
+        Uri.parse('$baseUrl/auth/change-password'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        }),
+      );
+    } catch (e) {
+      throw Exception('Password change failed: $e');
+    }
+  }
+
+  // ==================== STORAGE HELPERS ====================
+
+  /// Get stored user data
   Future<Map<String, dynamic>?> getStoredUser() async {
     final userData = await _storage.read(key: _userKey);
     if (userData != null) {
@@ -218,8 +230,19 @@ class AuthService {
     return null;
   }
 
-  // Get stored token
+  /// Get stored authentication token
   Future<String?> getToken() async {
     return await _storage.read(key: _tokenKey);
+  }
+
+  /// Update stored user data
+  Future<void> updateStoredUser(Map<String, dynamic> userData) async {
+    await _storage.write(key: _userKey, value: jsonEncode(userData));
+  }
+
+  /// Clear all stored auth data
+  Future<void> clearStorage() async {
+    await _storage.delete(key: _tokenKey);
+    await _storage.delete(key: _userKey);
   }
 }
