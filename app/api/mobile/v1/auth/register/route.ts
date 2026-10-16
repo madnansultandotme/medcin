@@ -81,13 +81,14 @@ export async function POST(req: NextRequest) {
 
     const userData = newUser[0];
 
-    // Update phone if provided
-    if (phone) {
-      await db
-        .update(users)
-        .set({ phone })
-        .where(eq(users.id, userData.id));
-    }
+    // Update user with phone and ensure role is set to PATIENT
+    await db
+      .update(users)
+      .set({ 
+        phone: phone || null,
+        role: 'PATIENT', // Explicitly set role for mobile app users
+      })
+      .where(eq(users.id, userData.id));
 
     // Create patient profile
     await db
@@ -97,18 +98,27 @@ export async function POST(req: NextRequest) {
         preferredLanguage: 'English',
       });
 
+    // Fetch updated user data
+    const updatedUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userData.id))
+      .limit(1);
+
+    const finalUserData = updatedUser[0];
+
     return NextResponse.json({
       success: true,
       data: {
         token: session.token,
         user: {
-          id: userData.id,
-          email: userData.email,
-          name: userData.name,
-          phone: phone || null,
-          photoUrl: userData.photoUrl,
-          role: userData.role,
-          subscriptionStatus: userData.subscriptionStatus,
+          id: finalUserData.id,
+          email: finalUserData.email,
+          name: finalUserData.name,
+          phone: finalUserData.phone,
+          photoUrl: finalUserData.photoUrl,
+          role: finalUserData.role,
+          subscriptionStatus: finalUserData.subscriptionStatus,
         }
       }
     }, { status: 201 });
