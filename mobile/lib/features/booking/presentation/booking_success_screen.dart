@@ -58,14 +58,21 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => context.go(AppRoutes.home),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          context.go(AppRoutes.home);
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => context.go(AppRoutes.home),
+          ),
+          title: const Text('Booking Confirmed'),
         ),
-        title: const Text('Booking Confirmed'),
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -79,7 +86,7 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen>
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.1),
+                  color: AppColors.success.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -117,10 +124,10 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.clay.withOpacity(0.1),
+                color: AppColors.clay.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppColors.clay.withOpacity(0.3),
+                  color: AppColors.clay.withValues(alpha: 0.3),
                   style: BorderStyle.solid,
                   width: 2,
                 ),
@@ -278,7 +285,7 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.clay.withOpacity(0.1),
+                color: AppColors.clay.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -298,6 +305,7 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen>
             ),
           ],
         ),
+      ),
       ),
     );
   }

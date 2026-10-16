@@ -11,8 +11,14 @@ import '../../features/search/presentation/search_screen.dart';
 import '../../features/appointments/presentation/appointments_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/doctor_detail/presentation/doctor_detail_screen.dart';
+import '../../features/booking/presentation/service_selection_screen.dart';
+import '../../features/booking/presentation/patient_details_screen.dart';
+import '../../features/booking/presentation/booking_confirmation_screen.dart';
+import '../../features/booking/presentation/booking_success_screen.dart';
 import '../../shared/widgets/main_shell.dart';
 import '../../features/auth/providers/auth_provider.dart';
+import '../../shared/models/doctor.dart';
+import '../../shared/models/service.dart';
 import 'app_routes.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -122,6 +128,90 @@ final routerProvider = Provider<GoRouter>((ref) {
           return Scaffold(
             appBar: AppBar(title: const Text('Appointment Detail')),
             body: Center(child: Text('Appointment ID: $appointmentId')),
+          );
+        },
+      ),
+
+      // Booking flow routes
+      GoRoute(
+        path: AppRoutes.bookingService,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final doctorId = extra?['doctorId'] as String? ?? '';
+          final preSelectedDate = extra?['preSelectedDate'] as DateTime?;
+          final preSelectedTime = extra?['preSelectedTime'] as String?;
+          
+          return ServiceSelectionScreen(
+            doctorId: doctorId,
+            preSelectedDate: preSelectedDate,
+            preSelectedTime: preSelectedTime,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.bookingDetails,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          final doctor = extra['doctor'] as Doctor;
+          final service = extra['service'] as Service;
+          final selectedDate = extra['selectedDate'] as DateTime;
+          final selectedTime = extra['selectedTime'] as String;
+          final slotId = extra['slotId'] as String;
+          
+          return PatientDetailsScreen(
+            doctor: doctor,
+            service: service,
+            selectedDate: selectedDate,
+            selectedTime: selectedTime,
+            slotId: slotId,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.bookingConfirmation,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          final doctor = extra['doctor'] as Doctor;
+          final service = extra['service'] as Service;
+          final selectedDate = extra['selectedDate'] as DateTime;
+          final selectedTime = extra['selectedTime'] as String;
+          final slotId = extra['slotId'] as String;
+          final patientName = extra['patientName'] as String;
+          final patientEmail = extra['patientEmail'] as String;
+          final patientPhone = extra['patientPhone'] as String;
+          final notes = extra['notes'] as String;
+          
+          return BookingConfirmationScreen(
+            doctor: doctor,
+            service: service,
+            selectedDate: selectedDate,
+            selectedTime: selectedTime,
+            slotId: slotId,
+            patientName: patientName,
+            patientEmail: patientEmail,
+            patientPhone: patientPhone,
+            notes: notes,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.bookingSuccess,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          final bookingReference = extra['bookingReference'] as String;
+          final bookingId = extra['bookingId'] as String;
+          final doctor = extra['doctor'] as Doctor;
+          final service = extra['service'] as Service;
+          final selectedDate = extra['selectedDate'] as DateTime;
+          final selectedTime = extra['selectedTime'] as String;
+          
+          return BookingSuccessScreen(
+            bookingReference: bookingReference,
+            bookingId: bookingId,
+            doctor: doctor,
+            service: service,
+            selectedDate: selectedDate,
+            selectedTime: selectedTime,
           );
         },
       ),

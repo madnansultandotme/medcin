@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
+import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/service.dart';
 import '../../../shared/models/doctor.dart';
 import '../../../features/auth/providers/auth_provider.dart';
-import 'booking_confirmation_screen.dart';
 
 class PatientDetailsScreen extends ConsumerStatefulWidget {
   final Doctor doctor;
@@ -108,7 +109,7 @@ class _PatientDetailsScreenState extends ConsumerState<PatientDetailsScreen> {
                             Row(
                               children: [
                                 // Doctor image
-                                widget.doctor.image != null && widget.doctor.image!.isNotEmpty
+                                widget.doctor.image?.isNotEmpty == true
                                     ? CircleAvatar(
                                         radius: 24,
                                         backgroundColor: AppColors.surface,
@@ -242,7 +243,7 @@ class _PatientDetailsScreenState extends ConsumerState<PatientDetailsScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.clay.withOpacity(0.1),
+                        color: AppColors.clay.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -273,7 +274,7 @@ class _PatientDetailsScreenState extends ConsumerState<PatientDetailsScreen> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, -5),
             ),
@@ -283,21 +284,19 @@ class _PatientDetailsScreenState extends ConsumerState<PatientDetailsScreen> {
           child: FilledButton(
             onPressed: () {
               if (_formKey.currentState!.validate()) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => BookingConfirmationScreen(
-                      doctor: widget.doctor,
-                      service: widget.service,
-                      selectedDate: widget.selectedDate,
-                      selectedTime: widget.selectedTime,
-                      slotId: widget.slotId,
-                      patientName: _nameController.text,
-                      patientEmail: _emailController.text,
-                      patientPhone: _phoneController.text,
-                      notes: _notesController.text,
-                    ),
-                  ),
+                context.push(
+                  AppRoutes.bookingConfirmation,
+                  extra: {
+                    'doctor': widget.doctor,
+                    'service': widget.service,
+                    'selectedDate': widget.selectedDate,
+                    'selectedTime': widget.selectedTime,
+                    'slotId': widget.slotId,
+                    'patientName': _nameController.text,
+                    'patientEmail': _emailController.text,
+                    'patientPhone': _phoneController.text,
+                    'notes': _notesController.text,
+                  },
                 );
               }
             },

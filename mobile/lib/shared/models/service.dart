@@ -1,7 +1,7 @@
 class Service {
   final String id;
   final String name;
-  final String duration;
+  final int duration;
   final double price;
   final String? description;
 
@@ -17,7 +17,7 @@ class Service {
     return Service(
       id: json['id'] as String,
       name: json['name'] as String,
-      duration: json['duration'] as String,
+      duration: json['duration'] as int,
       price: (json['price'] as num).toDouble(),
       description: json['description'] as String?,
     );

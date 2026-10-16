@@ -5,10 +5,6 @@ class AppConstants {
   static const String appVersion = '1.0.0';
   static const String appTagline = 'Connecting ASEAN to Quality Healthcare';
   
-  // Demo User Credentials
-  static const String demoEmail = 'demo@medcin.health';
-  static const String demoPassword = 'password123';
-  
   // Booking Reference Prefix
   static const String bookingPrefix = 'MED-SG';
   

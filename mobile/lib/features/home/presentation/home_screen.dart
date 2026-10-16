@@ -27,7 +27,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
-    final doctors = ref.watch(doctorsProvider);
+    final doctorsAsync = ref.watch(doctorsProvider);
     
     final userName = authState.user?.name ?? 'Guest';
 
@@ -36,26 +36,52 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: RefreshIndicator(
           onRefresh: _handleRefresh,
           color: AppColors.clay,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                _buildHeader(context, userName),
-                
-                // Search bar
-                _buildSearchBar(context),
-                
-                // Categories
-                _buildCategories(context),
-                
-                // Featured Doctors
-                _buildFeaturedDoctors(context, doctors),
-                
-                // Quick Actions
-                _buildQuickActions(context),
-              ],
+          child: doctorsAsync.when(
+            data: (doctors) => SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  _buildHeader(context, userName),
+                  
+                  // Search bar
+                  _buildSearchBar(context),
+                  
+                  // Categories
+                  _buildCategories(context),
+                  
+                  // Featured Doctors
+                  _buildFeaturedDoctors(context, doctors),
+                  
+                  // Quick Actions
+                  _buildQuickActions(context),
+                ],
+              ),
+            ),
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24.0),
+                child: CircularProgressIndicator(color: AppColors.clay),
+              ),
+            ),
+            error: (error, stack) => Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text('Error loading doctors: $error'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => ref.invalidate(doctorsProvider),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),

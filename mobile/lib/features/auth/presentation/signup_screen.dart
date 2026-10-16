@@ -66,21 +66,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   Future<void> _handleSocialSignup(String provider) async {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$provider signup - Demo only (UI implementation)'),
+        content: Text('$provider signup is not available yet'),
         backgroundColor: AppColors.clay,
       ),
     );
-    
-    // Demo: Sign up with demo account
-    await ref.read(authStateProvider.notifier).signUpWithEmail(
-      'demo@medcin.health',
-      'password123',
-      'Demo User',
-    );
-    
-    if (mounted) {
-      context.go(AppRoutes.home);
-    }
   }
 
   @override

@@ -3,11 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
+import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../shared/models/service.dart';
 import '../../../shared/models/doctor.dart';
 import '../../../features/search/providers/doctor_provider.dart';
-import 'patient_details_screen.dart';
 
 class ServiceSelectionScreen extends ConsumerStatefulWidget {
   final String doctorId;
@@ -30,17 +29,114 @@ class _ServiceSelectionScreenState extends ConsumerState<ServiceSelectionScreen>
 
   @override
   Widget build(BuildContext context) {
-    final doctors = ref.watch(doctorsProvider);
-    final doctor = doctors.firstWhere(
-      (d) => d.id == widget.doctorId,
-      orElse: () => doctors.first,
-    );
+    final doctorsAsync = ref.watch(doctorsProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Select Service'),
+    return doctorsAsync.when(
+      data: (doctors) {
+        final doctor = doctors.firstWhere(
+          (d) => d.id == widget.doctorId,
+          orElse: () => doctors.first,
+        );
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Select Service'),
+          ),
+          body: _buildBody(context, doctor),
+          bottomNavigationBar: _selectedServiceId != null
+              ? Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, -5),
+                      ),
+                    ],
+                  ),
+                  child: SafeArea(
+                    child: FilledButton(
+                      onPressed: () {
+                        final service = doctor.services.firstWhere(
+                          (s) => s.id == _selectedServiceId,
+                        );
+                        
+                        // Generate a slot ID based on date and time
+                        final slotId = '${widget.preSelectedDate?.millisecondsSinceEpoch ?? DateTime.now().millisecondsSinceEpoch}_${widget.preSelectedTime?.replaceAll(' ', '_') ?? '10:00_AM'}';
+                        
+                        // Skip slot selection and go directly to patient details
+                        // if date/time were pre-selected from doctor detail screen
+                        if (widget.preSelectedDate != null && widget.preSelectedTime != null) {
+                          context.push(
+                            AppRoutes.bookingDetails,
+                            extra: {
+                              'doctor': doctor,
+                              'service': service,
+                              'selectedDate': widget.preSelectedDate!,
+                              'selectedTime': widget.preSelectedTime!,
+                              'slotId': slotId,
+                            },
+                          );
+                        } else {
+                          // Fallback: show patient details with default date/time
+                          context.push(
+                            AppRoutes.bookingDetails,
+                            extra: {
+                              'doctor': doctor,
+                              'service': service,
+                              'selectedDate': DateTime.now(),
+                              'selectedTime': '10:00 AM',
+                              'slotId': slotId,
+                            },
+                          );
+                        }
+                      },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.clay,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text('Continue to Patient Details'),
+                    ),
+                  ),
+                )
+              : null,
+        );
+      },
+      loading: () => Scaffold(
+        appBar: AppBar(
+          title: const Text('Select Service'),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.clay),
+        ),
       ),
-      body: Column(
+      error: (error, stack) => Scaffold(
+        appBar: AppBar(
+          title: const Text('Select Service'),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Error: $error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(doctorsProvider),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, Doctor doctor) {
+    return Column(
         children: [
           // Doctor info card
           Card(
@@ -49,7 +145,7 @@ class _ServiceSelectionScreenState extends ConsumerState<ServiceSelectionScreen>
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  doctor.image != null && doctor.image!.isNotEmpty
+                  doctor.image?.isNotEmpty == true
                       ? CircleAvatar(
                           radius: 32,
                           backgroundColor: AppColors.surface,
@@ -72,7 +168,7 @@ class _ServiceSelectionScreenState extends ConsumerState<ServiceSelectionScreen>
                                   width: 64,
                                   height: 64,
                                   decoration: BoxDecoration(
-                                    color: AppColors.clay.withOpacity(0.1),
+                                    color: AppColors.clay.withValues(alpha: 0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Center(
@@ -92,7 +188,7 @@ class _ServiceSelectionScreenState extends ConsumerState<ServiceSelectionScreen>
                         )
                       : CircleAvatar(
                           radius: 32,
-                          backgroundColor: AppColors.clay.withOpacity(0.1),
+                          backgroundColor: AppColors.clay.withValues(alpha: 0.1),
                           child: Text(
                             doctor.name[0].toUpperCase(),
                             style: const TextStyle(
@@ -223,65 +319,6 @@ class _ServiceSelectionScreenState extends ConsumerState<ServiceSelectionScreen>
             ),
           ),
         ],
-      ),
-      bottomNavigationBar: _selectedServiceId != null
-          ? Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                child: FilledButton(
-                  onPressed: () {
-                    final service = doctor.services.firstWhere(
-                      (s) => s.id == _selectedServiceId,
-                    );
-                    
-                    // Skip slot selection and go directly to patient details
-                    // if date/time were pre-selected from doctor detail screen
-                    if (widget.preSelectedDate != null && widget.preSelectedTime != null) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PatientDetailsScreen(
-                            doctor: doctor,
-                            service: service,
-                            selectedDate: widget.preSelectedDate!,
-                            selectedTime: widget.preSelectedTime!,
-                          ),
-                        ),
-                      );
-                    } else {
-                      // Fallback: show slot selection if no date/time provided
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PatientDetailsScreen(
-                            doctor: doctor,
-                            service: service,
-                            selectedDate: DateTime.now(),
-                            selectedTime: '10:00 AM',
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.clay,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text('Continue to Patient Details'),
-                ),
-              ),
-            )
-          : null,
-    );
+      );
   }
 }

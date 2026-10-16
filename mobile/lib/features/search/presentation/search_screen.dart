@@ -261,8 +261,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final doctors = ref.watch(doctorsProvider);
-    final filteredDoctors = _filterDoctors(doctors);
+    final doctorsAsync = ref.watch(doctorsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -274,90 +273,94 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Search bar
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search by name or specialty...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          setState(() {
-                            _searchController.clear();
-                          });
-                        },
-                      )
-                    : null,
-              ),
-              onChanged: (value) => setState(() {}),
-            ),
-          ),
+      body: doctorsAsync.when(
+        data: (doctors) {
+          final filteredDoctors = _filterDoctors(doctors);
           
-          // Active filters
-          if (_selectedSpecialty != 'All' ||
-              _selectedExperience != 'All' ||
-              _minRating > 0)
-            Container(
-              height: 50,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  if (_selectedSpecialty != 'All')
-                    _buildFilterChip(
-                      _selectedSpecialty,
-                      () => setState(() => _selectedSpecialty = 'All'),
-                    ),
-                  if (_selectedExperience != 'All')
-                    _buildFilterChip(
-                      _selectedExperience,
-                      () => setState(() => _selectedExperience = 'All'),
-                    ),
-                  if (_minRating > 0)
-                    _buildFilterChip(
-                      'Rating ${_minRating.toStringAsFixed(1)}+',
-                      () => setState(() => _minRating = 0.0),
-                    ),
-                ],
+          return Column(
+            children: [
+              // Search bar
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search by name or specialty...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              setState(() {
+                                _searchController.clear();
+                              });
+                            },
+                          )
+                        : null,
+                  ),
+                  onChanged: (value) => setState(() {}),
+                ),
               ),
-            ),
-          
-          // Results count
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '${filteredDoctors.length} doctor${filteredDoctors.length != 1 ? 's' : ''} found',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
-              ),
-            ),
-          ),
-          
-          // Doctors list
-          Expanded(
-            child: filteredDoctors.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.search_off,
-                          size: 64,
-                          color: AppColors.textSecondary.withOpacity(0.5),
+              
+              // Active filters
+              if (_selectedSpecialty != 'All' ||
+                  _selectedExperience != 'All' ||
+                  _minRating > 0)
+                Container(
+                  height: 50,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      if (_selectedSpecialty != 'All')
+                        _buildFilterChip(
+                          _selectedSpecialty,
+                          () => setState(() => _selectedSpecialty = 'All'),
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No doctors found',
+                      if (_selectedExperience != 'All')
+                        _buildFilterChip(
+                          _selectedExperience,
+                          () => setState(() => _selectedExperience = 'All'),
+                        ),
+                      if (_minRating > 0)
+                        _buildFilterChip(
+                          'Rating ${_minRating.toStringAsFixed(1)}+',
+                          () => setState(() => _minRating = 0.0),
+                        ),
+                    ],
+                  ),
+                ),
+              
+              // Results count
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '${filteredDoctors.length} doctor${filteredDoctors.length != 1 ? 's' : ''} found',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                  ),
+                ),
+              ),
+              
+              // Doctors list
+              Expanded(
+                child: filteredDoctors.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.search_off,
+                              size: 64,
+                              color: AppColors.textSecondary.withOpacity(0.5),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No doctors found',
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                 color: AppColors.textSecondary,
                               ),
@@ -387,6 +390,26 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ),
           ),
         ],
+      );
+        },
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.clay),
+        ),
+        error: (error, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Error loading doctors: $error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(doctorsProvider),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

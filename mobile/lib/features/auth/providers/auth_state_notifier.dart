@@ -1,21 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../services/auth_service.dart';
 import '../domain/models/user_model.dart';
 import 'auth_state.dart';
-
-part 'auth_state_notifier.g.dart';
 
 /// Auth service provider
 final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService();
 });
 
-/// Auth state notifier for managing authentication state
-@riverpod
-class AuthStateNotifier extends _$AuthStateNotifier {
+/// Auth state notifier for managing authentication state using modern Notifier API
+class AuthStateNotifier extends Notifier<AuthState> {
+  AuthService get _authService => ref.read(authServiceProvider);
+
   @override
   AuthState build() {
+    // Initialize auth state by checking current user
     _initialize();
     return const AuthState.initial();
   }
@@ -25,8 +24,7 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     try {
       state = const AuthState.loading();
       
-      final authService = ref.read(authServiceProvider);
-      final session = await authService.refreshSession();
+      final session = await _authService.refreshSession();
       
       if (session != null && session['user'] != null) {
         final userMap = session['user'] as Map<String, dynamic>;
@@ -45,8 +43,7 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     try {
       state = state.copyWith(isLoading: true, error: null);
       
-      final authService = ref.read(authServiceProvider);
-      final result = await authService.signIn(email: email, password: password);
+      final result = await _authService.signIn(email: email, password: password);
       
       if (result['user'] != null) {
         final userMap = result['user'] as Map<String, dynamic>;
@@ -63,8 +60,10 @@ class AuthStateNotifier extends _$AuthStateNotifier {
       
       // Clear error after 3 seconds
       Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) {
+        try {
           state = state.copyWith(error: null);
+        } catch (_) {
+          // Notifier might be disposed, ignore error
         }
       });
     }
@@ -75,8 +74,7 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     try {
       state = state.copyWith(isLoading: true, error: null);
       
-      final authService = ref.read(authServiceProvider);
-      final result = await authService.signUp(
+      final result = await _authService.signUp(
         email: email,
         password: password,
         name: name,
@@ -97,8 +95,10 @@ class AuthStateNotifier extends _$AuthStateNotifier {
       
       // Clear error after 3 seconds
       Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) {
+        try {
           state = state.copyWith(error: null);
+        } catch (_) {
+          // Notifier might be disposed, ignore error
         }
       });
     }
@@ -107,8 +107,7 @@ class AuthStateNotifier extends _$AuthStateNotifier {
   /// Sign out
   Future<void> signOut() async {
     try {
-      final authService = ref.read(authServiceProvider);
-      await authService.signOut();
+      await _authService.signOut();
       state = const AuthState.unauthenticated();
     } catch (e) {
       state = state.copyWith(error: e.toString().replaceAll('Exception: ', ''));
@@ -120,8 +119,7 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     try {
       state = state.copyWith(isLoading: true, error: null);
       
-      final authService = ref.read(authServiceProvider);
-      await authService.forgotPassword(email: email);
+      await _authService.forgotPassword(email);
       
       state = state.copyWith(isLoading: false);
     } catch (e) {
@@ -132,8 +130,10 @@ class AuthStateNotifier extends _$AuthStateNotifier {
       
       // Clear error after 3 seconds
       Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) {
+        try {
           state = state.copyWith(error: null);
+        } catch (_) {
+          // Notifier might be disposed, ignore error
         }
       });
     }
@@ -144,3 +144,8 @@ class AuthStateNotifier extends _$AuthStateNotifier {
     state = state.copyWith(error: null);
   }
 }
+
+/// Auth state provider using modern NotifierProvider API
+final authStateProvider = NotifierProvider<AuthStateNotifier, AuthState>(
+  AuthStateNotifier.new,
+);

@@ -87,7 +87,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                 children: [
                   Row(
                     children: [
-                      widget.doctor.image != null && widget.doctor.image!.isNotEmpty
+                      widget.doctor.image?.isNotEmpty == true
                           ? CircleAvatar(
                               radius: 24,
                               backgroundColor: AppColors.surface,
@@ -103,7 +103,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                       width: 48,
                                       height: 48,
                                       decoration: BoxDecoration(
-                                        color: AppColors.clay.withOpacity(0.1),
+                                        color: AppColors.clay.withValues(alpha: 0.1),
                                         shape: BoxShape.circle,
                                       ),
                                       child: Center(
@@ -123,7 +123,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                             )
                           : CircleAvatar(
                               radius: 24,
-                              backgroundColor: AppColors.clay.withOpacity(0.1),
+                              backgroundColor: AppColors.clay.withValues(alpha: 0.1),
                               child: Text(
                                 widget.doctor.name[0].toUpperCase(),
                                 style: const TextStyle(
@@ -268,7 +268,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, -5),
                   ),

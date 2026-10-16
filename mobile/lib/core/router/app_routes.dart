@@ -22,6 +22,7 @@ class AppRoutes {
   static const String bookingSlot = '/booking/slot';
   static const String bookingDetails = '/booking/details';
   static const String bookingConfirmation = '/booking/confirmation';
+  static const String bookingSuccess = '/booking/success';
   
   // Appointment detail route
   static const String appointmentDetail = '/appointment/:id';

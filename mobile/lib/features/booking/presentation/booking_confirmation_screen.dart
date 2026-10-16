@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
+import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/service.dart';
 import '../../../shared/models/doctor.dart';
 import '../../../services/api_service.dart';
-import 'booking_success_screen.dart';
 
 class BookingConfirmationScreen extends StatefulWidget {
   final Doctor doctor;
@@ -72,29 +73,56 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
 
       setState(() => _isBooking = false);
       
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => BookingSuccessScreen(
-            bookingReference: booking['reference'],
-            bookingId: booking['id'],
-            doctor: widget.doctor,
-            service: widget.service,
-            selectedDate: widget.selectedDate,
-            selectedTime: widget.selectedTime,
-          ),
-        ),
+      context.go(
+        AppRoutes.bookingSuccess,
+        extra: {
+          'bookingReference': booking['reference'],
+          'bookingId': booking['id'],
+          'doctor': widget.doctor,
+          'service': widget.service,
+          'selectedDate': widget.selectedDate,
+          'selectedTime': widget.selectedTime,
+        },
       );
-    } catch (e) {
+    } on Exception catch (e) {
       if (!mounted) return;
 
       setState(() => _isBooking = false);
       
+      final errorMessage = e.toString().replaceFirst('Exception: ', '');
+      String userMessage = 'Failed to create booking';
+      
+      // Parse specific error messages from backend
+      if (errorMessage.contains('Unauthorized') || errorMessage.contains('401')) {
+        userMessage = 'Session expired. Please log in again.';
+      } else if (errorMessage.contains('Slot is no longer available') || errorMessage.contains('409')) {
+        userMessage = 'This time slot is no longer available. Please select another time.';
+      } else if (errorMessage.contains('Patient profile not found') || errorMessage.contains('404')) {
+        userMessage = 'Please complete your profile before booking.';
+      } else if (errorMessage.contains('Doctor is not accepting bookings')) {
+        userMessage = 'This doctor is currently not accepting bookings.';
+      } else if (errorMessage.contains('Missing required fields') || errorMessage.contains('400')) {
+        userMessage = 'Invalid booking information. Please try again.';
+      } else if (errorMessage.contains('Failed to fetch') || errorMessage.contains('Network')) {
+        userMessage = 'Network error. Please check your connection and try again.';
+      } else if (errorMessage.contains('500')) {
+        userMessage = 'Server error. Please try again later.';
+      } else if (errorMessage.isNotEmpty && !errorMessage.contains('Request failed')) {
+        userMessage = errorMessage;
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to create booking: ${e.toString()}'),
+          content: Text(userMessage),
           backgroundColor: AppColors.error,
-          duration: const Duration(seconds: 4),
+          duration: const Duration(seconds: 5),
+          action: errorMessage.contains('Network') || errorMessage.contains('500')
+              ? SnackBarAction(
+                  label: 'Retry',
+                  textColor: Colors.white,
+                  onPressed: _confirmBooking,
+                )
+              : null,
         ),
       );
     }
@@ -138,7 +166,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                             padding: const EdgeInsets.only(bottom: 12),
                             child: Row(
                               children: [
-                                widget.doctor.image != null && widget.doctor.image!.isNotEmpty
+                                widget.doctor.image?.isNotEmpty == true
                                     ? CircleAvatar(
                                         radius: 28,
                                         backgroundColor: AppColors.surface,
@@ -313,7 +341,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
           // Loading overlay
           if (_isBooking)
             Container(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               child: const Center(
                 child: Card(
                   child: Padding(
@@ -338,7 +366,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, -5),
             ),

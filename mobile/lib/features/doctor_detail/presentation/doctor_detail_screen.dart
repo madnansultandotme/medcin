@@ -7,7 +7,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../search/providers/doctor_provider.dart';
-import '../../booking/presentation/service_selection_screen.dart';
 
 class DoctorDetailScreen extends ConsumerStatefulWidget {
   final String doctorId;
@@ -30,220 +29,259 @@ class _DoctorDetailScreenState extends ConsumerState<DoctorDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final doctors = ref.watch(doctorsProvider);
-    final doctor = doctors.firstWhere(
-      (d) => d.id == widget.doctorId,
-      orElse: () => doctors.first,
-    );
+    final doctorsAsync = ref.watch(doctorsProvider);
 
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // App bar with doctor image
-          SliverAppBar(
-            expandedHeight: 200,
-            pinned: true,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => context.pop(),
-            ),
-            backgroundColor: AppColors.clay,
-            iconTheme: const IconThemeData(color: Colors.white),
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
+    return doctorsAsync.when(
+      data: (doctors) {
+        final doctor = doctors.firstWhere(
+          (d) => d.id == widget.doctorId,
+          orElse: () => doctors.first,
+        );
+
+        return Scaffold(
+          body: CustomScrollView(
+            slivers: [
+              // App bar with doctor image
+              SliverAppBar(
+                expandedHeight: 200,
+                pinned: true,
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => context.pop(),
                 ),
-                child: Center(
-                  child: doctor.image != null && doctor.image!.isNotEmpty
-                      ? CircleAvatar(
-                          radius: 60,
-                          backgroundColor: Colors.white,
-                          child: ClipOval(
-                            child: CachedNetworkImage(
-                              imageUrl: doctor.image!,
-                              width: 120,
-                              height: 120,
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) => Container(
-                                width: 120,
-                                height: 120,
-                                color: Colors.white,
-                                child: const Center(
-                                  child: CircularProgressIndicator(strokeWidth: 3),
-                                ),
-                              ),
-                              errorWidget: (context, url, error) {
-                                return Container(
+                backgroundColor: AppColors.clay,
+                iconTheme: const IconThemeData(color: Colors.white),
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Container(
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                    ),
+                    child: Center(
+                      child: doctor.image != null && doctor.image!.isNotEmpty
+                          ? CircleAvatar(
+                              radius: 60,
+                              backgroundColor: Colors.white,
+                              child: ClipOval(
+                                child: CachedNetworkImage(
+                                  imageUrl: doctor.image!,
                                   width: 120,
                                   height: 120,
-                                  color: Colors.white,
-                                  child: Center(
-                                    child: Text(
-                                      doctor.name[0].toUpperCase(),
-                                      style: const TextStyle(
-                                        color: AppColors.clay,
-                                        fontSize: 48,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Container(
+                                    width: 120,
+                                    height: 120,
+                                    color: Colors.white,
+                                    child: const Center(
+                                      child: CircularProgressIndicator(strokeWidth: 3),
                                     ),
                                   ),
-                                );
-                              },
+                                  errorWidget: (context, url, error) {
+                                    return Container(
+                                      width: 120,
+                                      height: 120,
+                                      color: Colors.white,
+                                      child: Center(
+                                        child: Text(
+                                          doctor.name[0].toUpperCase(),
+                                          style: const TextStyle(
+                                            color: AppColors.clay,
+                                            fontSize: 48,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            )
+                          : CircleAvatar(
+                              radius: 60,
+                              backgroundColor: Colors.white,
+                              child: Text(
+                                doctor.name[0].toUpperCase(),
+                                style: const TextStyle(
+                                  color: AppColors.clay,
+                                  fontSize: 48,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
-                          ),
-                        )
-                      : CircleAvatar(
-                          radius: 60,
-                          backgroundColor: Colors.white,
-                          child: Text(
-                            doctor.name[0].toUpperCase(),
-                            style: const TextStyle(
-                              color: AppColors.clay,
-                              fontSize: 48,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          
-          SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Doctor info
-                Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Dr. ${doctor.name}',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        doctor.specialization,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
+              
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Doctor info
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildInfoChip(
-                            Icons.star,
-                            '${doctor.rating}',
-                            AppColors.warning,
+                          Text(
+                            'Dr. ${doctor.name}',
+                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
-                          const SizedBox(width: 12),
-                          _buildInfoChip(
-                            Icons.access_time,
-                            '${doctor.experience} years',
-                            AppColors.clay,
+                          const SizedBox(height: 8),
+                          Text(
+                            doctor.specialization,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
                           ),
-                          const SizedBox(width: 12),
-                          _buildInfoChip(
-                            Icons.attach_money,
-                            '\$${doctor.consultationFee}',
-                            AppColors.sage,
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              _buildInfoChip(
+                                Icons.star,
+                                '${doctor.rating}',
+                                AppColors.warning,
+                              ),
+                              const SizedBox(width: 12),
+                              _buildInfoChip(
+                                Icons.access_time,
+                                '${doctor.experience} years',
+                                AppColors.clay,
+                              ),
+                              const SizedBox(width: 12),
+                              _buildInfoChip(
+                                Icons.attach_money,
+                                '\$${doctor.consultationFee}',
+                                AppColors.sage,
+                              ),
+                            ],
                           ),
+                          const SizedBox(height: 24),
+                          
+                          // About
+                          Text(
+                            'About',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            doctor.bio ?? '',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.textSecondary,
+                                  height: 1.5,
+                                ),
+                          ),
+                          const SizedBox(height: 24),
+                          
+                          // Working hours
+                          Text(
+                            'Working Hours',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            doctor.availability,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                          ),
+                          const SizedBox(height: 24),
+                          
+                          // Select appointment date
+                          Text(
+                            'Select Appointment Date',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildDateSelector(),
+                          const SizedBox(height: 24),
+                          
+                          // Available time slots
+                          Text(
+                            'Available Time Slots',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildTimeSlots(),
+                          const SizedBox(height: 100), // Space for bottom button
                         ],
                       ),
-                      const SizedBox(height: 24),
-                      
-                      // About
-                      Text(
-                        'About',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          bottomNavigationBar: _selectedTimeSlot != null
+              ? Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, -5),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        doctor.bio ?? '',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
-                              height: 1.5,
-                            ),
-                      ),
-                      const SizedBox(height: 24),
-                      
-                      // Working hours
-                      Text(
-                        'Working Hours',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        doctor.availability,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                      ),
-                      const SizedBox(height: 24),
-                      
-                      // Select appointment date
-                      Text(
-                        'Select Appointment Date',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildDateSelector(),
-                      const SizedBox(height: 24),
-                      
-                      // Available time slots
-                      Text(
-                        'Available Time Slots',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTimeSlots(),
-                      const SizedBox(height: 100), // Space for bottom button
                     ],
                   ),
-                ),
-              ],
-            ),
+                  child: SafeArea(
+                    child: FilledButton(
+                      onPressed: () => _showBookingConfirmation(context, doctor.name, doctors),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.clay,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text('Book Appointment'),
+                    ),
+                  ),
+                )
+              : null,
+        );
+      },
+      loading: () => Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
           ),
-        ],
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.clay),
+        ),
       ),
-      bottomNavigationBar: _selectedTimeSlot != null
-          ? Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
+      error: (error, stack) => Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
+          ),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Error loading doctor details: $error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(doctorsProvider),
+                child: const Text('Retry'),
               ),
-              child: SafeArea(
-                child: FilledButton(
-                  onPressed: () => _showBookingConfirmation(context, doctor.name),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.clay,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text('Book Appointment'),
-                ),
-              ),
-            )
-          : null,
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -389,24 +427,21 @@ class _DoctorDetailScreenState extends ConsumerState<DoctorDetailScreen> {
     );
   }
 
-  void _showBookingConfirmation(BuildContext context, String doctorName) {
+  void _showBookingConfirmation(BuildContext context, String doctorName, List doctors) {
     // Get the doctor and navigate directly to service selection
     // The selected date and time will be passed through the flow
-    final doctors = ref.read(doctorsProvider);
     final doctor = doctors.firstWhere(
       (d) => d.id == widget.doctorId,
       orElse: () => doctors.first,
     );
     
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ServiceSelectionScreen(
-          doctorId: widget.doctorId,
-          preSelectedDate: _selectedDate,
-          preSelectedTime: _selectedTimeSlot!,
-        ),
-      ),
+    context.push(
+      AppRoutes.bookingService,
+      extra: {
+        'doctorId': widget.doctorId,
+        'preSelectedDate': _selectedDate,
+        'preSelectedTime': _selectedTimeSlot!,
+      },
     );
   }
 }

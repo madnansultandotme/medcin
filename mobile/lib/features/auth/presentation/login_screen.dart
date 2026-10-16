@@ -15,8 +15,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'demo@medcin.health');
-  final _passwordController = TextEditingController(text: 'password123');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
 
@@ -60,20 +60,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _handleSocialLogin(String provider) async {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$provider login - Demo only (UI implementation)'),
+        content: Text('$provider login is not available yet'),
         backgroundColor: AppColors.clay,
       ),
     );
-    
-    // Demo: Sign in with demo account
-    await ref.read(authStateProvider.notifier).signInWithEmail(
-      'demo@medcin.health',
-      'password123',
-    );
-    
-    if (mounted) {
-      context.go(AppRoutes.home);
-    }
   }
 
   @override
