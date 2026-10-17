@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../services/api_service.dart';
 import '../../search/providers/doctor_provider.dart';
 
 class DoctorDetailScreen extends ConsumerStatefulWidget {
@@ -18,14 +19,64 @@ class DoctorDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _DoctorDetailScreenState extends ConsumerState<DoctorDetailScreen> {
+  final ApiService _apiService = ApiService();
+
   DateTime _selectedDate = DateTime.now();
-  String? _selectedTimeSlot;
-  
-  final List<String> _timeSlots = [
-    '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM',
-    '11:00 AM', '11:30 AM', '02:00 PM', '02:30 PM',
-    '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM',
-  ];
+  Map<String, dynamic>? _selectedSlot;
+
+  bool _isLoadingSlots = false;
+  List<dynamic> _availableSlots = [];
+  String? _slotsError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSlots();
+  }
+
+  Future<void> _loadSlots() async {
+    setState(() {
+      _isLoadingSlots = true;
+      _slotsError = null;
+      _selectedSlot = null;
+    });
+
+    try {
+      final formattedDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
+      final data = await _apiService.getSlots(
+        doctorId: widget.doctorId,
+        date: formattedDate,
+      );
+
+      // The backend groups slots by date: { "slots": { "yyyy-MM-dd": [ {id, startTime, endTime, status}, ... ] } }
+      final slotsByDate = data['slots'] as Map<String, dynamic>? ?? {};
+      final daySlots = (slotsByDate[formattedDate] as List<dynamic>? ?? [])
+          .where((slot) => slot['status'] == 'AVAILABLE')
+          .toList();
+
+      if (!mounted) return;
+      setState(() {
+        _availableSlots = daySlots;
+        _isLoadingSlots = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _slotsError = e.toString();
+        _availableSlots = [];
+        _isLoadingSlots = false;
+      });
+    }
+  }
+
+  String _formatSlotTime(String time) {
+    try {
+      final parsed = DateFormat('HH:mm').parse(time);
+      return DateFormat('h:mm a').format(parsed);
+    } catch (_) {
+      return time;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -221,7 +272,7 @@ class _DoctorDetailScreenState extends ConsumerState<DoctorDetailScreen> {
               ),
             ],
           ),
-          bottomNavigationBar: _selectedTimeSlot != null
+          bottomNavigationBar: _selectedSlot != null
               ? Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -236,7 +287,7 @@ class _DoctorDetailScreenState extends ConsumerState<DoctorDetailScreen> {
                   ),
                   child: SafeArea(
                     child: FilledButton(
-                      onPressed: () => _showBookingConfirmation(context, doctor.name, doctors),
+                      onPressed: () => _showBookingConfirmation(context),
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.clay,
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -327,6 +378,7 @@ class _DoctorDetailScreenState extends ConsumerState<DoctorDetailScreen> {
                 setState(() {
                   _selectedDate = date;
                 });
+                _loadSlots();
               },
               child: Container(
                 width: MediaQuery.of(context).size.width * 0.15,
@@ -386,19 +438,73 @@ class _DoctorDetailScreenState extends ConsumerState<DoctorDetailScreen> {
   }
 
   Widget _buildTimeSlots() {
+    if (_isLoadingSlots) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24.0),
+          child: CircularProgressIndicator(color: AppColors.clay),
+        ),
+      );
+    }
+
+    if (_slotsError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            children: [
+              const Icon(Icons.error_outline, size: 40, color: AppColors.error),
+              const SizedBox(height: 12),
+              Text(
+                'Failed to load available slots',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: _loadSlots,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_availableSlots.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24.0),
+        child: Center(
+          child: Column(
+            children: [
+              const Icon(Icons.event_busy, size: 40, color: AppColors.textSecondary),
+              const SizedBox(height: 12),
+              Text(
+                'No available slots for this date',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Wrap(
       spacing: 12,
       runSpacing: 12,
-      children: _timeSlots.map((slot) {
-        final isSelected = _selectedTimeSlot == slot;
+      children: _availableSlots.map((slot) {
+        final isSelected = _selectedSlot?['id'] == slot['id'];
         return GestureDetector(
           onTap: () {
             setState(() {
-              _selectedTimeSlot = slot;
+              _selectedSlot = slot as Map<String, dynamic>;
             });
           },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             decoration: BoxDecoration(
               color: isSelected
                   ? AppColors.clay
@@ -410,15 +516,17 @@ class _DoctorDetailScreenState extends ConsumerState<DoctorDetailScreen> {
                     : AppColors.border,
               ),
             ),
-            child: Text(
-              slot,
-              style: TextStyle(
-                color: isSelected
-                    ? Colors.white
-                    : AppColors.textPrimary,
-                fontWeight: isSelected
-                    ? FontWeight.bold
-                    : FontWeight.normal,
+            child: Center(
+              child: Text(
+                _formatSlotTime(slot['startTime'] as String? ?? ''),
+                style: TextStyle(
+                  color: isSelected
+                      ? Colors.white
+                      : AppColors.textPrimary,
+                  fontWeight: isSelected
+                      ? FontWeight.bold
+                      : FontWeight.normal,
+                ),
               ),
             ),
           ),
@@ -427,20 +535,17 @@ class _DoctorDetailScreenState extends ConsumerState<DoctorDetailScreen> {
     );
   }
 
-  void _showBookingConfirmation(BuildContext context, String doctorName, List doctors) {
-    // Get the doctor and navigate directly to service selection
-    // The selected date and time will be passed through the flow
-    final doctor = doctors.firstWhere(
-      (d) => d.id == widget.doctorId,
-      orElse: () => doctors.first,
-    );
-    
+  void _showBookingConfirmation(BuildContext context) {
+    if (_selectedSlot == null) return;
+
+    // Navigate to service selection, carrying the real slot selected from the backend
     context.push(
       AppRoutes.bookingService,
       extra: {
         'doctorId': widget.doctorId,
+        'slotId': _selectedSlot!['id'],
         'preSelectedDate': _selectedDate,
-        'preSelectedTime': _selectedTimeSlot!,
+        'preSelectedTime': _formatSlotTime(_selectedSlot!['startTime'] as String? ?? ''),
       },
     );
   }

@@ -6,16 +6,19 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/doctor.dart';
+import '../../../shared/models/service.dart';
 import '../../../features/search/providers/doctor_provider.dart';
 
 class ServiceSelectionScreen extends ConsumerStatefulWidget {
   final String doctorId;
+  final String? slotId;
   final DateTime? preSelectedDate;
   final String? preSelectedTime;
   
   const ServiceSelectionScreen({
     super.key,
     required this.doctorId,
+    this.slotId,
     this.preSelectedDate,
     this.preSelectedTime,
   });
@@ -25,18 +28,31 @@ class ServiceSelectionScreen extends ConsumerStatefulWidget {
 }
 
 class _ServiceSelectionScreenState extends ConsumerState<ServiceSelectionScreen> {
+  // null id is used to represent the "General Consultation" option, since
+  // a real Service.id is never an empty string.
   String? _selectedServiceId;
+
+  /// Doctor's configured services, plus a "General Consultation" option using
+  /// the doctor's base price — matching the web dashboard's booking dropdown,
+  /// which always offers general consultation alongside any custom services.
+  List<Service> _servicesFor(Doctor doctor) {
+    return [Service.general(doctor.price), ...doctor.services];
+  }
 
   @override
   Widget build(BuildContext context) {
-    final doctorsAsync = ref.watch(doctorsProvider);
+    // Use the doctor-by-id provider, since the doctors list endpoint does not
+    // include each doctor's services, but the detail endpoint does.
+    final doctorAsync = ref.watch(doctorByIdProvider(widget.doctorId));
 
-    return doctorsAsync.when(
-      data: (doctors) {
-        final doctor = doctors.firstWhere(
-          (d) => d.id == widget.doctorId,
-          orElse: () => doctors.first,
-        );
+    return doctorAsync.when(
+      data: (doctor) {
+        if (doctor == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Select Service')),
+            body: const Center(child: Text('Doctor not found')),
+          );
+        }
 
         return Scaffold(
           appBar: AppBar(
@@ -59,16 +75,14 @@ class _ServiceSelectionScreenState extends ConsumerState<ServiceSelectionScreen>
                   child: SafeArea(
                     child: FilledButton(
                       onPressed: () {
-                        final service = doctor.services.firstWhere(
+                        final service = _servicesFor(doctor).firstWhere(
                           (s) => s.id == _selectedServiceId,
                         );
-                        
-                        // Generate a slot ID based on date and time
-                        final slotId = '${widget.preSelectedDate?.millisecondsSinceEpoch ?? DateTime.now().millisecondsSinceEpoch}_${widget.preSelectedTime?.replaceAll(' ', '_') ?? '10:00_AM'}';
-                        
-                        // Skip slot selection and go directly to patient details
-                        // if date/time were pre-selected from doctor detail screen
-                        if (widget.preSelectedDate != null && widget.preSelectedTime != null) {
+
+                        if (widget.slotId != null &&
+                            widget.preSelectedDate != null &&
+                            widget.preSelectedTime != null) {
+                          // Slot was already picked on the doctor detail screen
                           context.push(
                             AppRoutes.bookingDetails,
                             extra: {
@@ -76,19 +90,16 @@ class _ServiceSelectionScreenState extends ConsumerState<ServiceSelectionScreen>
                               'service': service,
                               'selectedDate': widget.preSelectedDate!,
                               'selectedTime': widget.preSelectedTime!,
-                              'slotId': slotId,
+                              'slotId': widget.slotId!,
                             },
                           );
                         } else {
-                          // Fallback: show patient details with default date/time
+                          // No slot pre-selected: let the user pick date & time
                           context.push(
-                            AppRoutes.bookingDetails,
+                            AppRoutes.bookingSlot,
                             extra: {
                               'doctor': doctor,
                               'service': service,
-                              'selectedDate': DateTime.now(),
-                              'selectedTime': '10:00 AM',
-                              'slotId': slotId,
                             },
                           );
                         }
@@ -125,7 +136,7 @@ class _ServiceSelectionScreenState extends ConsumerState<ServiceSelectionScreen>
               Text('Error: $error'),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () => ref.invalidate(doctorsProvider),
+                onPressed: () => ref.invalidate(doctorByIdProvider(widget.doctorId)),
                 child: const Text('Retry'),
               ),
             ],
@@ -226,11 +237,13 @@ class _ServiceSelectionScreenState extends ConsumerState<ServiceSelectionScreen>
           
           // Services list
           Expanded(
-            child: ListView.builder(
+            child: Builder(builder: (context) {
+              final allServices = _servicesFor(doctor);
+              return ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: doctor.services.length,
+              itemCount: allServices.length,
               itemBuilder: (context, index) {
-                final service = doctor.services[index];
+                final service = allServices[index];
                 final isSelected = _selectedServiceId == service.id;
                 
                 return Card(
@@ -316,7 +329,8 @@ class _ServiceSelectionScreenState extends ConsumerState<ServiceSelectionScreen>
                   ),
                 );
               },
-            ),
+              );
+            }),
           ),
         ],
       );

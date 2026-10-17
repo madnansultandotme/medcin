@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
+import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/models/service.dart';
 import '../../../shared/models/doctor.dart';
 import '../../../services/api_service.dart';
-import 'patient_details_screen.dart';
 
 class SlotSelectionScreen extends StatefulWidget {
   final Doctor doctor;
@@ -49,19 +50,34 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
         doctorId: widget.doctor.id,
         date: formattedDate,
       );
-      
-      setState(() {
-        _availableSlots = (slotsData['slots'] as List? ?? [])
+
+      // The backend groups slots by date: { "slots": { "yyyy-MM-dd": [ {id, startTime, endTime, status}, ... ] } }
+      final slotsByDate = slotsData['slots'] as Map<String, dynamic>? ?? {};
+      final daySlots = (slotsByDate[formattedDate] as List<dynamic>? ?? [])
           .where((slot) => slot['status'] == 'AVAILABLE')
           .toList();
+
+      if (!mounted) return;
+      setState(() {
+        _availableSlots = daySlots;
         _isLoadingSlots = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _slotsError = e.toString();
         _availableSlots = [];
         _isLoadingSlots = false;
       });
+    }
+  }
+
+  String _formatSlotTime(String time) {
+    try {
+      final parsed = DateFormat('HH:mm').parse(time);
+      return DateFormat('h:mm a').format(parsed);
+    } catch (_) {
+      return time;
     }
   }
 
@@ -277,17 +293,15 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
               child: SafeArea(
                 child: FilledButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PatientDetailsScreen(
-                          doctor: widget.doctor,
-                          service: widget.service,
-                          selectedDate: _selectedDate,
-                          selectedTime: _selectedSlot!['time'],
-                          slotId: _selectedSlot!['id'],
-                        ),
-                      ),
+                    context.push(
+                      AppRoutes.bookingDetails,
+                      extra: {
+                        'doctor': widget.doctor,
+                        'service': widget.service,
+                        'selectedDate': _selectedDate,
+                        'selectedTime': _formatSlotTime(_selectedSlot!['startTime'] as String? ?? ''),
+                        'slotId': _selectedSlot!['id'],
+                      },
                     );
                   },
                   style: FilledButton.styleFrom(
@@ -460,7 +474,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
               ),
             ),
             child: Text(
-              slot['time'] ?? '',
+              _formatSlotTime(slot['startTime'] as String? ?? ''),
               style: TextStyle(
                 color: isSelected ? Colors.white : AppColors.textPrimary,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,

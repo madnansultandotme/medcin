@@ -13,6 +13,21 @@ class Service {
     this.description,
   });
 
+  /// A doctor's base consultation, matching the "General Consultation" option
+  /// always offered on the web dashboard alongside any custom services.
+  /// Uses an empty [id] so bookings created from it omit `serviceId`.
+  factory Service.general(double price) {
+    return Service(
+      id: '',
+      name: 'General Consultation',
+      duration: 30,
+      price: price,
+      description: 'Standard consultation with the doctor',
+    );
+  }
+
+  bool get isGeneral => id.isEmpty;
+
   factory Service.fromJson(Map<String, dynamic> json) {
     return Service(
       id: json['id'] as String,

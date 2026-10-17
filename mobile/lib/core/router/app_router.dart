@@ -12,6 +12,7 @@ import '../../features/appointments/presentation/appointments_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/doctor_detail/presentation/doctor_detail_screen.dart';
 import '../../features/booking/presentation/service_selection_screen.dart';
+import '../../features/booking/presentation/slot_selection_screen.dart';
 import '../../features/booking/presentation/patient_details_screen.dart';
 import '../../features/booking/presentation/booking_confirmation_screen.dart';
 import '../../features/booking/presentation/booking_success_screen.dart';
@@ -138,13 +139,28 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>?;
           final doctorId = extra?['doctorId'] as String? ?? '';
+          final slotId = extra?['slotId'] as String?;
           final preSelectedDate = extra?['preSelectedDate'] as DateTime?;
           final preSelectedTime = extra?['preSelectedTime'] as String?;
           
           return ServiceSelectionScreen(
             doctorId: doctorId,
+            slotId: slotId,
             preSelectedDate: preSelectedDate,
             preSelectedTime: preSelectedTime,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.bookingSlot,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          final doctor = extra['doctor'] as Doctor;
+          final service = extra['service'] as Service;
+
+          return SlotSelectionScreen(
+            doctor: doctor,
+            service: service,
           );
         },
       ),

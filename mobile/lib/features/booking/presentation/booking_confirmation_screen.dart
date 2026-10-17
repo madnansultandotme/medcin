@@ -61,7 +61,9 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       final booking = await _apiService.createBooking(
         doctorId: widget.doctor.id,
         slotId: widget.slotId,
-        serviceId: widget.service.id,
+        // General Consultation has no backing row in the services table,
+        // so omit serviceId entirely (same as the web dashboard).
+        serviceId: widget.service.isGeneral ? null : widget.service.id,
         date: formattedDate,
         time: widget.selectedTime,
         price: widget.service.price,
