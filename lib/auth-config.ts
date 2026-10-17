@@ -6,6 +6,7 @@
  */
 
 import { betterAuth } from "better-auth";
+import { bearer } from "better-auth/plugins";
 import { db } from "@/db";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import * as schema from "@/db/schema";
@@ -23,6 +24,11 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  // Required so the mobile app's `Authorization: Bearer <token>` header is
+  // accepted by auth.api.getSession() on every protected mobile API route.
+  // Without this, getSession() only recognizes browser session cookies and
+  // mobile requests are always treated as unauthenticated (401/"session expired").
+  plugins: [bearer()],
   session: {
     expiresIn: 60 * 60 * 24, // 24 hours
     updateAge: 60 * 60 * 24,
