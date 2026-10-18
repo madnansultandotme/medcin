@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import { CheckCircle, Clock, User } from 'lucide-react';
+import { authenticatedFetch } from '@/lib/utils/authenticated-fetch';
 
 interface Booking {
   id: string;
@@ -45,7 +46,7 @@ export default function DoctorBookingsPage() {
   async function fetchBookings() {
     try {
       setLoading(true);
-      const response = await fetch(`/api/doctor/bookings?date=${dateFilter}`);
+      const response = await authenticatedFetch(`/api/doctor/bookings?date=${dateFilter}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -65,7 +66,7 @@ export default function DoctorBookingsPage() {
       setActionLoading(bookingId);
       setError('');
 
-      const response = await fetch('/api/doctor/checkin', {
+      const response = await authenticatedFetch('/api/doctor/checkin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bookingId }),
@@ -92,7 +93,7 @@ export default function DoctorBookingsPage() {
       setActionLoading(bookingId);
       setError('');
 
-      const response = await fetch('/api/doctor/checkout', {
+      const response = await authenticatedFetch('/api/doctor/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bookingId }),

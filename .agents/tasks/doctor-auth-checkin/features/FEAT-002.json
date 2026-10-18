@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Device Tracking Integration: Wire existing device tracking utilities (lib/device-id.ts, lib/middleware/device-tracking.ts) into Better Auth login flow. Create device verification UI page and authenticated fetch wrapper to inject device headers on all requests. Existing APIs app/api/auth/verify-device and app/api/auth/request-device-otp are ready.",
-  "status": "pending",
+  "status": "completed",
   "steps": [
     "1. Create lib/auth/track-device.ts with trackDeviceLogin(userId, deviceId, deviceName) function: Call trackDevice(userId) from lib/middleware/device-tracking.ts, if isNewDevice === true generate 6-digit OTP (Math.floor(100000 + Math.random() * 900000)), hash with crypto.createHash('sha256'), store in verifications table with identifier 'device-verify:${deviceId}', call sendNewDeviceAlertEmail(userId, deviceName, otp) using lib/email.ts.",
     "2. Modify lib/auth-config.ts to add hooks.after.signIn callback: Read deviceId and deviceName from request.headers.get('x-device-id') and get('x-device-name'), call trackDeviceLogin(), return result. Note: Better Auth hooks signature may differ, verify in Better Auth 1.7.7 docs.",
@@ -32,5 +32,5 @@
     "Check Chrome DevTools Network tab on /doctor page → Request headers include X-Device-ID and X-Device-Name"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Implementation completed successfully. Device tracking is handled client-side after login via /api/auth/check-device endpoint rather than using Better Auth hooks (which don't support returning custom response data to client). The flow: 1) User logs in, 2) Client calls /api/auth/check-device with device headers, 3) Server checks if device is new/untrusted and triggers OTP email, 4) Client redirects to /doctor/verify-device if verification required, 5) User enters OTP, device marked as trusted, 6) Future logins skip verification for trusted devices. All doctor dashboard API calls now use authenticatedFetch() wrapper that auto-injects X-Device-ID and X-Device-Name headers."
 }

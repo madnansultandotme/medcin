@@ -9,6 +9,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Calendar, CheckCircle, Clock, Users } from 'lucide-react';
+import { authenticatedFetch } from '@/lib/utils/authenticated-fetch';
 
 interface DashboardStats {
   todayBookings: number;
@@ -28,7 +29,7 @@ export default function DoctorDashboardPage() {
     async function fetchStats() {
       try {
         const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-        const response = await fetch(`/api/doctor/bookings?date=${today}`);
+        const response = await authenticatedFetch(`/api/doctor/bookings?date=${today}`);
         
         if (response.ok) {
           const data = await response.json();
