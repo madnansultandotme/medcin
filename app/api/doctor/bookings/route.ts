@@ -1,7 +1,8 @@
 /**
- * GET /api/doctor/bookings
+ * Doctor Bookings API
  * 
- * Get doctor's bookings with optional filters
+ * Fetch bookings for the authenticated doctor.
+ * GET /api/doctor/bookings?date=YYYY-MM-DD&status=CONFIRMED
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,66 +11,49 @@ import { db } from '@/db';
 import { bookings, patientProfiles, services, users } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 
-export async function GET(request: NextRequest) {
-  const authResult = await requireDoctor();
-  if ('error' in authResult) {
-    return authResult.error;
-  }
-
-  const { context } = authResult;
-  const doctorId = await getUserDoctorId(context.user.id);
-
-  if (!doctorId) {
-    return NextResponse.json(
-      { error: 'Doctor profile not found for this user' },
-      { status: 404 }
-    );
-  }
-
+export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const date = searchParams.get('date'); // YYYY-MM-DD format
-    const status = searchParams.get('status'); // CONFIRMED, COMPLETED, CANCELLED
+    // 1. Require DOCTOR role
+    const authResult = await requireDoctor();
+    if ('error' in authResult) {
+      return authResult.error;
+    }
 
-    // Build query conditions
+    const { context } = authResult;
+    const { user } = context;
+
+    // 2. Get doctor ID
+    const doctorId = await getUserDoctorId(user.id);
+    if (!doctorId) {
+      return NextResponse.json(
+        { error: 'Doctor profile not found' },
+        { status: 404 }
+      );
+    }
+
+    // 3. Parse query parameters
+    const searchParams = req.nextUrl.searchParams;
+    const dateFilter = searchParams.get('date'); // YYYY-MM-DD
+    const statusFilter = searchParams.get('status'); // CONFIRMED, COMPLETED, CANCELLED
+
+    // 4. Build query conditions
     const conditions = [eq(bookings.doctorId, doctorId)];
 
-    if (date) {
-      conditions.push(eq(bookings.date, date));
+    if (dateFilter) {
+      conditions.push(eq(bookings.date, dateFilter));
     }
 
-    if (status) {
-      conditions.push(eq(bookings.status, status as any));
+    if (statusFilter) {
+      conditions.push(eq(bookings.status, statusFilter as any));
     }
 
-    // Query bookings with related data
-    const bookingsList = await db
+    // 5. Fetch bookings with patient and service info
+    const bookingsData = await db
       .select({
-        // Booking fields
-        id: bookings.id,
-        reference: bookings.reference,
-        date: bookings.date,
-        time: bookings.time,
-        status: bookings.status,
-        price: bookings.price,
-        patientNotes: bookings.patientNotes,
-        checkedInAt: bookings.checkedInAt,
-        checkedOutAt: bookings.checkedOutAt,
-        commissionAmount: bookings.commissionAmount,
-        centerEarnings: bookings.centerEarnings,
-        commissionStatus: bookings.commissionStatus,
-        createdAt: bookings.createdAt,
-        // Patient info
-        patientId: patientProfiles.id,
-        patientUserId: users.id,
-        patientName: users.name,
-        patientEmail: users.email,
-        patientPhone: users.phone,
-        // Service info
-        serviceId: services.id,
-        serviceName: services.name,
-        serviceDuration: services.duration,
-        serviceDescription: services.description,
+        booking: bookings,
+        patient: patientProfiles,
+        patientUser: users,
+        service: services,
       })
       .from(bookings)
       .leftJoin(patientProfiles, eq(bookings.patientId, patientProfiles.id))
@@ -78,33 +62,20 @@ export async function GET(request: NextRequest) {
       .where(and(...conditions))
       .orderBy(desc(bookings.date), desc(bookings.time));
 
-    // Format response
-    const formattedBookings = bookingsList.map(b => ({
-      id: b.id,
-      reference: b.reference,
-      date: b.date,
-      time: b.time,
-      status: b.status,
-      price: b.price,
-      patientNotes: b.patientNotes,
-      checkedInAt: b.checkedInAt,
-      checkedOutAt: b.checkedOutAt,
-      commissionAmount: b.commissionAmount,
-      centerEarnings: b.centerEarnings,
-      commissionStatus: b.commissionStatus,
-      createdAt: b.createdAt,
-      patient: {
-        id: b.patientId,
-        userId: b.patientUserId,
-        name: b.patientName,
-        email: b.patientEmail,
-        phone: b.patientPhone,
-      },
-      service: b.serviceId ? {
-        id: b.serviceId,
-        name: b.serviceName,
-        duration: b.serviceDuration,
-        description: b.serviceDescription,
+    // 6. Format response
+    const formattedBookings = bookingsData.map((row) => ({
+      ...row.booking,
+      patient: row.patientUser ? {
+        id: row.patient?.id,
+        name: row.patientUser.name,
+        email: row.patientUser.email,
+        phone: row.patientUser.phone,
+      } : null,
+      service: row.service ? {
+        id: row.service.id,
+        name: row.service.name,
+        duration: row.service.duration,
+        price: row.service.price,
       } : null,
     }));
 
@@ -115,9 +86,9 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get doctor bookings error:', error);
+    console.error('Fetch doctor bookings error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch bookings' },
+      { error: 'Failed to fetch bookings', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

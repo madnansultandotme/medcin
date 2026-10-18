@@ -1,65 +1,87 @@
 /**
- * POST /api/doctor/checkout
+ * Doctor Check-Out API
  * 
- * Doctor endpoint to check out a patient and calculate commission
+ * Allows doctors to check out patients and calculate commission.
+ * POST /api/doctor/checkout
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireDoctor, getUserDoctorId } from '@/lib/middleware/permissions';
-import { checkOutSchema } from '@/lib/validations/doctor';
-import { calculateCommission } from '@/lib/utils/commission';
 import { db } from '@/db';
-import { bookings, doctors, centers, notifications } from '@/db/schema';
+import { bookings, doctors, centers, notifications, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { calculateCommission } from '@/lib/utils/commission';
 
-export async function POST(request: NextRequest) {
-  const authResult = await requireDoctor();
-  if ('error' in authResult) {
-    return authResult.error;
-  }
-
-  const { context } = authResult;
-  const doctorId = await getUserDoctorId(context.user.id);
-
-  if (!doctorId) {
-    return NextResponse.json(
-      { error: 'Doctor profile not found for this user' },
-      { status: 404 }
-    );
-  }
-
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
-    
-    // Validate request body
-    const validation = checkOutSchema.safeParse(body);
-    if (!validation.success) {
+    // 1. Require DOCTOR role
+    const authResult = await requireDoctor();
+    if ('error' in authResult) {
+      return authResult.error;
+    }
+
+    const { context } = authResult;
+    const { user } = context;
+
+    // 2. Get doctor profile with center info
+    const doctorId = await getUserDoctorId(user.id);
+    if (!doctorId) {
       return NextResponse.json(
-        { 
-          error: 'Validation failed', 
-          details: validation.error.issues 
-        },
+        { error: 'Doctor profile not found' },
+        { status: 404 }
+      );
+    }
+
+    const doctorRecord = await db
+      .select()
+      .from(doctors)
+      .where(eq(doctors.id, doctorId))
+      .limit(1);
+
+    if (doctorRecord.length === 0) {
+      return NextResponse.json(
+        { error: 'Doctor profile not found' },
+        { status: 404 }
+      );
+    }
+
+    const doctor = doctorRecord[0];
+
+    // 3. Parse request body
+    const body = await req.json();
+    const { bookingId, actualPrice } = body;
+
+    if (!bookingId || typeof bookingId !== 'string') {
+      return NextResponse.json(
+        { error: 'Booking ID is required' },
         { status: 400 }
       );
     }
 
-    const { bookingId, actualPrice } = validation.data;
+    if (actualPrice !== undefined && (typeof actualPrice !== 'number' || actualPrice <= 0)) {
+      return NextResponse.json(
+        { error: 'Actual price must be a positive number' },
+        { status: 400 }
+      );
+    }
 
-    // Get booking
-    const [booking] = await db
+    // 4. Fetch booking
+    const bookingRecord = await db
       .select()
       .from(bookings)
       .where(eq(bookings.id, bookingId))
       .limit(1);
 
-    if (!booking) {
+    if (bookingRecord.length === 0) {
       return NextResponse.json(
         { error: 'Booking not found' },
         { status: 404 }
       );
     }
 
-    // Verify booking belongs to this doctor
+    const booking = bookingRecord[0];
+
+    // 5. Validate booking belongs to this doctor
     if (booking.doctorId !== doctorId) {
       return NextResponse.json(
         { error: 'This booking does not belong to you' },
@@ -67,7 +89,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify booking is checked in
+    // 6. Validate booking has been checked in
     if (!booking.checkedInAt) {
       return NextResponse.json(
         { error: 'Patient must be checked in before checkout' },
@@ -75,7 +97,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify not already checked out
+    // 7. Validate not already checked out
     if (booking.checkedOutAt) {
       return NextResponse.json(
         { error: 'Patient is already checked out' },
@@ -83,97 +105,82 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get doctor with center info
-    const doctorRecord = await db.query.doctors.findFirst({
-      where: (d, { eq }) => eq(d.id, doctorId),
-      with: {
-        center: true,
-      },
-    });
+    // 8. Determine final price
+    const finalPrice = actualPrice || booking.price;
 
-    if (!doctorRecord) {
-      return NextResponse.json(
-        { error: 'Doctor record not found' },
-        { status: 404 }
-      );
-    }
+    // 9. Calculate commission based on center settings
+    let commission = { commissionAmount: 0, centerEarnings: finalPrice };
 
-    // Calculate final price and commission
-    const finalPrice = actualPrice !== undefined ? actualPrice : booking.price;
-    let commissionAmount = 0;
-    let centerEarnings = finalPrice;
-    let commissionData = null;
+    if (doctor.centerId) {
+      // Center-affiliated doctor: apply center commission
+      const centerRecord = await db
+        .select()
+        .from(centers)
+        .where(eq(centers.id, doctor.centerId))
+        .limit(1);
 
-    if (doctorRecord.center) {
-      // Doctor belongs to a center - calculate commission
-      const commission = calculateCommission(finalPrice, {
-        commissionType: doctorRecord.center.commissionType,
-        commissionRate: doctorRecord.center.commissionRate,
-        fixedCommissionAmount: doctorRecord.center.fixedCommissionAmount,
-      });
+      if (centerRecord.length > 0) {
+        const center = centerRecord[0];
+        commission = calculateCommission(finalPrice, {
+          commissionType: center.commissionType,
+          commissionRate: center.commissionRate,
+          fixedCommissionAmount: center.fixedCommissionAmount,
+        });
 
-      commissionAmount = commission.commissionAmount;
-      centerEarnings = commission.centerEarnings;
-
-      commissionData = {
-        commissionAmount,
-        centerEarnings,
-        commissionType: doctorRecord.center.commissionType,
-        commissionRate: doctorRecord.center.commissionRate,
-        fixedCommissionAmount: doctorRecord.center.fixedCommissionAmount,
-      };
-
-      // Create notification for center admin
-      if (doctorRecord.center.userId) {
+        // Create notification for center admin
+        const centerUserId = centerRecord[0].userId;
         await db.insert(notifications).values({
-          userId: doctorRecord.center.userId,
+          id: crypto.randomUUID(),
+          userId: centerUserId,
           type: 'info',
           title: 'Booking Completed',
-          message: `Dr. ${doctorRecord.name} completed a booking. Commission: SGD ${commissionAmount.toFixed(2)}`,
+          message: `Doctor ${doctor.name} completed a booking. Commission: SGD ${commission.commissionAmount.toFixed(2)}`,
           link: `/center/bookings`,
+          createdAt: new Date(),
         });
       }
+    } else {
+      // Independent doctor: no commission
+      commission = { commissionAmount: 0, centerEarnings: finalPrice };
     }
-    // If independent doctor, no commission (centerEarnings = full price)
 
-    // Update booking with check-out info
-    const [updatedBooking] = await db
+    // 10. Update booking
+    const now = new Date();
+    await db
       .update(bookings)
       .set({
-        checkedOutAt: new Date(),
-        checkedOutBy: context.user.id,
+        checkedOutAt: now,
+        checkedOutBy: user.id,
         status: 'COMPLETED',
         price: finalPrice,
-        commissionAmount,
-        centerEarnings,
+        commissionAmount: commission.commissionAmount,
+        centerEarnings: commission.centerEarnings,
         commissionStatus: 'CALCULATED',
-        updatedAt: new Date(),
+        updatedAt: now,
       })
+      .where(eq(bookings.id, bookingId));
+
+    // 11. Fetch updated booking
+    const updatedBooking = await db
+      .select()
+      .from(bookings)
       .where(eq(bookings.id, bookingId))
-      .returning();
+      .limit(1);
 
     return NextResponse.json({
       success: true,
-      message: 'Patient checked out successfully',
-      booking: {
-        id: updatedBooking.id,
-        reference: updatedBooking.reference,
-        date: updatedBooking.date,
-        time: updatedBooking.time,
-        status: updatedBooking.status,
-        checkedInAt: updatedBooking.checkedInAt,
-        checkedOutAt: updatedBooking.checkedOutAt,
-        price: updatedBooking.price,
-        commissionAmount: updatedBooking.commissionAmount,
-        centerEarnings: updatedBooking.centerEarnings,
+      booking: updatedBooking[0],
+      commission: {
+        commissionAmount: commission.commissionAmount,
+        centerEarnings: commission.centerEarnings,
       },
-      commission: commissionData,
+      message: 'Patient checked out successfully',
     });
 
   } catch (error) {
-    console.error('Patient checkout error:', error);
+    console.error('Check-out error:', error);
     return NextResponse.json(
-      { error: 'Failed to check out patient' },
+      { error: 'Failed to check out patient', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
