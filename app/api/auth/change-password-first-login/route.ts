@@ -10,7 +10,7 @@ import { changePasswordSchema } from '@/lib/validations/doctor';
 import { db } from '@/db';
 import { users, accounts } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { auth } from '@/lib/auth-config';
+import { hashPassword, verifyPassword } from '@/lib/utils/password';
 
 export async function POST(request: NextRequest) {
   // Require authentication
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { 
           error: 'Validation failed', 
-          details: validation.error.errors 
+          details: validation.error.issues 
         },
         { status: 400 }
       );
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify current password
-    const isCurrentPasswordValid = await auth.api.verifyPassword(
+    const isCurrentPasswordValid = await verifyPassword(
       currentPassword,
       accountRecord.password
     );
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Ensure new password is different from current
-    const isSamePassword = await auth.api.verifyPassword(
+    const isSamePassword = await verifyPassword(
       newPassword,
       accountRecord.password
     );
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash new password
-    const hashedNewPassword = await auth.api.hashPassword(newPassword);
+    const hashedNewPassword = await hashPassword(newPassword);
 
     // Update password in accounts table
     await db
