@@ -1,116 +1,120 @@
+/**
+ * PUT /api/admin/centers/commission
+ * 
+ * Admin endpoint to update center commission settings
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/middleware/permissions';
-import { centers } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { commissionSchema } from '@/lib/validations/doctor';
 import { db } from '@/db';
+import { centers, users, notifications } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import { sendEmail } from '@/lib/email';
 
-/**
- * Set Commission Settings for a Center
- * 
- * Admin-only endpoint to configure commission settings per center.
- * Supports both percentage-based and fixed commission models.
- */
-export async function PUT(req: NextRequest) {
+export async function PUT(request: NextRequest) {
+  const authResult = await requireAdmin();
+  if ('error' in authResult) {
+    return authResult.error;
+  }
+
   try {
-    const authResult = await requireAdmin();
-
-    if ('error' in authResult) {
-      return authResult.error;
-    }
-
-    // Parse request body
-    const body = await req.json();
-    const { centerId, commissionRate, commissionType, fixedCommissionAmount } = body;
-
-    // Validate required fields
-    if (!centerId || !commissionType) {
+    const body = await request.json();
+    
+    // Validate request body
+    const validation = commissionSchema.safeParse(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Missing required fields: centerId and commissionType' },
+        { 
+          error: 'Validation failed', 
+          details: validation.error.errors 
+        },
         { status: 400 }
       );
     }
 
-    // Validate commission type
-    if (!['PERCENTAGE', 'FIXED'].includes(commissionType)) {
-      return NextResponse.json(
-        { error: 'Invalid commissionType. Must be PERCENTAGE or FIXED' },
-        { status: 400 }
-      );
-    }
+    const { centerId, commissionType, commissionRate, fixedCommissionAmount } = validation.data;
 
-    // Validate percentage commission
-    if (commissionType === 'PERCENTAGE') {
-      if (commissionRate === null || commissionRate === undefined) {
-        return NextResponse.json(
-          { error: 'commissionRate is required when commissionType is PERCENTAGE' },
-          { status: 400 }
-        );
-      }
-      if (commissionRate < 0 || commissionRate > 100) {
-        return NextResponse.json(
-          { error: 'commissionRate must be between 0 and 100' },
-          { status: 400 }
-        );
-      }
-    }
+    // Get center with user info
+    const centerRecord = await db.query.centers.findFirst({
+      where: (c, { eq }) => eq(c.id, centerId),
+      with: {
+        user: true,
+      },
+    });
 
-    // Validate fixed commission
-    if (commissionType === 'FIXED') {
-      if (fixedCommissionAmount === null || fixedCommissionAmount === undefined) {
-        return NextResponse.json(
-          { error: 'fixedCommissionAmount is required when commissionType is FIXED' },
-          { status: 400 }
-        );
-      }
-      if (fixedCommissionAmount <= 0) {
-        return NextResponse.json(
-          { error: 'fixedCommissionAmount must be greater than 0' },
-          { status: 400 }
-        );
-      }
-    }
-
-    // Check if center exists
-    const centerRecord = await db
-      .select()
-      .from(centers)
-      .where(eq(centers.id, centerId))
-      .limit(1);
-
-    if (centerRecord.length === 0) {
+    if (!centerRecord) {
       return NextResponse.json(
         { error: 'Center not found' },
         { status: 404 }
       );
     }
 
-    // Update commission settings
-    const updateData: any = {
-      commissionType,
-      updatedAt: new Date(),
-    };
-
-    if (commissionType === 'PERCENTAGE') {
-      updateData.commissionRate = commissionRate;
-      updateData.fixedCommissionAmount = null;
-    } else {
-      updateData.fixedCommissionAmount = fixedCommissionAmount;
-      updateData.commissionRate = null;
-    }
-
-    const updated = await db
+    // Update center commission settings
+    const [updatedCenter] = await db
       .update(centers)
-      .set(updateData)
+      .set({
+        commissionType,
+        commissionRate: commissionType === 'PERCENTAGE' ? commissionRate : null,
+        fixedCommissionAmount: commissionType === 'FIXED' ? fixedCommissionAmount : null,
+        updatedAt: new Date(),
+      })
       .where(eq(centers.id, centerId))
       .returning();
 
+    // Send notification to center admin
+    if (centerRecord.user) {
+      await db.insert(notifications).values({
+        userId: centerRecord.user.id,
+        type: 'info',
+        title: 'Commission Settings Updated',
+        message: commissionType === 'PERCENTAGE' 
+          ? `Your commission rate has been updated to ${commissionRate}%`
+          : `Your commission has been updated to SGD ${fixedCommissionAmount} per booking`,
+        link: '/center/settings',
+      });
+
+      // Send email notification
+      const emailText = `
+Dear ${centerRecord.user.name},
+
+Your commission settings have been updated on the Medcin platform.
+
+Center: ${centerRecord.name}
+Commission Type: ${commissionType}
+${commissionType === 'PERCENTAGE' ? `Rate: ${commissionRate}%` : `Fixed Amount: SGD ${fixedCommissionAmount}`}
+
+This will apply to all new bookings effective immediately.
+
+View your dashboard: ${process.env.NEXT_PUBLIC_APP_URL || 'https://medcin.health'}/center
+
+If you have questions, please contact support@medcin.health
+
+Best regards,
+The Medcin Team
+      `.trim();
+
+      await sendEmail({
+        to: centerRecord.user.email,
+        subject: 'Commission Settings Updated - Medcin Platform',
+        text: emailText,
+      });
+    }
+
     return NextResponse.json({
       success: true,
-      center: updated[0],
       message: 'Commission settings updated successfully',
+      center: {
+        id: updatedCenter.id,
+        name: updatedCenter.name,
+        commissionType: updatedCenter.commissionType,
+        commissionRate: updatedCenter.commissionRate,
+        fixedCommissionAmount: updatedCenter.fixedCommissionAmount,
+      },
     });
+
   } catch (error) {
-    console.error('Commission settings update error:', error);
+    console.error('Update commission error:', error);
     return NextResponse.json(
       { error: 'Failed to update commission settings' },
       { status: 500 }
