@@ -1,0 +1,16 @@
+{
+  "verdict": "CHANGES_REQUESTED",
+  "findings": [
+    "No web UI for first-login password reset — Doctor provisioned with temporary password cannot change it. Create app/doctor/change-password/page.tsx with form submitting to /api/auth/change-password-first-login, create app/doctor/layout.tsx with checkFirstLogin() redirect logic, and create middleware.ts to inject pathname into headers.",
+    "No doctor dashboard or bookings UI — Doctors cannot view appointments or perform check-in/out. Create app/doctor/page.tsx with today's stats, app/doctor/bookings/page.tsx with booking list table, and CheckInButton/CheckOutButton client components calling /api/doctor/checkin and /api/doctor/checkout.",
+    "Google OAuth callback route missing — OAuth configured in lib/auth-config.ts but no app/api/auth/callback/google/route.ts. Doctor cannot sign in with Google despite design requiring it. Create callback route with manual account linking to prevent unauthorized doctor self-registration, verify doctor profile exists, and reject if email not pre-provisioned.",
+    "Center check-in missing today's date validation — Doctor check-in validates booking.date equals today, but center check-in (/api/center/checkin/route.ts) allows check-in for any date. Add today validation to center route matching doctor route: if (booking.date !== new Date().toISOString().split('T')[0]) with 400 error.",
+    "Web device tracking bypassable — Device fingerprint generated server-side from user-agent + IP in device-tracking.ts. User behind VPN or NAT creates false positives. Browser updates change fingerprint. Client should generate UUID in localStorage and send via X-Device-ID header like mobile. Update device-tracking.ts to expect X-Device-ID from web clients. Create lib/device-id.ts with getOrCreateDeviceId().",
+    "Device OTP can be bypassed — trackDevice() returns trusted=true on error (device-tracking.ts line 116). Authentication succeeds even if device tracking fails. Change error handler to return trusted=false to force OTP verification on tracking errors.",
+    "Commission calculation not rounded consistently — commission.ts rounds to 2 decimal places but center checkout route (app/api/center/checkout/route.ts lines 128-135) recalculates inline without rounding. Use calculateCommission() utility in center checkout to ensure consistency.",
+    "No mobile implementation — Design requires Flutter screens for doctor dashboard, bookings, change password, and device tracking. No files created in mobile/lib/features/doctor/. Mobile doctors cannot check in/out patients.",
+    "No rate limiting on password change endpoint — change-password-first-login route allows unlimited attempts to guess currentPassword. Add rate limiting with exponential backoff after 5 failed attempts per user per hour.",
+    "Commission notification has no fallback — Doctor checkout creates notification for center admin (app/api/doctor/checkout/route.ts line 123) but doesn't check if insert succeeds. If notification table insert fails, commission calculated but center not notified. Wrap notification insert in try-catch and log error if it fails."
+  ],
+  "reviewDoc": "c:\\Users\\madnansultan\\OneDrive\\Desktop\\medcin-dashboard\\.agents\\tasks\\doctor-auth-checkin\\code-review.md"
+}

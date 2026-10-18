@@ -1,149 +1,126 @@
 /**
  * Device Tracking Middleware
  * 
- * Tracks user devices for security monitoring and new device detection
+ * Tracks user devices for security monitoring and alerts.
+ * Requires X-Device-ID header to be sent by client (web or mobile).
  */
 
-import { NextRequest } from 'next/server';
+import { headers } from 'next/headers';
 import { db } from '@/db';
 import { userDevices } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
-import crypto from 'crypto';
-
-export interface DeviceInfo {
-  deviceId: string;
-  deviceName: string | null;
-  deviceType: 'WEB' | 'MOBILE_IOS' | 'MOBILE_ANDROID';
-  userAgent: string | null;
-  ipAddress: string | null;
-}
 
 export interface DeviceTrackingResult {
-  trusted: boolean;
-  isNew: boolean;
+  isNewDevice: boolean;
   deviceId: string;
+  trusted: boolean;
 }
 
 /**
- * Extract device information from request headers
+ * Track device for the authenticated user
+ * Returns whether this is a new device and if it's trusted
+ * 
+ * @throws Error if device ID is missing or invalid format
  */
-function getDeviceInfoFromRequest(request: NextRequest): DeviceInfo {
-  const userAgent = request.headers.get('user-agent') || null;
-  const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null;
+export async function trackDevice(userId: string): Promise<DeviceTrackingResult> {
+  const headersList = await headers();
+  const userAgent = headersList.get('user-agent') || 'Unknown';
+  const ipAddress = headersList.get('x-forwarded-for')?.split(',')[0] || 
+                   headersList.get('x-real-ip') || 'Unknown';
   
-  // Check for mobile-provided device ID
-  const mobileDeviceId = request.headers.get('x-device-id');
-  const mobileDeviceName = request.headers.get('x-device-name');
+  // For mobile: expect 'X-Device-ID' header sent by app
+  // For web: expect 'X-Device-ID' header from client-side JavaScript
+  const deviceId = headersList.get('x-device-id');
+  const deviceName = headersList.get('x-device-name') || detectDeviceName(userAgent);
   
-  if (mobileDeviceId) {
-    // Mobile device
-    const isIOS = userAgent?.toLowerCase().includes('ios') || userAgent?.toLowerCase().includes('iphone');
-    return {
-      deviceId: mobileDeviceId,
-      deviceName: mobileDeviceName,
-      deviceType: isIOS ? 'MOBILE_IOS' : 'MOBILE_ANDROID',
-      userAgent,
-      ipAddress,
+  if (!deviceId) {
+    throw new Error('Device ID is required in X-Device-ID header');
+  }
+
+  // Validate device ID format (must be UUID)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(deviceId)) {
+    throw new Error('Invalid device ID format - must be UUID');
+  }
+
+  // Check if device exists for this user
+  const existingDevice = await db
+    .select()
+    .from(userDevices)
+    .where(and(eq(userDevices.userId, userId), eq(userDevices.deviceId, deviceId)))
+    .limit(1);
+
+  if (existingDevice.length > 0) {
+    // Update last used time and IP (for audit trail only)
+    await db
+      .update(userDevices)
+      .set({ 
+        lastUsedAt: new Date(), 
+        ipAddress,
+        userAgent,
+      })
+      .where(eq(userDevices.id, existingDevice[0].id));
+    
+    return { 
+      isNewDevice: false, 
+      deviceId,
+      trusted: existingDevice[0].trusted,
     };
   }
 
-  // Web device - generate fingerprint from user-agent and IP
-  const fingerprint = crypto
-    .createHash('sha256')
-    .update(`${userAgent || ''}:${ipAddress || ''}`)
-    .digest('hex')
-    .substring(0, 32);
+  // New device: create record
+  const deviceType = detectDeviceType(userAgent);
 
-  return {
-    deviceId: fingerprint,
-    deviceName: parseBrowserName(userAgent),
-    deviceType: 'WEB',
+  await db.insert(userDevices).values({
+    userId,
+    deviceId,
+    deviceName,
+    deviceType,
     userAgent,
     ipAddress,
+    trusted: false, // Require explicit trust via OTP
+  });
+
+  return { 
+    isNewDevice: true, 
+    deviceId,
+    trusted: false,
   };
 }
 
 /**
- * Parse browser name from user-agent
+ * Detect device type from user agent
  */
-function parseBrowserName(userAgent: string | null): string {
-  if (!userAgent) return 'Unknown Browser';
+function detectDeviceType(userAgent: string): 'WEB' | 'MOBILE_IOS' | 'MOBILE_ANDROID' {
+  const ua = userAgent.toLowerCase();
   
-  if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) return 'Chrome Browser';
-  if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) return 'Safari Browser';
-  if (userAgent.includes('Firefox')) return 'Firefox Browser';
-  if (userAgent.includes('Edg')) return 'Edge Browser';
+  if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod')) {
+    return 'MOBILE_IOS';
+  }
+  if (ua.includes('android')) {
+    return 'MOBILE_ANDROID';
+  }
   
-  return 'Web Browser';
+  return 'WEB';
 }
 
 /**
- * Track device usage and determine if it's new or trusted
- * 
- * @param request - Next.js request object
- * @param userId - User ID from authenticated session
- * @returns Device tracking result with trusted and isNew flags
+ * Detect device name from user agent
  */
-export async function trackDevice(
-  request: NextRequest,
-  userId: string
-): Promise<DeviceTrackingResult> {
-  try {
-    const deviceInfo = getDeviceInfoFromRequest(request);
-
-    // Check if device exists for this user
-    const existingDevice = await db
-      .select()
-      .from(userDevices)
-      .where(
-        and(
-          eq(userDevices.userId, userId),
-          eq(userDevices.deviceId, deviceInfo.deviceId)
-        )
-      )
-      .limit(1);
-
-    if (existingDevice.length > 0) {
-      // Device exists - update last used timestamp
-      await db
-        .update(userDevices)
-        .set({
-          lastUsedAt: new Date(),
-          userAgent: deviceInfo.userAgent,
-          ipAddress: deviceInfo.ipAddress,
-        })
-        .where(eq(userDevices.id, existingDevice[0].id));
-
-      return {
-        trusted: existingDevice[0].trusted,
-        isNew: false,
-        deviceId: deviceInfo.deviceId,
-      };
-    }
-
-    // New device - create record
-    await db.insert(userDevices).values({
-      userId,
-      deviceId: deviceInfo.deviceId,
-      deviceName: deviceInfo.deviceName,
-      deviceType: deviceInfo.deviceType,
-      userAgent: deviceInfo.userAgent,
-      ipAddress: deviceInfo.ipAddress,
-      trusted: false,
-    });
-
-    return {
-      trusted: false,
-      isNew: true,
-      deviceId: deviceInfo.deviceId,
-    };
-  } catch (error) {
-    console.error('Device tracking error:', error);
-    // Don't block the request on device tracking errors
-    return {
-      trusted: true,
-      isNew: false,
-      deviceId: 'unknown',
-    };
-  }
+function detectDeviceName(userAgent: string): string {
+  const ua = userAgent.toLowerCase();
+  
+  // Browsers
+  if (ua.includes('edg/') || ua.includes('edge/')) return 'Microsoft Edge';
+  if (ua.includes('chrome/') && !ua.includes('edg')) return 'Google Chrome';
+  if (ua.includes('firefox/')) return 'Mozilla Firefox';
+  if (ua.includes('safari/') && !ua.includes('chrome')) return 'Safari';
+  if (ua.includes('opr/') || ua.includes('opera/')) return 'Opera';
+  
+  // Mobile devices
+  if (ua.includes('iphone')) return 'iPhone';
+  if (ua.includes('ipad')) return 'iPad';
+  if (ua.includes('android')) return 'Android Device';
+  
+  return 'Unknown Device';
 }

@@ -1,7 +1,8 @@
 /**
- * POST /api/auth/verify-device
+ * Device Verification API
  * 
- * Verify device with OTP and mark as trusted
+ * Verifies a new device using OTP sent via email.
+ * POST /api/auth/verify-device
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -11,129 +12,139 @@ import { userDevices, verifications } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import crypto from 'crypto';
 
-// In-memory rate limiting (3 attempts per device per 10 minutes)
-const rateLimitMap = new Map<string, { attempts: number; resetAt: number }>();
+// In-memory rate limiting (for production, use Redis)
+const otpAttempts = new Map<string, { count: number; resetAt: number }>();
 
-function checkRateLimit(deviceId: string): { allowed: boolean; attemptsLeft?: number } {
+function checkRateLimit(deviceId: string): { allowed: boolean; remaining: number } {
   const now = Date.now();
-  const limit = rateLimitMap.get(deviceId);
+  const key = deviceId;
+  const limit = otpAttempts.get(key);
 
-  if (!limit || now > limit.resetAt) {
-    rateLimitMap.set(deviceId, { attempts: 1, resetAt: now + 10 * 60 * 1000 });
-    return { allowed: true, attemptsLeft: 2 };
+  // Reset if window expired
+  if (limit && now > limit.resetAt) {
+    otpAttempts.delete(key);
   }
 
-  if (limit.attempts >= 3) {
-    return { allowed: false };
+  const current = otpAttempts.get(key) || { count: 0, resetAt: now + 10 * 60 * 1000 }; // 10 min window
+
+  if (current.count >= 3) {
+    return { allowed: false, remaining: 0 };
   }
 
-  limit.attempts++;
-  return { allowed: true, attemptsLeft: 3 - limit.attempts };
+  return { allowed: true, remaining: 3 - current.count };
+}
+
+function incrementRateLimit(deviceId: string) {
+  const now = Date.now();
+  const key = deviceId;
+  const current = otpAttempts.get(key) || { count: 0, resetAt: now + 10 * 60 * 1000 };
+  
+  current.count += 1;
+  otpAttempts.set(key, current);
 }
 
 function clearRateLimit(deviceId: string) {
-  rateLimitMap.delete(deviceId);
+  otpAttempts.delete(deviceId);
 }
 
-export async function POST(request: NextRequest) {
-  const authContext = await getAuthenticatedUser();
-  
-  if (!authContext) {
-    return NextResponse.json(
-      { error: 'Unauthorized: Authentication required' },
-      { status: 401 }
-    );
-  }
-
-  const { user } = authContext;
-
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
+    // 1. Get authenticated user
+    const authContext = await getAuthenticatedUser();
+    if (!authContext) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const { user } = authContext;
+
+    // 2. Parse request body
+    const body = await req.json();
     const { deviceId, otp } = body;
 
-    if (!deviceId || !otp) {
+    // Validation
+    if (!deviceId || typeof deviceId !== 'string') {
       return NextResponse.json(
-        { error: 'deviceId and otp are required' },
+        { error: 'Device ID is required' },
         { status: 400 }
       );
     }
 
-    // Check rate limit
-    const rateLimit = checkRateLimit(deviceId);
-    if (!rateLimit.allowed) {
+    if (!otp || typeof otp !== 'string' || !/^\d{6}$/.test(otp)) {
       return NextResponse.json(
-        { error: 'Too many attempts. Please try again in 10 minutes.' },
+        { error: 'Valid 6-digit OTP is required' },
+        { status: 400 }
+      );
+    }
+
+    // 3. Check rate limiting
+    const rateCheck = checkRateLimit(deviceId);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'Too many attempts. Please wait 10 minutes before trying again.' },
         { status: 429 }
       );
     }
 
-    // Fetch verification record
+    // 4. Fetch verification record
     const identifier = `device-verify:${deviceId}`;
-    const [verification] = await db
+    const verificationRecord = await db
       .select()
       .from(verifications)
       .where(eq(verifications.identifier, identifier))
       .limit(1);
 
-    if (!verification) {
+    if (verificationRecord.length === 0) {
+      incrementRateLimit(deviceId);
       return NextResponse.json(
-        { 
-          error: 'No verification found. Please request a new code.',
-          attemptsLeft: rateLimit.attemptsLeft,
-        },
-        { status: 404 }
+        { error: 'Invalid or expired verification code', attemptsRemaining: rateCheck.remaining - 1 },
+        { status: 400 }
       );
     }
 
-    // Check expiration
+    const verification = verificationRecord[0];
+
+    // 5. Check expiration
     if (new Date() > verification.expiresAt) {
-      // Clean up expired verification
+      // Clean up expired record
       await db
         .delete(verifications)
         .where(eq(verifications.id, verification.id));
 
       return NextResponse.json(
         { error: 'Verification code has expired. Please request a new one.' },
-        { status: 401 }
+        { status: 400 }
       );
     }
 
-    // Hash the submitted OTP and compare
-    const hashedOTP = crypto
-      .createHash('sha256')
-      .update(otp)
-      .digest('hex');
+    // 6. Hash submitted OTP and compare
+    const hashedOTP = crypto.createHash('sha256').update(otp).digest('hex');
 
     if (hashedOTP !== verification.value) {
+      incrementRateLimit(deviceId);
       return NextResponse.json(
-        { 
-          error: 'Invalid verification code.',
-          attemptsLeft: rateLimit.attemptsLeft,
-        },
-        { status: 401 }
+        { error: 'Invalid verification code', attemptsRemaining: rateCheck.remaining - 1 },
+        { status: 400 }
       );
     }
 
-    // OTP is valid - mark device as trusted
+    // 7. Mark device as trusted
     await db
       .update(userDevices)
-      .set({
-        trusted: true,
-        lastUsedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(userDevices.userId, user.id),
-          eq(userDevices.deviceId, deviceId)
-        )
-      );
+      .set({ trusted: true })
+      .where(and(
+        eq(userDevices.userId, user.id),
+        eq(userDevices.deviceId, deviceId)
+      ));
 
-    // Delete verification record
+    // 8. Delete verification record (one-time use)
     await db
       .delete(verifications)
       .where(eq(verifications.id, verification.id));
 
-    // Clear rate limit on success
+    // 9. Clear rate limit on success
     clearRateLimit(deviceId);
 
     return NextResponse.json({
@@ -144,7 +155,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Device verification error:', error);
     return NextResponse.json(
-      { error: 'Failed to verify device' },
+      { error: 'Failed to verify device', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
