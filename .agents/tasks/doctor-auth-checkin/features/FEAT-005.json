@@ -1,0 +1,41 @@
+{
+  "id": "FEAT-005",
+  "type": "feat",
+  "description": "Admin commission management and independent doctor registration: Admin UI to set commission rates per center; independent doctor signup page for doctors without centers; center admin UI for provisioning doctors",
+  "status": "pending",
+  "steps": [
+    "1. app/api/admin/centers/commission/route.ts already exists - verify it accepts PUT with {centerId, commissionType, commissionRate?, fixedCommissionAmount?}, validates PERCENTAGE has rate 0-100, FIXED has positive amount, updates centers table, sends email notification to center admin about commission change",
+    "2. Create lib/validations/doctor.ts with Zod schemas: provisionDoctorSchema (name, email, phone?, category, specialization?, licenseNumber, price, consultationFee?, bio?, imageUrl?), checkInSchema (bookingId UUID), checkOutSchema (bookingId UUID, actualPrice?), commissionSchema (centerId UUID, commissionType enum, commissionRate?, fixedCommissionAmount? with refinement)",
+    "3. Apply validation schemas to all relevant API routes: provision route uses provisionDoctorSchema.safeParse(), checkin routes use checkInSchema, checkout uses checkOutSchema, commission route uses commissionSchema",
+    "4. Create app/api/doctors/register/route.ts (no auth required): validate email uniqueness, validate licenseNumber uniqueness in doctors table, create user (role=DOCTOR, emailVerified=false, passwordResetRequired=true), create account via Better Auth (hash password), create doctor record (centerId=null, isIndependent=true, active=false, provisioned=false), send verification email, notify admins via email or notification about new independent doctor pending approval, return {doctor: {id, name, email}, message}",
+    "5. Create app/signup/doctor/page.tsx: public signup form with fields (personal: name, email, password, phone; professional: category dropdown, specialization, licenseNumber; pricing: consultationFee, price; bio optional), validate with provisionDoctorSchema client-side, POST to /api/doctors/register, redirect to /auth/verify-email-sent on success",
+    "6. Find or create center doctors management page (likely app/center/doctors/page.tsx): add ProvisionDoctorModal component with form fields matching provisionDoctorSchema, on submit POST to /api/center/doctors/provision, display temp password once with copy button and security warning, on success refresh doctors list",
+    "7. Find or create admin center detail page (app/admin/centers/[id]/page.tsx): add commission settings section with radio buttons (PERCENTAGE or FIXED), conditional number inputs (commissionRate 0-100 for PERCENTAGE, fixedCommissionAmount for FIXED), on submit POST to /api/admin/centers/commission with centerId and commission data, display success message",
+    "8. Create mobile/lib/features/doctor/screens/change_password_screen.dart: form with oldPassword, newPassword, confirmPassword fields, on submit POST to /api/auth/change-password-first-login with Bearer token, on success navigate to DoctorDashboard (no back button allowed), show password strength indicator",
+    "9. Update mobile auth flow to check passwordResetRequired in login response, if true navigate to ChangePasswordScreen before allowing access to other screens",
+    "10. Add device tracking to mobile: create getDeviceId() using device_info_plus (androidInfo.androidId for Android, iosInfo.identifierForVendor for iOS), add X-Device-ID and X-Device-Name headers to all authenticated mobile API calls, handle device verification OTP flow in mobile UI if API returns requiresDeviceVerification flag"
+  ],
+  "acceptance_criteria": [
+    "Admin can update center commission settings via admin dashboard, center receives email notification",
+    "Independent doctor can sign up via public /signup/doctor page without center affiliation",
+    "Independent doctor account created with active=false, requires admin approval",
+    "Admin notified of new independent doctor registration",
+    "Center admin can provision doctors via center dashboard, receives temp password once",
+    "All API routes use Zod validation schemas for input validation",
+    "Mobile app enforces password reset on first login before allowing dashboard access",
+    "Mobile app sends device ID in headers for device tracking",
+    "Validation errors return 400 with detailed field-level errors"
+  ],
+  "verification": [
+    "Login as ADMIN, navigate to center detail page, change commission settings (try PERCENTAGE and FIXED), verify PUT to /api/admin/centers/commission succeeds",
+    "Check centers table to confirm commissionType and rate/amount updated",
+    "Check center admin's email or notifications for commission change notice",
+    "Visit /signup/doctor (logged out), fill form with unique email and license, submit, verify 200 response and user/doctor created in database with isIndependent=true and active=false",
+    "Check admin notifications or email for new doctor registration alert",
+    "Login as CENTER, navigate to doctors page, click Add Doctor, fill provision form, submit, verify temp password displayed once and doctor created with provisioned=true",
+    "Test mobile password reset: simulate first login by setting passwordResetRequired=true for test doctor, login via mobile, verify navigation to change password screen with no escape",
+    "Test mobile device headers: Add console logging to trackDevice(), make mobile API call, verify X-Device-ID header received and device record created"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

@@ -1,0 +1,25 @@
+{
+  "project_type": "Next.js 16 App Router + TypeScript, Neon PostgreSQL with Drizzle ORM, Better Auth, Flutter mobile app",
+  "language": "TypeScript (backend/web), Dart (mobile)",
+  "build_system": "npm with Next.js, no separate build command needed for dev",
+  "test_framework": "No test framework configured in package.json. Manual testing required.",
+  "build_command": "npm run build",
+  "test_command": "Manual testing via npm run dev and accessing routes. No automated test suite found.",
+  "verification_instructions": "1. Start dev server: npm run dev\n2. Apply schema changes: npm run db:push\n3. Test API endpoints using browser/Postman\n4. Verify database changes using Drizzle Studio or direct SQL\n5. Check email delivery in logs (nodemailer configured with SMTP)\n6. Verify mobile endpoints with Flutter app or Postman with Bearer tokens",
+  "snapshot_or_generated_files": "null. No generated files to commit. Database migrations handled via drizzle-kit push.",
+  "environment_constraints": "1. SMTP email may not be configured (graceful failure required)\n2. Never modify lib/auth-config.ts directly - Better Auth config in lib/auth/server.ts\n3. Better Auth uses bearer plugin for mobile token validation\n4. Database uses Neon serverless PostgreSQL with RLS policies\n5. Google OAuth requires GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET env vars",
+  "contribution_requirements": "1. Follow existing patterns from lib/middleware/permissions.ts for RBAC\n2. Reuse existing email.ts utility for notifications\n3. Use Better Auth's native session management (no custom JWT)\n4. Apply schema changes with npm run db:push\n5. Maintain DRY principle - reuse getUserCenterId(), requireDoctor() patterns\n6. Handle email failures gracefully (log and continue, create notification as fallback)",
+  "key_patterns": "1. RBAC: requireDoctor(), requireCenter(), requireAdmin() from lib/middleware/permissions.ts\n2. Auth: getAuthenticatedUser() returns full user with role\n3. Email: sendEmail() from lib/email.ts, returns boolean (false if SMTP not configured)\n4. API routes: return NextResponse.json() with error/success\n5. Database: Drizzle ORM with schema in db/schema.ts\n6. Session: Better Auth with bearer plugin for mobile\n7. Mobile: Bearer token in Authorization header, device ID in X-Device-ID header",
+  "relevant_files": [
+    "db/schema.ts (users, doctors, centers, bookings, sessions, accounts, verifications tables)",
+    "lib/auth-config.ts (Better Auth export, do NOT modify providers here)",
+    "lib/middleware/permissions.ts (requireDoctor, requireCenter, getUserCenterId)",
+    "lib/email.ts (sendEmail utility, existing templates)",
+    "app/api/center/checkin/route.ts (existing check-in pattern)",
+    "app/api/center/checkout/route.ts (existing check-out with commission)",
+    "app/api/admin/centers/commission/route.ts (existing commission management)",
+    "app/center/* (existing center dashboard pages)",
+    "mobile/lib/* (Flutter app structure)"
+  ],
+  "directory_structure": "app/: Next.js app directory with api/, admin/, center/, patient/, doctor/ (to create), auth/ subdirs\nlib/: Shared utilities (auth/, middleware/, email.ts)\ndb/: Drizzle schema and database client\nmobile/: Flutter mobile app with lib/features/ structure\ncomponents/: React components by role (admin/, center/, patient/, doctor/ to create)"
+}

@@ -1,0 +1,40 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Doctor provisioning and first-login password reset: Center admins can create doctor accounts with temporary passwords; doctors must reset password on first login; device tracking middleware and security alerts via email",
+  "status": "pending",
+  "steps": [
+    "1. Create lib/device-id.ts with getOrCreateDeviceId() (localStorage UUID for web) and getDeviceName() (parse user agent)",
+    "2. Create lib/middleware/device-tracking.ts with trackDevice(userId) function: reads X-Device-ID and X-Device-Name headers, validates UUID format, checks user_devices table, creates record if new, updates lastUsedAt if existing, returns {isNewDevice, deviceId}",
+    "3. Create lib/middleware/first-login-check.ts with checkFirstLogin() function: calls getAuthenticatedUser(), queries user's passwordResetRequired flag, returns {requiresReset, user}",
+    "4. Add sendNewDeviceAlertEmail(userEmail, userName, deviceId, otp) to lib/email.ts following existing template patterns",
+    "5. Create app/api/center/doctors/provision/route.ts: requireCenter(), validate email uniqueness, generate 16-byte temp password with 24h expiry, create user (role=DOCTOR, passwordResetRequired=true, emailVerified=false), create account via Better Auth (hash password), create doctor record (provisioned=true, provisionedBy=admin user, centerId=center's ID, active=true), send verification email, handle email failure gracefully (log + create notification), return doctor + tempPassword",
+    "6. Create app/api/auth/change-password-first-login/route.ts: getAuthenticatedUser(), check passwordResetRequired=true, verify tempPasswordExpiresAt not expired, verify old password via Better Auth, validate new password (min 8 chars, uppercase, lowercase, number), update password via Better Auth, set passwordResetRequired=false, lastPasswordChangeAt=now, tempPasswordExpiresAt=null, send confirmation email",
+    "7. Create app/api/auth/verify-device/route.ts: getAuthenticatedUser(), rate limit 3 attempts per deviceId (in-memory Map), fetch OTP from verifications table (identifier='device-verify:{deviceId}'), check expiration, hash submitted OTP and compare, mark device as trusted in user_devices, delete verification record, return success",
+    "8. Create middleware.ts in project root with Next.js middleware to inject x-pathname header for all /doctor/* routes",
+    "9. Create app/doctor/layout.tsx: call checkFirstLogin(), get pathname from headers, if requiresReset=true and pathname not in allowedPaths (/doctor/change-password, /api/auth/*, /auth/signout), redirect to /doctor/change-password",
+    "10. Create app/doctor/change-password/page.tsx: requireDoctor() server-side check, form with oldPassword, newPassword, confirmNewPassword, password strength indicator, POST to /api/auth/change-password-first-login, redirect to /doctor/dashboard on success"
+  ],
+  "acceptance_criteria": [
+    "Center admin can POST to /api/center/doctors/provision with doctor details and receive tempPassword once",
+    "Email verification sent to doctor (or notification created if email fails)",
+    "Doctor login with temp password succeeds but redirects to change-password page",
+    "Doctor cannot access any /doctor/* route except change-password until password reset",
+    "Password change with valid old/new passwords succeeds and allows full access",
+    "New device login triggers OTP generation and security email",
+    "Correct OTP verification marks device as trusted",
+    "Rate limiting prevents OTP brute force (max 3 attempts)"
+  ],
+  "verification": [
+    "Start dev server: npm run dev",
+    "Login as CENTER role user, POST to /api/center/doctors/provision with valid data, verify 200 response with tempPassword",
+    "Check email logs for verification email or check notifications table for fallback",
+    "Login as provisioned doctor with temp password, verify redirect to /doctor/change-password",
+    "Try accessing /doctor/dashboard before password change, verify redirect back to change-password",
+    "Submit password change with new password, verify success and redirect to dashboard",
+    "Clear cookies, login from 'new device' (clear localStorage deviceId), verify OTP email sent",
+    "Submit correct OTP to /api/auth/verify-device, verify device trusted in user_devices table"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

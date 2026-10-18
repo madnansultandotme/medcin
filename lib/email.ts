@@ -385,3 +385,220 @@ The Medcin Team
     text,
   });
 }
+
+// Template: Doctor Provisioning Welcome Email
+export async function sendDoctorProvisioningEmail(
+  doctorName: string,
+  doctorEmail: string,
+  tempPassword: string,
+  centerName: string
+): Promise<boolean> {
+  const subject = '👨‍⚕️ Welcome to Medcin - Doctor Account Created';
+  const text = `
+Dear Dr. ${doctorName},
+
+Your doctor account has been created on the Medcin platform by ${centerName}.
+
+Your Login Credentials:
+Email: ${doctorEmail}
+Temporary Password: ${tempPassword}
+
+Important: You must change your password on first login for security reasons.
+
+Login here: ${process.env.NEXT_PUBLIC_APP_URL || 'https://medcin.health'}/login
+
+After logging in, you will be prompted to set a new password. Please keep your password secure and do not share it with anyone.
+
+What You Can Do:
+✓ View your upcoming appointments
+✓ Check in and check out patients
+✓ Manage your availability and schedules
+✓ Access patient booking history
+
+Need help? Contact support@medcin.health
+
+Best regards,
+The Medcin Team
+  `.trim();
+
+  const html = `
+    <div style="font-family: 'IBM Plex Sans', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+      <div style="text-align: center; padding: 20px 0; border-bottom: 3px solid: #1769AA;">
+        <h1 style="color: #1769AA; margin: 0; font-size: 28px;">Medcin Platform</h1>
+        <p style="color: #5C7185; margin: 5px 0;">Doctor Dashboard Access</p>
+      </div>
+      
+      <div style="padding: 30px 0;">
+        <h2 style="color: #102A43; font-size: 22px;">👨‍⚕️ Welcome Dr. ${doctorName}!</h2>
+        
+        <p style="color: #102A43; line-height: 1.6;">
+          Your doctor account has been created on the Medcin platform by <strong>${centerName}</strong>.
+        </p>
+        
+        <div style="background-color: #FFF9E6; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #FFA500;">
+          <h3 style="color: #102A43; margin-top: 0; font-size: 16px;">🔐 Your Login Credentials</h3>
+          <table style="width: 100%;">
+            <tr>
+              <td style="padding: 5px 0; color: #5C7185;">Email:</td>
+              <td style="padding: 5px 0; color: #102A43; font-weight: 600;">${doctorEmail}</td>
+            </tr>
+            <tr>
+              <td style="padding: 5px 0; color: #5C7185;">Temporary Password:</td>
+              <td style="padding: 5px 0; color: #DC2626; font-weight: 700; font-family: 'IBM Plex Mono', monospace;">${tempPassword}</td>
+            </tr>
+          </table>
+          <p style="margin: 15px 0 0 0; color: #DC2626; font-size: 13px; font-weight: 600;">
+            ⚠️ You must change your password on first login for security reasons.
+          </p>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://medcin.health'}/login" 
+             style="background-color: #1769AA; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600;">
+            Login to Dashboard
+          </a>
+        </div>
+        
+        <div style="background-color: #F0F7FF; padding: 20px; border-radius: 12px; margin: 20px 0;">
+          <h3 style="color: #1769AA; margin-top: 0;">What You Can Do:</h3>
+          <ul style="color: #102A43; line-height: 1.8; padding-left: 20px;">
+            <li>View your upcoming appointments</li>
+            <li>Check in and check out patients</li>
+            <li>Manage your availability and schedules</li>
+            <li>Access patient booking history</li>
+          </ul>
+        </div>
+        
+        <p style="color: #5C7185; font-size: 14px; line-height: 1.6; margin-top: 30px;">
+          Need help? Contact <a href="mailto:support@medcin.health" style="color: #1769AA;">support@medcin.health</a>
+        </p>
+      </div>
+      
+      <div style="text-align: center; padding: 20px 0; border-top: 1px solid #D7E7F5; color: #5C7185; font-size: 12px;">
+        <p>© 2026 Medcin Platform. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: doctorEmail,
+    subject,
+    text,
+    html,
+  });
+}
+
+// Template: New Device Alert Email
+export async function sendNewDeviceAlertEmail(
+  userEmail: string,
+  userName: string,
+  deviceName: string,
+  deviceType: string,
+  ipAddress: string | null,
+  otp: string
+): Promise<boolean> {
+  const subject = '🔐 Security Alert: New Device Login Detected';
+  const timestamp = new Date().toLocaleString('en-US', { 
+    timeZone: 'Asia/Singapore',
+    dateStyle: 'full',
+    timeStyle: 'long'
+  });
+  
+  const text = `
+Dear ${userName},
+
+A login from a new device was detected on your Medcin account.
+
+Device Information:
+Device: ${deviceName}
+Type: ${deviceType}
+IP Address: ${ipAddress || 'Unknown'}
+Time: ${timestamp}
+
+Verification Required:
+To continue using this device, please enter the following verification code:
+
+Verification Code: ${otp}
+
+This code expires in 10 minutes.
+
+If this wasn't you:
+Please change your password immediately and contact support@medcin.health
+
+For your security, we monitor all login attempts and will alert you of any suspicious activity.
+
+Best regards,
+The Medcin Security Team
+  `.trim();
+
+  const html = `
+    <div style="font-family: 'IBM Plex Sans', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+      <div style="text-align: center; padding: 20px 0; border-bottom: 3px solid #DC2626;">
+        <h1 style="color: #DC2626; margin: 0; font-size: 28px;">🔐 Security Alert</h1>
+        <p style="color: #5C7185; margin: 5px 0;">New Device Login Detected</p>
+      </div>
+      
+      <div style="padding: 30px 0;">
+        <p style="color: #102A43; line-height: 1.6;">Dear ${userName},</p>
+        
+        <p style="color: #102A43; line-height: 1.6;">
+          A login from a <strong>new device</strong> was detected on your Medcin account.
+        </p>
+        
+        <div style="background-color: #FFF0F0; padding: 20px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #DC2626;">
+          <h3 style="color: #DC2626; margin-top: 0; font-size: 16px;">Device Information</h3>
+          <table style="width: 100%;">
+            <tr>
+              <td style="padding: 5px 0; color: #5C7185;">Device:</td>
+              <td style="padding: 5px 0; color: #102A43; font-weight: 600;">${deviceName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 5px 0; color: #5C7185;">Type:</td>
+              <td style="padding: 5px 0; color: #102A43;">${deviceType}</td>
+            </tr>
+            <tr>
+              <td style="padding: 5px 0; color: #5C7185;">IP Address:</td>
+              <td style="padding: 5px 0; color: #102A43;">${ipAddress || 'Unknown'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 5px 0; color: #5C7185;">Time:</td>
+              <td style="padding: 5px 0; color: #102A43;">${timestamp}</td>
+            </tr>
+          </table>
+        </div>
+        
+        <div style="background-color: #F0F7FF; padding: 25px; border-radius: 12px; margin: 20px 0; text-align: center; border: 2px solid #1769AA;">
+          <h3 style="color: #1769AA; margin-top: 0; font-size: 16px;">Verification Required</h3>
+          <p style="color: #5C7185; margin: 10px 0; font-size: 14px;">Enter this code to continue:</p>
+          <div style="background-color: #FFFFFF; padding: 20px; border-radius: 8px; margin: 15px 0;">
+            <p style="margin: 0; color: #1769AA; font-size: 36px; font-weight: 700; letter-spacing: 8px; font-family: 'IBM Plex Mono', monospace;">${otp}</p>
+          </div>
+          <p style="color: #DC2626; margin: 10px 0; font-size: 13px;">⏱️ Expires in 10 minutes</p>
+        </div>
+        
+        <div style="background-color: #FFF9E6; padding: 15px; border-left: 4px solid #FFA500; border-radius: 6px; margin: 20px 0;">
+          <p style="color: #102A43; margin: 0; font-size: 14px;">
+            <strong>⚠️ If this wasn't you:</strong><br>
+            Please change your password immediately and contact <a href="mailto:support@medcin.health" style="color: #1769AA;">support@medcin.health</a>
+          </p>
+        </div>
+        
+        <p style="color: #5C7185; font-size: 13px; line-height: 1.6; margin-top: 20px;">
+          For your security, we monitor all login attempts and will alert you of any suspicious activity.
+        </p>
+      </div>
+      
+      <div style="text-align: center; padding: 20px 0; border-top: 1px solid #D7E7F5; color: #5C7185; font-size: 12px;">
+        <p>© 2026 Medcin Platform. All rights reserved.</p>
+        <p>Medcin Security Team</p>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: userEmail,
+    subject,
+    text,
+    html,
+  });
+}

@@ -224,3 +224,22 @@ export async function getUserPatientId(userId: string): Promise<string | null> {
     return null;
   }
 }
+
+/**
+ * Get user's doctor profile ID (for DOCTOR role users)
+ */
+export async function getUserDoctorId(userId: string): Promise<string | null> {
+  try {
+    const { doctors } = await import('@/db/schema');
+    const doctorRecord = await db
+      .select()
+      .from(doctors)
+      .where(eq(doctors.userId, userId))
+      .limit(1);
+
+    return doctorRecord.length > 0 ? doctorRecord[0].id : null;
+  } catch (error) {
+    console.error('Get user doctor ID error:', error);
+    return null;
+  }
+}
