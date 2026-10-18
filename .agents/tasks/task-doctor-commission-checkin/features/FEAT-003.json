@@ -1,0 +1,44 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Admin UI for commission settings and center management. Creates admin center detail page at /admin/centers/[id] with commission configuration form, doctor list, and booking overview. Allows admins to set percentage or fixed commission rates per center. Depends on FEAT-002 (commission API).",
+  "status": "pending",
+  "steps": [
+    "Create app/admin/centers/[id]/page.tsx: new dynamic route for center detail page",
+    "Implement useEffect to fetch center data from GET /api/centers?id={id} on page load",
+    "Create center info section displaying name, category, status, license number, contact details",
+    "Create commission settings form with: radio buttons for commission type (PERCENTAGE/FIXED), conditional number input for rate (0-100% with step 0.1) or fixed amount ($ with step 0.01), Save button",
+    "Implement handleSaveCommission function: POST to /api/admin/centers/commission with { centerId, commissionRate, commissionType, fixedCommissionAmount }, show success/error toast, refresh center data",
+    "Add doctors section: fetch and display list of doctors for this center from GET /api/doctors?centerId={id}, show count, names, specializations, active status",
+    "Add recent bookings section: fetch bookings for this center from GET /api/bookings with center context, display in table with reference, date, status, commission amount",
+    "Style using existing Tailwind patterns from app/admin/centers/page.tsx: rounded-xl cards, dark mode support, bg-white dark:bg-gray-800, border classes",
+    "Update app/admin/centers/page.tsx: change 'View Details' links to point to /admin/centers/[id] instead of inline handling",
+    "Test UI flow: navigate to center detail, change commission settings, verify API call succeeds, refresh and confirm settings persist, check console for errors"
+  ],
+  "acceptance_criteria": [
+    "npm run build compiles with no errors",
+    "/admin/centers/[id] page renders center details successfully",
+    "Commission form displays current settings loaded from database",
+    "Changing commission type (PERCENTAGE ↔ FIXED) shows/hides appropriate input fields",
+    "Saving commission settings calls POST /api/admin/centers/commission and updates database",
+    "After save, refreshing the page shows persisted commission settings",
+    "Doctors section displays all doctors for the center with accurate counts",
+    "Recent bookings section shows bookings with commission amounts for completed bookings",
+    "UI is responsive and follows existing design patterns (colors, spacing, dark mode)",
+    "Error states handled gracefully: loading spinner, error messages if API fails"
+  ],
+  "verification": [
+    "Run npm run build and verify exit code 0",
+    "Start dev server: npm run dev",
+    "Navigate to http://localhost:3000/admin/centers (login as admin if needed)",
+    "Click 'View Details' on any center; verify navigation to /admin/centers/[id]",
+    "Commission form displays with current settings loaded",
+    "Change commission type from PERCENTAGE to FIXED; verify input field changes from rate (%) to amount ($)",
+    "Enter 15 for percentage rate, click Save; check browser network tab for successful POST request",
+    "Refresh page; verify commission rate still shows 15% and PERCENTAGE selected",
+    "Query database: SELECT commission_rate, commission_type FROM centers WHERE id='center-id'; confirm rate=15, type=PERCENTAGE",
+    "Check doctors section displays doctor count and names correctly"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

@@ -1,0 +1,33 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Add commission system with admin controls. Create commissionTypeEnum, add commission fields to centers table (commissionRate, commissionType, fixedCommissionAmount), add commission tracking fields to bookings table (commissionAmount, commissionStatus, centerEarnings), and create admin API route for setting commission settings per center. Admin center detail page gets commission settings form.",
+  "status": "pending",
+  "steps": [
+    "1. Update db/schema.ts: Create commissionTypeEnum pgEnum with values 'PERCENTAGE' and 'FIXED'",
+    "2. Update db/schema.ts: Add to centers table: commissionRate (real, nullable, e.g., 15.0 for 15%), commissionType (commissionTypeEnum, default 'PERCENTAGE'), fixedCommissionAmount (real, nullable)",
+    "3. Update db/schema.ts: Create commissionStatusEnum pgEnum with values 'PENDING', 'CALCULATED', 'PAID'",
+    "4. Update db/schema.ts: Add to bookings table: commissionAmount (real, nullable), commissionStatus (commissionStatusEnum, default 'PENDING'), centerEarnings (real, nullable)",
+    "5. Run 'npm run db:push' to apply schema changes",
+    "6. Create app/api/admin/centers/commission/route.ts: PUT endpoint to set commission settings (centerId, commissionRate, commissionType, fixedCommissionAmount). Admin-only using requireAdmin(). Validates: commissionRate 0-100 if PERCENTAGE, fixedCommissionAmount > 0 if FIXED",
+    "7. Create app/admin/centers/[id]/page.tsx (new dynamic route): Fetches center by ID, displays center details, includes commission settings form (commissionType select, commissionRate/fixedCommissionAmount inputs), PUTs to /api/admin/centers/commission",
+    "8. Update app/admin/centers/page.tsx: Change 'View Details' link to point to /admin/centers/[id] dynamic route"
+  ],
+  "acceptance_criteria": [
+    "commissionTypeEnum exists with PERCENTAGE and FIXED values",
+    "centers table has commissionRate, commissionType, fixedCommissionAmount fields",
+    "commissionStatusEnum exists with PENDING, CALCULATED, PAID values",
+    "bookings table has commissionAmount, commissionStatus, centerEarnings fields",
+    "POST /api/admin/centers/commission validates and updates commission settings (admin-only)",
+    "app/admin/centers/[id]/page.tsx exists and displays commission form",
+    "Admin can set percentage or fixed commission per center"
+  ],
+  "verification": [
+    "Run 'npm run db:push' and confirm success",
+    "Run 'npm run build' and confirm TypeScript compilation passes",
+    "Manually test PUT /api/admin/centers/commission with admin auth, verify database update",
+    "Navigate to /admin/centers/[centerId] as admin, verify commission form renders and saves"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

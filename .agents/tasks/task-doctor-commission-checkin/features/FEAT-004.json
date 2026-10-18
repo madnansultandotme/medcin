@@ -1,0 +1,50 @@
+{
+  "id": "FEAT-004",
+  "type": "feat",
+  "description": "Center check-in/check-out UI and independent doctor registration flow. Adds check-in/check-out action buttons to center bookings page, displays commission details after checkout, and creates new doctor signup page at /signup/doctor. Depends on FEAT-002 (APIs) for check-in/out and doctor registration endpoints.",
+  "status": "pending",
+  "steps": [
+    "Update app/center/bookings/page.tsx: add checkedInAt, checkedOutAt, commissionAmount, centerEarnings to Booking interface",
+    "Fetch bookings with check-in/out fields: existing GET /api/bookings already returns all fields",
+    "Add handleCheckin function: POST to /api/center/checkin with { bookingId }, update local state with returned booking including checkedInAt timestamp",
+    "Add handleCheckout function: POST to /api/center/checkout with { bookingId }, update local state with returned booking including commissionAmount and centerEarnings, show success toast with commission details",
+    "Modify booking card/row rendering: for CONFIRMED bookings without checkedInAt, show 'Check In' button (green); for bookings with checkedInAt but no checkedOutAt, show 'Checked In' badge and 'Check Out' button (blue); for COMPLETED bookings, show 'Completed' badge and display commission details",
+    "Add conditional commission info display: if booking.commissionAmount exists, show 'Commission: ${commissionAmount}' and 'Center Earnings: ${centerEarnings}' in small text below booking details",
+    "Create app/signup/doctor/page.tsx: new doctor registration page",
+    "Implement two-step doctor signup form: Step 1 - account creation (email, password, name, phone) using Better Auth signup, Step 2 - doctor profile (specialization dropdown, license number, consultation fee, bio textarea, optional image upload)",
+    "Fetch doctor specializations for dropdown: GET from a new endpoint /api/specializations or query doctor_specializations table directly in component useEffect",
+    "Implement form submission: create user account with role='DOCTOR', then POST to /api/doctors/register with profile details, show success message 'Registration submitted. Pending admin approval.', redirect to /doctor/dashboard or pending page",
+    "Style signup page following existing pattern in app/signup/patient/page.tsx or app/signup/center/page.tsx: two-column layout or single form with sections, Tailwind classes, dark mode support",
+    "Add link to doctor signup from main signup page or login page: 'Register as Doctor' link pointing to /signup/doctor",
+    "Test check-in/out flow: create booking, confirm it, check in via UI, verify timestamp displayed, check out, verify status changes to COMPLETED and commission displays correctly",
+    "Test doctor registration: fill form at /signup/doctor, submit, verify user created with role=DOCTOR and doctor profile created with is_independent=true"
+  ],
+  "acceptance_criteria": [
+    "npm run build compiles with no errors",
+    "Center bookings page displays 'Check In' button for CONFIRMED bookings not yet checked in",
+    "Clicking 'Check In' updates booking and shows 'Checked In' badge with timestamp",
+    "'Check Out' button appears only for checked-in bookings (has checkedInAt, no checkedOutAt)",
+    "Clicking 'Check Out' marks booking as COMPLETED and displays commission information",
+    "Commission details (amount and center earnings) are visible after checkout to center users",
+    "Doctor signup page at /signup/doctor renders with account and profile sections",
+    "Specialization dropdown populates with options from doctor_specializations table",
+    "Submitting doctor signup form creates user with role=DOCTOR and doctor profile with userId set, centerId=null, isIndependent=true",
+    "After signup, user sees confirmation message and is redirected appropriately",
+    "UI is consistent with existing design patterns: Tailwind classes, colors, spacing, responsive layout"
+  ],
+  "verification": [
+    "Run npm run build and verify exit code 0",
+    "Start dev server: npm run dev",
+    "Login as center user, navigate to /center/bookings",
+    "Find a CONFIRMED booking, click 'Check In' button; verify UI updates to show 'Checked In' badge and check-out button appears",
+    "Click 'Check Out' button; verify booking row updates to show COMPLETED status and commission details display",
+    "Query database: SELECT status, checked_in_at, checked_out_at, commission_amount, center_earnings FROM bookings WHERE id='booking-id'; verify all fields populated",
+    "Navigate to http://localhost:3000/signup/doctor",
+    "Fill out form with test data: email=test-doctor@example.com, password, name, specialization=Cardiology, licenseNumber=MD-12345, consultationFee=150",
+    "Submit form; verify success message appears",
+    "Query users table: SELECT id, email, role FROM users WHERE email='test-doctor@example.com'; expect role=DOCTOR",
+    "Query doctors table: SELECT user_id, center_id, is_independent, active FROM doctors WHERE user_id=(SELECT id FROM users WHERE email='test-doctor@example.com'); expect center_id=null, is_independent=true, active=false"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

@@ -1,0 +1,7 @@
+{
+  "task_id": "task-doctor-role-commission-checkin",
+  "task_description": "Add independent DOCTOR role, center commission system with admin controls, and booking check-in/check-out with automatic commission calculation",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

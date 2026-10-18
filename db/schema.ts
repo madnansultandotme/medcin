@@ -9,6 +9,8 @@ export const centerStatusEnum = pgEnum('center_status', ['PENDING', 'UNDER_REVIE
 export const bookingStatusEnum = pgEnum('booking_status', ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED']);
 export const slotStatusEnum = pgEnum('slot_status', ['AVAILABLE', 'BOOKED', 'BLOCKED']);
 export const disputeStatusEnum = pgEnum('dispute_status', ['OPEN', 'RESOLVED', 'CLOSED']);
+export const commissionTypeEnum = pgEnum('commission_type', ['PERCENTAGE', 'FIXED']);
+export const commissionStatusEnum = pgEnum('commission_status', ['PENDING', 'CALCULATED', 'PAID']);
 
 // Lookup/Reference Tables for Normalization
 export const centerCategories = pgTable('center_categories', {
@@ -100,6 +102,9 @@ export const centers = pgTable('centers', {
   amenities: text('amenities').array().default([]),
   completedRegistration: boolean('completed_registration').default(false).notNull(),
   submittedTime: timestamp('submitted_time').defaultNow().notNull(),
+  commissionRate: real('commission_rate'), // Percentage rate (e.g., 15.0 for 15%)
+  commissionType: commissionTypeEnum('commission_type').default('PERCENTAGE').notNull(),
+  fixedCommissionAmount: real('fixed_commission_amount'), // Fixed amount when type is FIXED
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [
@@ -241,6 +246,9 @@ export const bookings = pgTable('bookings', {
   patientNotes: text('patient_notes'),
   paymentMethod: text('payment_method').default('Pay at Clinic').notNull(),
   cancellationReason: text('cancellation_reason'),
+  commissionAmount: real('commission_amount'), // Calculated commission for this booking
+  commissionStatus: commissionStatusEnum('commission_status').default('PENDING').notNull(),
+  centerEarnings: real('center_earnings'), // Amount center earns after commission
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [

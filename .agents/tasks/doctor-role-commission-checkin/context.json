@@ -1,0 +1,23 @@
+{
+  "project_type": "Next.js 16.3 App Router + TypeScript + Neon PostgreSQL with Drizzle ORM",
+  "language": "TypeScript",
+  "build_system": "Next.js (npm). Build with 'npm run build', push schema with 'npm run db:push'",
+  "test_framework": "No test framework configured in package.json",
+  "build_command": "npm run build",
+  "test_command": "npm run lint (ESLint only)",
+  "verification_instructions": "1. Run 'npm run db:push' to push schema changes to Neon PostgreSQL. 2. Run 'npm run build' to verify TypeScript compilation and Next.js build. 3. Test API routes manually via HTTP requests or browser (no automated tests). 4. Verify database changes by querying Neon console or using db client.",
+  "snapshot_or_generated_files": "None that get checked in. .next/ build output is gitignored.",
+  "environment_constraints": "Neon PostgreSQL serverless database. Better Auth v1.7.7 for authentication. Uses Row-Level Security (RLS) with crudPolicy patterns. Database migration via 'drizzle-kit push' (no migration files, direct schema push).",
+  "contribution_requirements": "Follow existing Drizzle ORM patterns with RLS policies (crudPolicy, authenticatedRole, anonymousRole, authUid). Maintain backward compatibility with existing schema. Use existing API route patterns with getAuthenticatedUser() for auth checks. Follow Next.js 16.3 App Router conventions.",
+  "key_patterns": "1. Schema: Use pgEnum for enums, pgTable for tables, relations() for joins, crudPolicy for RLS. 2. API routes: Use getAuthenticatedUser() from @/lib/middleware/permissions, return NextResponse.json(). 3. Auth: Better Auth stores users in 'users' table with 'id' as primary key (not authUid). 4. Role checks: requireAdmin(), requireCenter(), requirePatient() helpers. 5. Database client: import { db } from '@/db'. 6. Pages: 'use client' for interactive pages, fetch from /api/* routes.",
+  "relevant_files": [
+    "db/schema.ts",
+    "lib/middleware/permissions.ts",
+    "app/api/bookings/route.ts",
+    "app/api/admin/centers/approve/route.ts",
+    "app/center/bookings/page.tsx",
+    "app/admin/centers/page.tsx",
+    "drizzle.config.ts"
+  ],
+  "directory_structure": "app/ (Next.js pages and API routes), app/api/ (REST endpoints), app/admin/ (admin dashboard pages), app/center/ (center dashboard pages), app/patient/ (patient pages), db/ (Drizzle schema and client), lib/ (utilities, auth, middleware), components/ (React components), scripts/ (seed scripts)"
+}
