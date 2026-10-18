@@ -5,12 +5,13 @@
  * Uses Neon Better Auth for user authentication
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { authClient } from '@/lib/auth/client';
+import { getOrCreateDeviceId, getDeviceName } from '@/lib/device-id';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -24,6 +25,13 @@ export default function LoginPage() {
   const { signIn } = useAuth();
   const router = useRouter();
 
+  // Initialize device ID on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      getOrCreateDeviceId();
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -36,6 +44,33 @@ export default function LoginPage() {
       const userResponse = await fetch('/api/auth/me');
       if (userResponse.ok) {
         const { user } = await userResponse.json();
+        
+        // Check device verification status for doctors
+        if (user.role === 'DOCTOR') {
+          const deviceId = getOrCreateDeviceId();
+          const deviceName = getDeviceName();
+          
+          const deviceCheckResponse = await fetch('/api/auth/check-device', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Device-ID': deviceId,
+              'X-Device-Name': deviceName,
+            },
+          });
+
+          if (deviceCheckResponse.ok) {
+            const deviceData = await deviceCheckResponse.json();
+            
+            if (deviceData.requiresVerification) {
+              router.push(`/doctor/verify-device?deviceId=${deviceId}`);
+              return;
+            }
+          }
+          
+          router.push('/doctor');
+          return;
+        }
         
         if (user.role === 'CENTER') {
           // Use database-level access check

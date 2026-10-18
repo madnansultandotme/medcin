@@ -51,3 +51,4 @@ export const auth = betterAuth({
     "https://medcin.vercel.app"
   ].filter(Boolean),
 });
+
