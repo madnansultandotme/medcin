@@ -1,0 +1,29 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Add independent DOCTOR role to schema and auth system. Extend userRoleEnum with 'DOCTOR', make doctors.centerId nullable, add userId reference to doctors table for independent doctors, and add doctor profile fields (specialization, bio, consultationFee, isIndependent). Update permissions.ts to handle DOCTOR role.",
+  "status": "completed",
+  "steps": [
+    "1. Update db/schema.ts: Add 'DOCTOR' to userRoleEnum pgEnum definition (line 9)",
+    "2. In db/schema.ts doctors table: Change centerId from .notNull() to nullable, add userId field (text, references users.id, nullable), add isIndependent field (boolean, default false)",
+    "3. In db/schema.ts doctors table: Add specialization (text), bio (text, already exists), consultationFee (real, nullable) fields for independent doctors",
+    "4. Update lib/middleware/permissions.ts: Add 'DOCTOR' to UserRole type, create requireDoctor() helper function following existing pattern",
+    "5. Run 'npm run db:push' to apply schema changes to Neon database"
+  ],
+  "acceptance_criteria": [
+    "userRoleEnum includes 'DOCTOR' value",
+    "doctors.centerId is nullable (doctors can exist without a center)",
+    "doctors.userId exists and references users.id",
+    "doctors.isIndependent field exists (boolean)",
+    "New doctor profile fields (specialization, consultationFee) exist",
+    "lib/middleware/permissions.ts exports requireDoctor() function",
+    "Schema push completes without errors"
+  ],
+  "verification": [
+    "Run 'npm run db:push' and confirm success",
+    "Run 'npm run build' and confirm TypeScript compilation passes",
+    "Query Neon database to verify doctors table structure includes new nullable centerId, userId, isIndependent, specialization, consultationFee columns"
+  ],
+  "blocked_reason": null,
+  "findings": "All acceptance criteria met. Schema changes applied via Neon MCP migration. Database verified with nullable centerId, userId reference, isIndependent flag, specialization and consultationFee fields. TypeScript compilation passes."
+}

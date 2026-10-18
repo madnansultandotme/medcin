@@ -4,7 +4,7 @@ import { relations } from 'drizzle-orm';
 import { authenticatedRole, anonymousRole, crudPolicy, authUid } from 'drizzle-orm/neon';
 
 // Enums
-export const userRoleEnum = pgEnum('user_role', ['ADMIN', 'CENTER', 'PATIENT']);
+export const userRoleEnum = pgEnum('user_role', ['ADMIN', 'CENTER', 'PATIENT', 'DOCTOR']);
 export const centerStatusEnum = pgEnum('center_status', ['PENDING', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'SUSPENDED']);
 export const bookingStatusEnum = pgEnum('booking_status', ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED']);
 export const slotStatusEnum = pgEnum('slot_status', ['AVAILABLE', 'BOOKED', 'BLOCKED']);
@@ -69,6 +69,10 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     fields: [users.id],
     references: [patientProfiles.userId],
   }),
+  doctor: one(doctors, {
+    fields: [users.id],
+    references: [doctors.userId],
+  }),
   disputes: many(disputes),
 }));
 
@@ -124,16 +128,20 @@ export const centersRelations = relations(centers, ({ one, many }) => ({
 // Doctors table - Public read for active doctors
 export const doctors = pgTable('doctors', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  centerId: text('center_id').notNull().references(() => centers.id, { onDelete: 'cascade' }),
+  centerId: text('center_id').references(() => centers.id, { onDelete: 'cascade' }),
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   role: text('role').notNull(),
   category: text('category').notNull(),
+  specialization: text('specialization'),
   price: real('price').notNull(),
+  consultationFee: real('consultation_fee'),
   rating: real('rating').default(0).notNull(),
   reviewsCount: integer('reviews_count').default(0).notNull(),
   licenseNumber: text('license_number').notNull(),
   bio: text('bio'),
   imageUrl: text('image_url'),
+  isIndependent: boolean('is_independent').default(false).notNull(),
   active: boolean('active').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -156,6 +164,10 @@ export const doctorsRelations = relations(doctors, ({ one, many }) => ({
   center: one(centers, {
     fields: [doctors.centerId],
     references: [centers.id],
+  }),
+  user: one(users, {
+    fields: [doctors.userId],
+    references: [users.id],
   }),
   services: many(services),
   bookings: many(bookings),

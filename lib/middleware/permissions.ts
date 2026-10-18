@@ -10,7 +10,7 @@ import { db } from '@/db';
 import { users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
-export type UserRole = 'ADMIN' | 'CENTER' | 'PATIENT';
+export type UserRole = 'ADMIN' | 'CENTER' | 'PATIENT' | 'DOCTOR';
 
 export interface AuthenticatedUser {
   id: string;
@@ -130,6 +130,15 @@ export async function requirePatient(): Promise<
   { context: AuthContext } | { error: NextResponse }
 > {
   return requireRole('PATIENT');
+}
+
+/**
+ * Require doctor role
+ */
+export async function requireDoctor(): Promise<
+  { context: AuthContext } | { error: NextResponse }
+> {
+  return requireRole('DOCTOR');
 }
 
 /**
