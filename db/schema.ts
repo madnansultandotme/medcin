@@ -249,6 +249,10 @@ export const bookings = pgTable('bookings', {
   commissionAmount: real('commission_amount'), // Calculated commission for this booking
   commissionStatus: commissionStatusEnum('commission_status').default('PENDING').notNull(),
   centerEarnings: real('center_earnings'), // Amount center earns after commission
+  checkedInAt: timestamp('checked_in_at'),
+  checkedOutAt: timestamp('checked_out_at'),
+  checkedInBy: text('checked_in_by').references(() => users.id, { onDelete: 'set null' }),
+  checkedOutBy: text('checked_out_by').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [

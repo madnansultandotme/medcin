@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "feat",
   "description": "Add check-in/check-out system with automatic commission calculation. Add checkedInAt, checkedOutAt, checkedInBy, checkedOutBy fields to bookings table. Create POST /api/center/checkin and POST /api/center/checkout routes. On checkout, calculate commission based on center's settings, set booking status to COMPLETED, populate commissionAmount/centerEarnings, set commissionStatus to CALCULATED. Update center bookings page with check-in/check-out buttons.",
-  "status": "pending",
+  "status": "completed",
   "steps": [
     "1. Update db/schema.ts bookings table: Add checkedInAt (timestamp, nullable), checkedOutAt (timestamp, nullable), checkedInBy (text, references users.id, nullable), checkedOutBy (text, references users.id, nullable)",
     "2. Run 'npm run db:push' to apply schema changes",
@@ -28,5 +28,5 @@
     "Test with both PERCENTAGE and FIXED commission types, verify math: PERCENTAGE uses rate %, FIXED uses fixed amount"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Successfully implemented check-in/check-out system with automatic commission calculation. Added checkedInAt, checkedOutAt, checkedInBy, checkedOutBy fields to bookings schema. Created POST /api/center/checkin and POST /api/center/checkout routes with center ownership validation. On checkout, commission is calculated based on center's commissionType (PERCENTAGE or FIXED), booking status is set to COMPLETED, commissionAmount and centerEarnings are populated, and commissionStatus is set to CALCULATED. Updated center bookings page with check-in/check-out buttons, loading states, and commission details display. Build completed successfully with TypeScript compilation passing."
 }
