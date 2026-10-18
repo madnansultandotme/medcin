@@ -4,6 +4,8 @@
  * View and edit doctor profile information.
  */
 
+export const dynamic = 'force-dynamic';
+
 import { requireDoctor, getUserDoctorId } from '@/lib/middleware/permissions';
 import { db } from '@/db';
 import { doctors, centers } from '@/db/schema';

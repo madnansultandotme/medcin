@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { authClient } from '@/lib/auth/client';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -66,12 +67,21 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = async () => {
+    setError(null);
+    setLoading(true);
+    
     try {
-      setError(null);
-      // TODO: Implement Google sign-in
-      setError('Google sign-in is not yet implemented');
+      // Use Better Auth client's social sign-in
+      // This will redirect to Google OAuth consent screen
+      await authClient.signIn.social({
+        provider: 'google',
+        callbackURL: `${window.location.origin}/login`,
+      });
+      
+      // The redirect happens automatically, no need to handle response
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Google');
+      setLoading(false);
     }
   };
 
