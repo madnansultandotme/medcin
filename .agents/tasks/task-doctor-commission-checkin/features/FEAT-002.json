@@ -1,0 +1,43 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Backend API routes for commission management and check-in/check-out workflow. Includes admin commission settings endpoint, center check-in/check-out endpoints with automatic commission calculation, commission calculation utility, and permission middleware updates for DOCTOR role. Depends on FEAT-001 (schema changes).",
+  "status": "pending",
+  "steps": [
+    "Update lib/middleware/permissions.ts: add 'DOCTOR' to UserRole type, create requireDoctor() helper, create getUserDoctorId(userId) helper similar to getUserCenterId and getUserPatientId",
+    "Create lib/commission.ts with calculateCommission function: accepts bookingPrice, commissionRate, commissionType, fixedAmount; returns { commissionAmount, centerEarnings } with proper rounding to 2 decimals",
+    "Create app/api/admin/centers/commission/route.ts: POST endpoint requiring admin role, accepts { centerId, commissionRate?, commissionType?, fixedCommissionAmount? }, validates rate 0-100 for PERCENTAGE, updates centers table, returns updated center",
+    "Create app/api/center/checkin/route.ts: POST endpoint requiring center role, accepts { bookingId }, validates booking belongs to center's doctor and status is CONFIRMED, sets checkedInAt timestamp and checkedInBy to current user, returns updated booking",
+    "Create app/api/center/checkout/route.ts: POST endpoint requiring center role, accepts { bookingId }, validates booking is checked in and belongs to center, fetches center commission settings, calculates commission using lib/commission.ts, updates booking with checkedOutAt, checkedOutBy, status=COMPLETED, commissionAmount, centerEarnings, commissionStatus=CALCULATED, returns booking with commission details",
+    "Update app/api/bookings/route.ts GET handler: add DOCTOR role case to fetch bookings where doctorId matches getUserDoctorId(user.id), filter out commission fields for PATIENT role responses",
+    "Create app/api/doctors/register/route.ts: POST endpoint requiring DOCTOR role, accepts { name, specialization, licenseNumber, consultationFee, bio?, imageUrl? }, validates user doesn't have existing doctor profile, creates doctor record with userId=user.id, centerId=null, isIndependent=true, active=false, returns created profile",
+    "Update app/api/doctors/route.ts GET handler: modify query to include independent doctors (where centerId is null OR centerId matches filter), handle nullable centerId in WHERE clause using and() with optional conditions",
+    "Test all new endpoints with Thunder Client or curl: verify admin commission setting, center check-in, center check-out with commission calculation, doctor registration, and bookings GET for all roles",
+    "Verify commission calculation accuracy: create test bookings with different prices and commission settings (percentage and fixed), check out, confirm commissionAmount and centerEarnings match manual calculations"
+  ],
+  "acceptance_criteria": [
+    "npm run build completes with no TypeScript errors",
+    "POST /api/admin/centers/commission as admin successfully updates center commission settings",
+    "POST /api/admin/centers/commission as non-admin returns 403 Forbidden",
+    "POST /api/center/checkin as center sets checkedInAt timestamp and checkedInBy user ID",
+    "POST /api/center/checkout as center after check-in calculates commission correctly and sets status to COMPLETED",
+    "Commission calculation is accurate: 15% of $100 = $15 commission, $85 earnings",
+    "Fixed commission calculation works: $20 fixed on $100 = $20 commission, $80 earnings",
+    "GET /api/bookings as DOCTOR returns only that doctor's bookings",
+    "GET /api/bookings as PATIENT excludes commission fields from response",
+    "POST /api/doctors/register as DOCTOR creates independent doctor profile with centerId=null",
+    "GET /api/doctors includes both center-affiliated and independent doctors when no centerId filter"
+  ],
+  "verification": [
+    "Run npm run build and verify exit code 0",
+    "curl -X POST http://localhost:3000/api/admin/centers/commission -H 'Content-Type: application/json' -d '{\"centerId\":\"test-id\",\"commissionRate\":15}' with admin auth; expect 200 status",
+    "Query centers table: SELECT commission_rate, commission_type FROM centers WHERE id='test-id'; expect rate=15, type=PERCENTAGE",
+    "Create CONFIRMED booking, curl -X POST http://localhost:3000/api/center/checkin -d '{\"bookingId\":\"booking-id\"}' with center auth; expect checked_in_at set",
+    "curl -X POST http://localhost:3000/api/center/checkout -d '{\"bookingId\":\"booking-id\"}' with center auth; expect commission_amount calculated",
+    "Query booking: SELECT price, commission_amount, center_earnings, status FROM bookings WHERE id='booking-id'; verify commission = price * 0.15, status = COMPLETED",
+    "GET /api/bookings as DOCTOR user; verify response includes only bookings for that doctor's ID",
+    "POST /api/doctors/register as DOCTOR user; query doctors: SELECT user_id, center_id, is_independent FROM doctors WHERE user_id='doctor-user-id'; expect center_id=null, is_independent=true"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

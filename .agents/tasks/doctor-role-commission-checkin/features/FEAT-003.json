@@ -1,0 +1,32 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Add check-in/check-out system with automatic commission calculation. Add checkedInAt, checkedOutAt, checkedInBy, checkedOutBy fields to bookings table. Create POST /api/center/checkin and POST /api/center/checkout routes. On checkout, calculate commission based on center's settings, set booking status to COMPLETED, populate commissionAmount/centerEarnings, set commissionStatus to CALCULATED. Update center bookings page with check-in/check-out buttons.",
+  "status": "pending",
+  "steps": [
+    "1. Update db/schema.ts bookings table: Add checkedInAt (timestamp, nullable), checkedOutAt (timestamp, nullable), checkedInBy (text, references users.id, nullable), checkedOutBy (text, references users.id, nullable)",
+    "2. Run 'npm run db:push' to apply schema changes",
+    "3. Create app/api/center/checkin/route.ts: POST endpoint accepting { bookingId }. CENTER role only. Validates booking belongs to center's doctor. Sets checkedInAt to now, checkedInBy to user.id, returns updated booking",
+    "4. Create app/api/center/checkout/route.ts: POST endpoint accepting { bookingId }. CENTER role only. Validates booking belongs to center's doctor and is checked in. Fetches center commission settings. Calculates commission: if PERCENTAGE, commissionAmount = price * (commissionRate/100); if FIXED, commissionAmount = fixedCommissionAmount. centerEarnings = price - commissionAmount. Updates booking: checkedOutAt = now, checkedOutBy = user.id, status = 'COMPLETED', commissionAmount, centerEarnings, commissionStatus = 'CALCULATED'. Returns updated booking with commission breakdown",
+    "5. Update app/center/bookings/page.tsx: Add 'Actions' column to bookings table. For CONFIRMED bookings not checked in: show 'Check In' button (calls POST /api/center/checkin). For checked-in bookings: show 'Check Out' button (calls POST /api/center/checkout). Display commission details after checkout",
+    "6. Add client-side state management in app/center/bookings/page.tsx for check-in/check-out actions with loading states and error handling"
+  ],
+  "acceptance_criteria": [
+    "bookings table has checkedInAt, checkedOutAt, checkedInBy, checkedOutBy fields",
+    "POST /api/center/checkin marks booking as checked in (center role only)",
+    "POST /api/center/checkout calculates commission automatically based on center settings",
+    "Checkout sets booking status to COMPLETED, populates commissionAmount/centerEarnings, sets commissionStatus to CALCULATED",
+    "Center bookings page shows check-in button for CONFIRMED bookings",
+    "Center bookings page shows check-out button for checked-in bookings",
+    "Commission calculation handles both PERCENTAGE and FIXED commission types"
+  ],
+  "verification": [
+    "Run 'npm run db:push' and confirm success",
+    "Run 'npm run build' and confirm TypeScript compilation passes",
+    "As center user: navigate to /center/bookings, check in a CONFIRMED booking, verify checkedInAt timestamp in database",
+    "As center user: check out the booking, verify commissionAmount and centerEarnings calculated correctly, booking status = COMPLETED",
+    "Test with both PERCENTAGE and FIXED commission types, verify math: PERCENTAGE uses rate %, FIXED uses fixed amount"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

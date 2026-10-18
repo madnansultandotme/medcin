@@ -1,0 +1,27 @@
+{
+  "project_type": "Next.js 16.3 App Router + TypeScript + Neon PostgreSQL + Drizzle ORM",
+  "language": "TypeScript",
+  "build_system": "Next.js with npm scripts. Drizzle ORM for database schema management. Uses npm run db:push (drizzle-kit push) for schema changes—no migration files generated.",
+  "test_framework": "None detected. Verification via npm run build and manual API testing with Thunder Client or curl.",
+  "build_command": "npm run build",
+  "test_command": "npm run build (no dedicated test suite found)",
+  "verification_instructions": "After each feature: (1) Run npm run db:push to apply schema changes, (2) Run npm run build to verify TypeScript compilation, (3) Manually test API endpoints with Thunder Client or curl, (4) Verify database changes with Neon SQL Editor or run_sql queries",
+  "snapshot_or_generated_files": "None. Drizzle ORM uses push mode (no migration files checked in).",
+  "environment_constraints": "Neon serverless PostgreSQL (project: purple-bird-20622592). Database changes applied via drizzle-kit push. Better Auth handles authentication. Never restart dev server during implementation (not needed for API changes).",
+  "contribution_requirements": "Follow existing patterns: (1) Use pgEnum for new enums, (2) Add crudPolicy for RLS on new tables, (3) Use requireRole helpers from lib/middleware/permissions.ts for API auth, (4) Client components must have 'use client' directive, (5) All API routes in app/api/[resource]/route.ts, (6) Use Neon MCP tools for database operations",
+  "key_patterns": "Enums: pgEnum('name', ['VALUE1', 'VALUE2']). Tables: pgTable with .notNull(), .default(), .references(). Relations: relations() helper. API routes: Export async GET/POST/PUT/DELETE functions. Middleware: getAuthenticatedUser() returns { user, session } or null. UI: Client-side React with fetch() to API routes, Tailwind CSS classes with dark mode variants.",
+  "relevant_files": [
+    "db/schema.ts (all table and enum definitions)",
+    "db/index.ts (database client export)",
+    "drizzle.config.ts (schema path and DB URL)",
+    "lib/middleware/permissions.ts (role-based auth helpers)",
+    "lib/email.ts (email notification service)",
+    "app/api/bookings/route.ts (booking CRUD, pattern to follow)",
+    "app/api/doctors/route.ts (doctor CRUD, needs updates)",
+    "app/api/centers/route.ts (center CRUD, pattern reference)",
+    "app/center/bookings/page.tsx (UI for check-in/out)",
+    "app/admin/centers/page.tsx (admin center list, needs detail page)",
+    "app/signup/patient/page.tsx (signup pattern to follow for doctor signup)"
+  ],
+  "directory_structure": "app/ (Next.js routes: /api for backend, /admin, /center, /patient for dashboards, /signup for registration flows), db/ (schema.ts, index.ts for Drizzle), lib/ (middleware/, auth/, utilities), components/ (reusable UI, not heavily used—most UI is in page.tsx files)"
+}

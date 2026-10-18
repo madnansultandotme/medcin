@@ -1,0 +1,41 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Database schema changes for independent doctors, commission system, and check-in/check-out. Adds DOCTOR role to user_role enum, makes doctors.center_id nullable, adds commission fields to centers table, adds check-in/check-out and commission fields to bookings table. All changes are backward-compatible and applied in a single migration push.",
+  "status": "pending",
+  "steps": [
+    "Read db/schema.ts to understand current schema structure and patterns",
+    "Add DOCTOR to userRoleEnum: change pgEnum('user_role', ['ADMIN', 'CENTER', 'PATIENT']) to include 'DOCTOR'",
+    "Create commissionTypeEnum: pgEnum('commission_type', ['PERCENTAGE', 'FIXED'])",
+    "Create commissionStatusEnum: pgEnum('commission_status', ['PENDING', 'CALCULATED', 'PAID'])",
+    "Add commission fields to centers table: commissionRate (real, default 0), commissionType (enum, default PERCENTAGE), fixedCommissionAmount (real, nullable)",
+    "Make doctors.centerId nullable: change .notNull() to optional, add userId field (references users.id), add specialization (text), consultationFee (real), isIndependent (boolean, default false)",
+    "Update doctorsRelations to include user relation: add user: one(users, { fields: [doctors.userId], references: [users.id] })",
+    "Add check-in/check-out fields to bookings table: checkedInAt (timestamp), checkedOutAt (timestamp), checkedInBy (text, references users.id), checkedOutBy (text, references users.id), commissionAmount (real), centerEarnings (real), commissionStatus (enum, default PENDING)",
+    "Run npm run db:push to apply all schema changes to Neon database",
+    "Verify schema changes using Neon MCP run_sql: check enums exist (SELECT enumlabel FROM pg_enum WHERE enumtypid = 'user_role'::regtype), verify new columns in centers/bookings/doctors tables",
+    "Update existing centers with default commission: run SQL UPDATE centers SET commission_rate = 0, commission_type = 'PERCENTAGE' WHERE commission_rate IS NULL",
+    "Verify no existing doctors lost center_id: run SQL SELECT id, center_id, user_id, is_independent FROM doctors LIMIT 5 and confirm center_id values preserved"
+  ],
+  "acceptance_criteria": [
+    "npm run db:push completes without errors",
+    "npm run build compiles TypeScript with no errors related to schema changes",
+    "user_role enum includes DOCTOR value (verified via SQL query)",
+    "commission_type and commission_status enums exist in database",
+    "centers table has commission_rate, commission_type, fixed_commission_amount columns",
+    "bookings table has checked_in_at, checked_out_at, checked_in_by, checked_out_by, commission_amount, center_earnings, commission_status columns",
+    "doctors table has nullable center_id, user_id, specialization, consultation_fee, is_independent columns",
+    "Existing doctors still have center_id populated (backward compatibility confirmed)",
+    "All existing centers have commission_rate = 0 after data migration"
+  ],
+  "verification": [
+    "Run npm run db:push and confirm 'No schema changes detected' or successful push",
+    "Run npm run build and verify exit code 0",
+    "Use Neon MCP run_sql to query: SELECT enumlabel FROM pg_enum WHERE enumtypid = 'user_role'::regtype ORDER BY enumsortorder; expect ['ADMIN', 'CENTER', 'PATIENT', 'DOCTOR']",
+    "Query centers table: SELECT column_name FROM information_schema.columns WHERE table_name = 'centers' AND column_name IN ('commission_rate', 'commission_type', 'fixed_commission_amount'); expect 3 rows",
+    "Query bookings table: SELECT column_name FROM information_schema.columns WHERE table_name = 'bookings' AND column_name IN ('checked_in_at', 'checked_out_at', 'commission_amount', 'commission_status'); expect 4+ rows",
+    "Query doctors table: SELECT id, center_id, user_id, is_independent FROM doctors LIMIT 3; verify existing records have center_id, new columns exist"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
