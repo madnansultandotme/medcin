@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCenter, getUserCenterId } from '@/lib/middleware/permissions';
-import { auth } from '@/lib/auth-config';
+import { hashPassword } from '@/lib/password';
 import { db } from '@/db';
 import { users, doctors, accounts, verifications, notifications } from '@/db/schema';
 import { eq } from 'drizzle-orm';
@@ -101,9 +101,7 @@ export async function POST(req: NextRequest) {
     const tempPasswordExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     // 6. Hash password using Better Auth's password hash function
-    const hashedPassword = await auth.api.hashPassword({
-      password: tempPassword,
-    });
+    const hashedPassword = await hashPassword(tempPassword);
 
     // 7. Create user record
     const newUserId = crypto.randomUUID();

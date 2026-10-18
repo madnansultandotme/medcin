@@ -5,6 +5,8 @@
  * Enforces first-login password reset before allowing access.
  */
 
+export const dynamic = 'force-dynamic';
+
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { checkFirstLogin } from '@/lib/middleware/first-login-check';

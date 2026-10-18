@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/middleware/permissions';
-import { auth } from '@/lib/auth-config';
+import { hashPassword, verifyPassword } from '@/lib/password';
 import { db } from '@/db';
 import { users, accounts } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
     const account = accountRecord[0];
 
     // 6. Verify old password using Better Auth's password verification
-    const isValidOldPassword = await auth.api.verifyPassword({
+    const isValidOldPassword = await verifyPassword({
       password: oldPassword,
       hash: account.password || '',
     });
@@ -132,9 +132,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 7. Hash new password
-    const hashedNewPassword = await auth.api.hashPassword({
-      password: newPassword,
-    });
+    const hashedNewPassword = await hashPassword(newPassword);
 
     // 8. Update account password
     await db

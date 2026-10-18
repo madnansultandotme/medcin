@@ -3,12 +3,15 @@
  * 
  * This is your own Better Auth server running locally in Next.js
  * Connected to your Neon PostgreSQL database
+ * 
+ * Includes Google OAuth with account linking support and doctor validation
  */
 
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { findUserByEmail, validateDoctorProfile } from "./google-oauth-helper";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -22,6 +25,54 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
+  },
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+    },
+  },
+  // Enable account linking with strict email matching
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ["google", "email-password"],
+      allowDifferentEmails: false, // Require same email for linking
+    },
+  },
+  // Validate user during OAuth flow
+  user: {
+    validateUserInfo: async ({ user, source }) => {
+      // Only validate Google OAuth sign-ins
+      if (source.oauth?.providerId !== "google") {
+        return;
+      }
+
+      // Check if this is a new user (no existing account with this email)
+      const existingUser = await findUserByEmail(user.email);
+      
+      // If user exists, allow sign-in (Better Auth will link the account automatically)
+      if (existingUser) {
+        // If existing user is a doctor, verify they have a doctor profile
+        if (existingUser.role === "DOCTOR") {
+          const doctorProfile = await validateDoctorProfile(existingUser.id);
+          if (!doctorProfile) {
+            return {
+              error: "invalid_doctor_profile",
+              errorDescription: "Doctor profile not found. Please contact your center administrator.",
+            };
+          }
+        }
+        // Allow linking for existing users
+        return;
+      }
+
+      // New user trying to sign up with Google
+      // We'll allow patients and centers to sign up with Google
+      // Doctors must be provisioned by center admin first
+      // Note: Better Auth doesn't know the role yet for new users, so we can't block here
+      // Instead, we'll check in the database hooks if needed
+    },
   },
   session: {
     expiresIn: 60 * 60 * 24, // 24 hours (in seconds)

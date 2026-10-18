@@ -4,6 +4,8 @@
  * Forces doctor to change their temporary password on first login.
  */
 
+export const dynamic = 'force-dynamic';
+
 import { requireDoctor } from '@/lib/middleware/permissions';
 import ChangePasswordForm from './ChangePasswordForm';
 
