@@ -24,6 +24,12 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+    },
+  },
   // Required so the mobile app's `Authorization: Bearer <token>` header is
   // accepted by auth.api.getSession() on every protected mobile API route.
   // Without this, getSession() only recognizes browser session cookies and

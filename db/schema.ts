@@ -11,6 +11,7 @@ export const slotStatusEnum = pgEnum('slot_status', ['AVAILABLE', 'BOOKED', 'BLO
 export const disputeStatusEnum = pgEnum('dispute_status', ['OPEN', 'RESOLVED', 'CLOSED']);
 export const commissionTypeEnum = pgEnum('commission_type', ['PERCENTAGE', 'FIXED']);
 export const commissionStatusEnum = pgEnum('commission_status', ['PENDING', 'CALCULATED', 'PAID']);
+export const deviceTypeEnum = pgEnum('device_type', ['WEB', 'MOBILE_IOS', 'MOBILE_ANDROID']);
 
 // Lookup/Reference Tables for Normalization
 export const centerCategories = pgTable('center_categories', {
@@ -45,6 +46,13 @@ export const users = pgTable('users', {
   phone: text('phone'),
   photoUrl: text('photo_url'),
   role: userRoleEnum('role').notNull().default('PATIENT'),
+  // Doctor authentication fields
+  isFirstLogin: boolean('is_first_login').default(false).notNull(),
+  passwordResetRequired: boolean('password_reset_required').default(false).notNull(),
+  lastPasswordChangeAt: timestamp('last_password_change_at'),
+  tempPasswordExpiresAt: timestamp('temp_password_expires_at'),
+  googleId: text('google_id').unique(),
+  appleId: text('apple_id').unique(),
   // Subscription fields for mobile app monetization
   subscriptionStatus: text('subscription_status').default('FREE'), // FREE, ACTIVE, EXPIRED, CANCELLED
   subscriptionTier: text('subscription_tier'), // BASIC (monthly), PREMIUM (yearly)
@@ -72,6 +80,36 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     references: [patientProfiles.userId],
   }),
   disputes: many(disputes),
+  devices: many(userDevices),
+}));
+
+// User Devices table - Track devices for security monitoring
+export const userDevices = pgTable('user_devices', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  deviceId: text('device_id').notNull(), // Client-provided UUID
+  deviceName: text('device_name'),
+  deviceType: deviceTypeEnum('device_type').notNull(),
+  userAgent: text('user_agent'),
+  ipAddress: text('ip_address'),
+  lastUsedAt: timestamp('last_used_at').defaultNow().notNull(),
+  firstUsedAt: timestamp('first_used_at').defaultNow().notNull(),
+  trusted: boolean('trusted').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  // Users can only access their own devices
+  crudPolicy({
+    role: authenticatedRole,
+    read: authUid(table.userId),
+    modify: authUid(table.userId),
+  }),
+]);
+
+export const userDevicesRelations = relations(userDevices, ({ one }) => ({
+  user: one(users, {
+    fields: [userDevices.userId],
+    references: [users.id],
+  }),
 }));
 
 // Centers table - Public read, owners can modify their own
@@ -140,6 +178,10 @@ export const doctors = pgTable('doctors', {
   bio: text('bio'),
   imageUrl: text('image_url'),
   active: boolean('active').default(true).notNull(),
+  // Doctor provisioning fields
+  provisioned: boolean('provisioned').default(false).notNull(),
+  provisionedBy: text('provisioned_by').references(() => users.id, { onDelete: 'set null' }),
+  provisionedAt: timestamp('provisioned_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [

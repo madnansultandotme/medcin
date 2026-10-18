@@ -1,0 +1,41 @@
+{
+  "id": "FEAT-004",
+  "type": "feat",
+  "description": "Patient check-in/out system with commission calculation: Doctor and center APIs for checking patients in/out of appointments; automatic commission calculation on checkout based on center's commission settings; web and mobile UI for doctors",
+  "status": "pending",
+  "steps": [
+    "1. Create lib/utils/commission.ts with calculateCommission(price, center) function: if center.commissionType=PERCENTAGE calculate (price * commissionRate / 100), if FIXED use fixedCommissionAmount, return {commissionAmount, centerEarnings: price - commissionAmount}",
+    "2. Add getUserDoctorId(userId) helper to lib/middleware/permissions.ts following pattern of getUserCenterId: query doctors table where userId matches, return doctor.id or null",
+    "3. Create app/api/doctor/checkin/route.ts: requireDoctor(), get doctorId via getUserDoctorId(), validate bookingId exists and belongs to doctor, check status=CONFIRMED, check checkedInAt is null, validate booking date is today, optional: validate time within 2 hours of appointment, update booking set checkedInAt=now, checkedInBy=user.id, return updated booking",
+    "4. Create app/api/doctor/checkout/route.ts: requireDoctor(), get doctorId and center data, validate booking belongs to doctor, check checkedInAt not null and checkedOutAt is null, use calculateCommission() with actualPrice or booking.price and center data, update booking set checkedOutAt=now, checkedOutBy=user.id, status=COMPLETED, price=finalPrice, commissionAmount, centerEarnings, commissionStatus=CALCULATED, create notification for center admin about completed booking with commission amount, return booking + commission details",
+    "5. Create app/api/doctor/bookings/route.ts: requireDoctor(), get doctorId, accept query params (status, date), query bookings with joins to patientProfiles and services, filter by doctorId and optional status/date, order by date and time, return bookings array with nested patient and service data",
+    "6. app/api/center/checkin/route.ts and app/api/center/checkout/route.ts already exist - verify they follow same validation logic and have today's date check, update checkout to use calculateCommission() utility if not already present",
+    "7. Create app/doctor/page.tsx: requireDoctor() server action, get doctorId, fetch today's stats (todayBookings count, pendingCheckIns count where status=CONFIRMED and checkedInAt=null, completedToday count where status=COMPLETED and date=today), display dashboard with StatCard components and link to /doctor/bookings",
+    "8. Create app/doctor/bookings/page.tsx: requireDoctor(), fetch bookings via API or direct DB query, display table with columns (Patient Name, Service, Date, Time, Status, Actions), Actions: Check In button (if CONFIRMED and not checked in), Check Out button (if checked in and not checked out), use client component for buttons that POST to /api/doctor/checkin or show checkout modal",
+    "9. Create components/doctor/CheckOutModal.tsx: displays booking details, optional actualPrice input field, shows commission preview using center's rate, on confirm POST to /api/doctor/checkout, show success toast and refresh",
+    "10. For mobile: Create mobile/lib/features/doctor/screens/doctor_dashboard_screen.dart with stats display, mobile/lib/features/doctor/screens/bookings_list_screen.dart with BookingCard widgets, mobile/lib/features/doctor/widgets/booking_card.dart with check-in/out buttons calling API with Bearer token"
+  ],
+  "acceptance_criteria": [
+    "Doctor can POST to /api/doctor/checkin with bookingId and successfully check in patient for today's CONFIRMED appointments",
+    "Check-in rejects bookings not belonging to doctor, already checked in, wrong status, or wrong date",
+    "Doctor can POST to /api/doctor/checkout with bookingId and optional actualPrice, commission calculated correctly",
+    "Checkout updates booking status to COMPLETED, records commission and center earnings",
+    "Center admin receives notification about completed booking with commission amount",
+    "Doctor dashboard displays today's stats: total appointments, pending check-ins, completed",
+    "Doctor bookings page lists all bookings with appropriate action buttons",
+    "Mobile app doctor screens can perform check-in/out with Bearer token authentication"
+  ],
+  "verification": [
+    "Login as doctor (after password reset), access /doctor/dashboard, verify stats display correctly",
+    "Navigate to /doctor/bookings, verify list of bookings appears",
+    "Create test booking for doctor with status=CONFIRMED and date=today via DB or patient flow",
+    "Click Check In button, verify POST to /api/doctor/checkin succeeds",
+    "Check bookings table to confirm checkedInAt timestamp populated",
+    "Click Check Out button, optionally change price, verify commission calculation shown",
+    "Submit checkout, verify booking status=COMPLETED, commissionAmount and centerEarnings populated correctly",
+    "Check notifications table for center admin notification about completed booking",
+    "Test mobile: Use Postman or Flutter app to POST to /api/doctor/checkin with Bearer token and X-Device-ID headers, verify success"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

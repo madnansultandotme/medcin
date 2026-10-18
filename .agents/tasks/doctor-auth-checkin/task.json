@@ -1,0 +1,7 @@
+{
+  "task_id": "task-doctor-auth-checkin",
+  "task_description": "Implement secure doctor authentication with Google OAuth, device tracking, mandatory password reset on first login, and patient check-in/out system with automated commission calculation",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004", "FEAT-005"],
+  "blocked_reason": null
+}

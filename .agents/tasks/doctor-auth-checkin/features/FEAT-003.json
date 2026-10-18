@@ -1,0 +1,34 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Google OAuth integration with manual account linking: Add Google provider to Better Auth, implement custom OAuth callback to prevent unauthorized doctor self-registration, link Google accounts to existing provisioned doctor accounts only",
+  "status": "pending",
+  "steps": [
+    "1. Modify lib/auth-config.ts to add socialProviders config: google provider with clientId, clientSecret, redirectURI pointing to custom callback route. DO NOT modify lib/auth/server.ts if it exists - only lib/auth-config.ts exports the auth instance used by API routes",
+    "2. Create app/api/auth/callback/google/route.ts: Exchange OAuth code for tokens, verify Google ID token using OAuth2Client from google-auth-library, extract email and googleId (sub claim), check if user exists by email, if user.role=DOCTOR verify doctor profile exists in doctors table (reject if missing), if Google account not linked create account record in accounts table (providerId='google', accountId=googleId), update user.googleId and emailVerified=true, create session via auth.api.createSession(), set session cookie, redirect to /doctor/dashboard. If user doesn't exist, redirect to signin with error=account_not_found",
+    "3. Create app/api/auth/google/mobile/route.ts for mobile: POST endpoint accepting {idToken}, verify token with OAuth2Client, check doctor authorization rules (same as web callback), create session via Better Auth, return {token} as Bearer token for mobile",
+    "4. Create lib/auth/client.ts with createAuthClient from better-auth/client for web frontend usage",
+    "5. Add 'Continue with Google' button to existing login page (find in app/login or app/auth/signin): onClick redirects to /api/auth/signin/google (Better Auth's OAuth initiation endpoint)",
+    "6. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env.local documentation (in comments or .env.example file)"
+  ],
+  "acceptance_criteria": [
+    "Better Auth config in lib/auth-config.ts includes Google OAuth provider with custom callback URL",
+    "Doctor with provisioned email can sign in via Google and account is linked",
+    "Unprov provisioned user trying Google Sign-In is rejected with appropriate error",
+    "Web Google Sign-In creates session and redirects to /doctor/dashboard",
+    "Mobile Google Sign-In returns Bearer token for API authentication",
+    "Multiple OAuth logins with same Google account reuse existing link (no duplicates)"
+  ],
+  "verification": [
+    "Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.local",
+    "Provision a doctor via /api/center/doctors/provision with specific email",
+    "Visit login page, click 'Continue with Google', authenticate with Google account matching provisioned email",
+    "Verify redirect to /doctor/dashboard after OAuth flow completes",
+    "Check accounts table has Google provider record linked to user",
+    "Check users table has googleId populated and emailVerified=true",
+    "Try Google Sign-In with non-provisioned email, verify rejection with error message",
+    "Test mobile endpoint: POST to /api/auth/google/mobile with valid idToken, verify Bearer token returned"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

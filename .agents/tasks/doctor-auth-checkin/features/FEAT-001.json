@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Database schema updates and core authentication infrastructure: Add password reset, Google OAuth, and device tracking fields to users and doctors tables; create user_devices table; install google-auth-library dependency",
+  "status": "pending",
+  "steps": [
+    "1. Add to users table in db/schema.ts: passwordResetRequired (boolean, default false), lastPasswordChangeAt (timestamp), tempPasswordExpiresAt (timestamp), googleId (text, unique)",
+    "2. Add to doctors table in db/schema.ts: provisioned (boolean, default false), provisionedBy (text, references users.id), provisionedAt (timestamp)",
+    "3. Create user_devices table in db/schema.ts with fields: id (text, primary key, UUID), userId (references users.id, cascade delete), deviceId (text, client-provided UUID), deviceName (text), deviceType (enum: WEB, MOBILE_IOS, MOBILE_ANDROID), userAgent (text), ipAddress (text), lastUsedAt (timestamp), firstUsedAt (timestamp), trusted (boolean, default false), createdAt (timestamp). Add deviceTypeEnum. Add relations to users.",
+    "4. Install google-auth-library: npm install google-auth-library",
+    "5. Apply schema changes: npm run db:push",
+    "6. Verify tables created: Check Neon dashboard or use Drizzle Studio to confirm users has new columns, doctors has provisioning columns, and user_devices table exists"
+  ],
+  "acceptance_criteria": [
+    "users table has passwordResetRequired, lastPasswordChangeAt, tempPasswordExpiresAt, googleId columns",
+    "doctors table has provisioned, provisionedBy, provisionedAt columns",
+    "user_devices table exists with all specified columns and enum",
+    "google-auth-library appears in package.json dependencies",
+    "npm run db:push completes without errors"
+  ],
+  "verification": [
+    "Run: npm run db:push and confirm no errors",
+    "Check Neon dashboard to verify schema changes applied",
+    "Run: npm list google-auth-library to confirm package installed"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
