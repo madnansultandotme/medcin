@@ -11,7 +11,7 @@ import { db } from '@/db';
 import { users, doctors, accounts } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { sendDoctorProvisioningEmail } from '@/lib/email';
-import { auth } from '@/lib/auth-config';
+import { hashPassword } from '@/lib/utils/password';
 import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { 
           error: 'Validation failed', 
-          details: validation.error.errors 
+          details: validation.error.issues 
         },
         { status: 400 }
       );
@@ -83,8 +83,8 @@ export async function POST(request: NextRequest) {
     const tempPasswordExpiresAt = new Date();
     tempPasswordExpiresAt.setDate(tempPasswordExpiresAt.getDate() + 7);
 
-    // Hash the temporary password using Better Auth's default hash function
-    const hashedPassword = await auth.api.hashPassword(tempPassword);
+    // Hash the temporary password using Better Auth's scrypt algorithm
+    const hashedPassword = await hashPassword(tempPassword);
 
     // Create user record
     const [newUser] = await db
@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
 
     // Create credential account for password authentication
     await db.insert(accounts).values({
+      id: crypto.randomUUID(),
       userId: newUser.id,
       accountId: newUser.id,
       providerId: 'credential',

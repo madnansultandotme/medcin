@@ -83,6 +83,7 @@ export async function POST(request: NextRequest) {
 
     // Create new verification
     await db.insert(verifications).values({
+      id: crypto.randomUUID(),
       identifier,
       value: hashedOTP,
       expiresAt,
