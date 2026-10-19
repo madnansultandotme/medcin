@@ -1,7 +1,7 @@
 {
   "task_id": "task-doctor-auth-oauth-device-mobile",
   "task_description": "Complete doctor authentication system: Google OAuth integration, device tracking in login flow, and Flutter mobile doctor features",
-  "status": "fixes_complete",
+  "status": "completed",
   "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
   "blocked_reason": null,
   "fixes_applied": {

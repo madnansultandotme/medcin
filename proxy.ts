@@ -1,18 +1,22 @@
 /**
- * Next.js Proxy (formerly Middleware)
+ * Next.js Proxy
  * 
- * Injects pathname into headers for use in Server Components.
- * This allows the doctor layout to check the current path and prevent redirect loops.
+ * Injects pathname into request headers for doctor layout to access.
+ * Required for first-login password reset redirect logic.
+ * 
+ * Note: Next.js 16+ uses proxy.ts instead of middleware.ts
  */
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function proxy(request: NextRequest) {
-  // Add pathname to headers so layouts can access it
+  // Clone the request headers and set pathname header
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-pathname', request.nextUrl.pathname);
 
+  // Return response with modified request headers
+  // These headers are available to Server Components upstream
   return NextResponse.next({
     request: {
       headers: requestHeaders,
@@ -20,7 +24,7 @@ export function proxy(request: NextRequest) {
   });
 }
 
-// Apply proxy to doctor routes
+// Apply to all doctor routes
 export const config = {
   matcher: '/doctor/:path*',
 };
