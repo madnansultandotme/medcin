@@ -32,8 +32,17 @@ class AppRoutes {
   static const String settings = '/profile/settings';
   static const String notifications = '/profile/notifications';
   
+  // Doctor routes
+  static const String doctorLogin = '/doctor/login';
+  static const String doctorDashboard = '/doctor/dashboard';
+  static const String doctorBookings = '/doctor/bookings';
+  static const String doctorCheckin = '/doctor/checkin/:bookingId';
+  static const String doctorVerifyDevice = '/doctor/verify-device';
+  static const String doctorChangePassword = '/doctor/change-password';
+  
   // Helper methods to build routes with parameters
   static String doctorDetailWithId(String id) => '/doctor/$id';
   static String centerDetailWithId(String id) => '/center/$id';
   static String appointmentDetailWithId(String id) => '/appointment/$id';
+  static String doctorCheckinWithId(String bookingId) => '/doctor/checkin/$bookingId';
 }
