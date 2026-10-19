@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { bookings, doctors, centers } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { requireCenter, getUserCenterId } from '@/lib/middleware/permissions';
+import { calculateCommission } from '@/lib/utils/commission';
 
 /**
  * POST /api/center/checkout
@@ -114,21 +115,16 @@ export async function POST(req: NextRequest) {
 
     const center = centerRecord[0];
 
-    // Calculate commission based on center's commission settings
-    let commissionAmount = 0;
+    // Calculate commission using shared utility function
     const bookingPrice = booking.price;
+    const commission = calculateCommission(bookingPrice, {
+      commissionType: center.commissionType,
+      commissionRate: center.commissionRate,
+      fixedCommissionAmount: center.fixedCommissionAmount,
+    });
 
-    if (center.commissionType === 'PERCENTAGE') {
-      // PERCENTAGE: commissionAmount = price * (rate / 100)
-      const rate = center.commissionRate || 0;
-      commissionAmount = bookingPrice * (rate / 100);
-    } else if (center.commissionType === 'FIXED') {
-      // FIXED: use fixedCommissionAmount
-      commissionAmount = center.fixedCommissionAmount || 0;
-    }
-
-    // Calculate center earnings
-    const centerEarnings = bookingPrice - commissionAmount;
+    const commissionAmount = commission.commissionAmount;
+    const centerEarnings = commission.centerEarnings;
 
     // Update booking with checkout info and commission calculation
     const updatedBooking = await db
