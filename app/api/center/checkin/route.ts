@@ -96,6 +96,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate booking date is today
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    if (booking.date !== today) {
+      return NextResponse.json(
+        { error: 'Can only check in patients for today\'s appointments' },
+        { status: 400 }
+      );
+    }
+
     // Update booking with check-in info
     const updatedBooking = await db
       .update(bookings)

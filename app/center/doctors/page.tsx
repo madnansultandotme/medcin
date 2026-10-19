@@ -1,39 +1,50 @@
-"use client";
+/**
+ * Center Doctors Management Page
+ * 
+ * Allows center admins to view and provision doctor accounts
+ */
 
-import React, { useState, useEffect } from "react";
-import { Stethoscope, Plus, Search, Star, Edit2, Trash2, Eye } from "lucide-react";
-import { Modal } from "@/components/ui/Modal";
-import { DoctorForm } from "@/components/forms/DoctorForm";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { AlertDialog } from "@/components/ui/AlertDialog";
-import { useRouter } from "next/navigation";
-import { useBranding } from "@/lib/branding";
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Plus, User, Mail, Phone, Clipboard, Eye, EyeOff } from 'lucide-react';
+import { authenticatedFetch } from '@/lib/utils/authenticated-fetch';
 
 interface Doctor {
   id: string;
+  userId: string;
   name: string;
-  role: string;
+  email: string;
+  phone: string | null;
   category: string;
-  price: number;
-  rating: number;
-  reviewsCount: number;
+  specialization: string | null;
   licenseNumber: string;
+  price: number;
+  consultationFee: number;
   active: boolean;
-  centerId: string;
+  provisioned: boolean;
 }
 
 export default function CenterDoctorsPage() {
-  const router = useRouter();
-  const { formatCurrency } = useBranding();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showAlert, setShowAlert] = useState(false);
-  const [alertMessage, setAlertMessage] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [tempPassword, setTempPassword] = useState('');
+  const [showTempPassword, setShowTempPassword] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    category: '',
+    specialization: '',
+    licenseNumber: '',
+    price: '',
+    consultationFee: '',
+    bio: '',
+    role: 'Doctor',
+  });
 
   useEffect(() => {
     fetchDoctors();
@@ -41,265 +52,390 @@ export default function CenterDoctorsPage() {
 
   async function fetchDoctors() {
     try {
-      setLoading(true);
-      const response = await fetch('/api/doctors');
+      const response = await authenticatedFetch('/api/center/doctors');
       if (response.ok) {
         const data = await response.json();
-        // Filter to show only doctors from this center
         setDoctors(data.doctors || []);
       }
-    } catch (error) {
-      console.error('Failed to fetch doctors:', error);
+    } catch (err) {
+      console.error('Failed to fetch doctors:', err);
     } finally {
       setLoading(false);
     }
   }
 
-  const handleAddDoctor = async (data: any) => {
-    const response = await fetch('/api/doctors', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to add doctor');
-    }
-
-    setShowAddModal(false);
-    await fetchDoctors();
-    setAlertMessage('Doctor added successfully');
-    setShowAlert(true);
-  };
-
-  const handleEditDoctor = async (data: any) => {
-    if (!selectedDoctor) return;
-
-    const response = await fetch('/api/doctors', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: selectedDoctor.id, ...data }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to update doctor');
-    }
-
-    setShowEditModal(false);
-    setSelectedDoctor(null);
-    await fetchDoctors();
-    setAlertMessage('Doctor updated successfully');
-    setShowAlert(true);
-  };
-
-  const handleDeleteDoctor = async () => {
-    if (!selectedDoctor) return;
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setSubmitting(true);
 
     try {
-      const response = await fetch('/api/doctors', {
-        method: 'DELETE',
+      const response = await authenticatedFetch('/api/center/doctors/provision', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: selectedDoctor.id }),
+        body: JSON.stringify({
+          ...formData,
+          price: parseFloat(formData.price),
+          consultationFee: formData.consultationFee ? parseFloat(formData.consultationFee) : undefined,
+        }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete doctor');
+        setError(data.error || 'Failed to provision doctor');
+        setSubmitting(false);
+        return;
       }
 
-      setShowDeleteConfirm(false);
-      setSelectedDoctor(null);
+      // Show temp password
+      setTempPassword(data.doctor.tempPassword);
+      
+      // Reset form and refresh list
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        category: '',
+        specialization: '',
+        licenseNumber: '',
+        price: '',
+        consultationFee: '',
+        bio: '',
+        role: 'Doctor',
+      });
+      
       await fetchDoctors();
-      setAlertMessage('Doctor deleted successfully');
-      setShowAlert(true);
-    } catch (error: any) {
-      setAlertMessage(error.message || 'Failed to delete doctor');
-      setShowAlert(true);
+    } catch (err) {
+      setError('An error occurred while provisioning doctor');
+    } finally {
+      setSubmitting(false);
     }
-  };
+  }
 
-  const openEditModal = (doctor: Doctor) => {
-    setSelectedDoctor(doctor);
-    setShowEditModal(true);
-  };
+  function closeModal() {
+    setShowModal(false);
+    setTempPassword('');
+    setError('');
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      category: '',
+      specialization: '',
+      licenseNumber: '',
+      price: '',
+      consultationFee: '',
+      bio: '',
+      role: 'Doctor',
+    });
+  }
 
-  const openDeleteConfirm = (doctor: Doctor) => {
-    setSelectedDoctor(doctor);
-    setShowDeleteConfirm(true);
-  };
-
-  const viewDoctorProfile = (doctorId: string) => {
-    router.push(`/center/doctors/${doctorId}`);
-  };
-
-  const filteredDoctors = doctors.filter(d =>
-    d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    d.role.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="w-12 h-12 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text);
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-start">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Doctors</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Manage your medical team
+          <h1 className="text-3xl font-bold text-gray-900">Doctors</h1>
+          <p className="mt-2 text-gray-600">
+            Manage and provision doctor accounts for your center
           </p>
         </div>
         <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="w-5 h-5" />
           Add Doctor
         </button>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search doctors..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-        />
-      </div>
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="text-gray-600">Loading doctors...</div>
+        </div>
+      ) : doctors.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-lg shadow-sm border border-gray-200">
+          <User className="mx-auto h-12 w-12 text-gray-400" />
+          <h3 className="mt-2 text-sm font-medium text-gray-900">No doctors</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Get started by provisioning a doctor account.
+          </p>
+          <button
+            onClick={() => setShowModal(true)}
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            <Plus className="w-5 h-5" />
+            Add Doctor
+          </button>
+        </div>
+      ) : (
+        <div className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">License</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {doctors.map((doctor) => (
+                <tr key={doctor.id}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">{doctor.name}</div>
+                    {doctor.specialization && (
+                      <div className="text-sm text-gray-500">{doctor.specialization}</div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {doctor.email}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {doctor.category}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {doctor.licenseNumber}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    SGD {doctor.price.toFixed(2)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {doctor.active ? (
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                        Active
+                      </span>
+                    ) : (
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                        Inactive
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
-        {filteredDoctors.map((doctor) => (
-          <div key={doctor.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-750">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center flex-shrink-0">
-                <Stethoscope className="h-6 w-6 text-teal-600 dark:text-teal-400" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">{doctor.name}</h3>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    doctor.active 
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                  }`}>
-                    {doctor.active ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  {doctor.role} • {doctor.category}
-                </p>
-                <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-500">
-                  <div className="flex items-center gap-1">
-                    <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                    <span>{doctor.rating.toFixed(1)}</span>
-                    <span>({doctor.reviewsCount} reviews)</span>
+      {/* Provision Doctor Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                {tempPassword ? 'Doctor Provisioned Successfully' : 'Provision New Doctor'}
+              </h2>
+
+              {tempPassword ? (
+                <div className="space-y-4">
+                  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <span className="text-yellow-400 text-xl">⚠️</span>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm text-yellow-700 font-semibold">
+                          Important: Temporary Password
+                        </p>
+                        <p className="text-sm text-yellow-700 mt-1">
+                          This password will only be shown once. Please share it securely with the doctor.
+                          It expires in 24 hours.
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <span className="font-mono">License: {doctor.licenseNumber}</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right mr-3">
-                  <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {formatCurrency(doctor.price)}
+
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Temporary Password
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 bg-white px-4 py-3 rounded border border-gray-300 font-mono text-sm">
+                        {showTempPassword ? tempPassword : '••••••••••••••••'}
+                      </code>
+                      <button
+                        onClick={() => setShowTempPassword(!showTempPassword)}
+                        className="p-2 text-gray-600 hover:text-gray-900"
+                      >
+                        {showTempPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                      <button
+                        onClick={() => copyToClipboard(tempPassword)}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      >
+                        <Clipboard className="w-4 h-4" />
+                        Copy
+                      </button>
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-500">per session</div>
+
+                  <button
+                    onClick={closeModal}
+                    className="w-full py-2 px-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                  >
+                    Close
+                  </button>
                 </div>
-                <button
-                  onClick={() => viewDoctorProfile(doctor.id)}
-                  className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                  title="View public profile"
-                >
-                  <Eye className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => openEditModal(doctor)}
-                  className="p-2 text-gray-600 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/30 rounded-lg transition-colors"
-                  title="Edit doctor"
-                >
-                  <Edit2 className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => openDeleteConfirm(doctor)}
-                  className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                  title="Delete doctor"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <p className="text-red-700 text-sm">{error}</p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Email *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Phone
+                      </label>
+                      <input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Category *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.category}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        placeholder="e.g., General Practitioner"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Specialization
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.specialization}
+                        onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
+                        placeholder="e.g., Cardiology"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        License Number *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.licenseNumber}
+                        onChange={(e) => setFormData({ ...formData, licenseNumber: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Consultation Price (SGD) *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        step="0.01"
+                        min="0"
+                        value={formData.price}
+                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Consultation Fee (SGD)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.consultationFee}
+                        onChange={(e) => setFormData({ ...formData, consultationFee: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Bio
+                    </label>
+                    <textarea
+                      value={formData.bio}
+                      onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                      rows={3}
+                      maxLength={500}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="Brief professional bio (max 500 characters)"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={closeModal}
+                      className="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {submitting ? 'Provisioning...' : 'Provision Doctor'}
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           </div>
-        ))}
-        
-        {filteredDoctors.length === 0 && (
-          <div className="p-12 text-center text-gray-500 dark:text-gray-400">
-            No doctors found. Click "Add Doctor" to get started.
-          </div>
-        )}
-      </div>
-
-      {/* Add Doctor Modal */}
-      <Modal
-        isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        title="Add New Doctor"
-      >
-        <DoctorForm
-          onSubmit={handleAddDoctor}
-          onCancel={() => setShowAddModal(false)}
-        />
-      </Modal>
-
-      {/* Edit Doctor Modal */}
-      <Modal
-        isOpen={showEditModal}
-        onClose={() => {
-          setShowEditModal(false);
-          setSelectedDoctor(null);
-        }}
-        title="Edit Doctor"
-      >
-        {selectedDoctor && (
-          <DoctorForm
-            initialData={selectedDoctor}
-            onSubmit={handleEditDoctor}
-            onCancel={() => {
-              setShowEditModal(false);
-              setSelectedDoctor(null);
-            }}
-          />
-        )}
-      </Modal>
-
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        isOpen={showDeleteConfirm}
-        onClose={() => {
-          setShowDeleteConfirm(false);
-          setSelectedDoctor(null);
-        }}
-        onConfirm={handleDeleteDoctor}
-        title="Delete Doctor"
-        message={`Are you sure you want to delete Dr. ${selectedDoctor?.name}? This action cannot be undone.`}
-        confirmText="Delete"
-        confirmVariant="danger"
-      />
-
-      {/* Alert Dialog */}
-      <AlertDialog
-        isOpen={showAlert}
-        onClose={() => setShowAlert(false)}
-        title={alertMessage.includes('success') ? 'Success' : 'Error'}
-        message={alertMessage}
-      />
+        </div>
+      )}
     </div>
   );
 }
