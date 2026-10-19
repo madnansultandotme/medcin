@@ -12,7 +12,10 @@ import { userDevices, verifications } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import crypto from 'crypto';
 
-// In-memory rate limiting (for production, use Redis)
+// NOTE: This uses in-memory rate limiting which resets on server restart
+// and doesn't work across multiple server instances.
+// For production deployments with multiple replicas, migrate to Redis
+// or database-backed rate limiting with TTL.
 const otpAttempts = new Map<string, { count: number; resetAt: number }>();
 
 function checkRateLimit(deviceId: string): { allowed: boolean; remaining: number } {

@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 1000000).toString();
 
     // Hash OTP for storage
     const hashedOTP = crypto

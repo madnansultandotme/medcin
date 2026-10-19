@@ -11,6 +11,7 @@ import { db } from '@/db';
 import { bookings, doctors, centers, notifications, users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { calculateCommission } from '@/lib/utils/commission';
+import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
   try {

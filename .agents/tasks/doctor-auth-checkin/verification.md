@@ -119,7 +119,7 @@ Finally run: `npm run build` to verify TypeScript compilation.
 
 2. **Device Tracking Requires Client Headers**: All authenticated requests from web and mobile must include `X-Device-ID` and `X-Device-Name` headers. This requires client-side JavaScript to call `getOrCreateDeviceId()` and add headers to fetch requests.
 
-3. **Rate Limiting In-Memory**: Device OTP verification uses in-memory rate limiting (Map), which resets on server restart. Production should use Redis or database-backed rate limiting.
+3. **Rate Limiting In-Memory**: Device OTP verification uses in-memory rate limiting (Map), which resets on server restart and doesn't work across multiple server instances. For production deployments with multiple replicas, migrate to Redis or database-backed rate limiting with TTL.
 
 4. **Session Management**: The implementation assumes Better Auth session handling works correctly. Doctor routes use `getAuthenticatedUser()` which relies on Better Auth's session cookies or Bearer tokens.
 
@@ -128,6 +128,8 @@ Finally run: `npm run build` to verify TypeScript compilation.
 6. **Independent Doctors**: Independent doctor signup route (`/api/doctors/register`) is NOT implemented. This requires public registration endpoint with admin approval workflow.
 
 7. **Mobile Device ID Persistence**: Mobile apps need to use `flutter_secure_storage` or `shared_preferences` to persist device IDs across app restarts.
+
+8. **Flutter Testing Required**: The Flutter mobile implementation cannot be fully verified without running `flutter run` on an Android emulator or iOS simulator to verify network requests, token storage, navigation flows, and device header injection. Manual testing is required before production deployment.
 
 ### Testing Checklist (NOT Executed)
 

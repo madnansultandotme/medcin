@@ -49,7 +49,8 @@ export function calculateCommission(
     commissionAmount = 0;
   }
 
-  const centerEarnings = Math.round((price - commissionAmount) * 100) / 100; // Round to 2 decimals
+  // Calculate centerEarnings as difference without additional rounding to prevent discrepancies
+  const centerEarnings = price - commissionAmount;
 
   return {
     commissionAmount,

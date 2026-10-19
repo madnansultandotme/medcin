@@ -3,6 +3,11 @@
  * 
  * Tracks user devices for security monitoring and alerts.
  * Requires X-Device-ID header to be sent by client (web or mobile).
+ * 
+ * SECURITY NOTE: Device IDs are client-provided and not cryptographically verified.
+ * This system provides notification-based security (alerts on new devices) rather than
+ * device-based access control. Attackers can spoof device IDs, but legitimate device changes
+ * will trigger email alerts to the account owner.
  */
 
 import { headers } from 'next/headers';
