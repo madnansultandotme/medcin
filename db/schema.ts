@@ -47,6 +47,7 @@ export const users = pgTable('users', {
   photoUrl: text('photo_url'),
   role: userRoleEnum('role').notNull().default('PATIENT'),
   // Doctor authentication fields
+  isFirstLogin: boolean('is_first_login').default(false).notNull(),
   passwordResetRequired: boolean('password_reset_required').default(false).notNull(),
   lastPasswordChangeAt: timestamp('last_password_change_at'),
   tempPasswordExpiresAt: timestamp('temp_password_expires_at'),
