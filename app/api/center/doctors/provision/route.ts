@@ -181,21 +181,23 @@ export async function POST(req: NextRequest) {
       centerName
     );
 
-    // 13. If email fails, create notification for center admin
+    // 13. If email fails, return error - password should only be transmitted via secure email
     if (!emailSent) {
       console.error(`Failed to send provisioning email to ${email}`);
       
-      await db.insert(notifications).values({
-        id: crypto.randomUUID(),
-        userId: user.id,
-        type: 'warning',
-        title: 'Doctor Account Created, Email Failed',
-        message: `Doctor ${name} (${email}) was created, but the email failed to send. Please manually provide credentials: Temp Password: ${tempPassword}`,
-        createdAt: new Date(),
-      });
+      // Rollback: Delete created records
+      await db.delete(doctors).where(eq(doctors.id, newDoctorId));
+      await db.delete(accounts).where(eq(accounts.userId, newUserId));
+      await db.delete(users).where(eq(users.id, newUserId));
+      await db.delete(verifications).where(eq(verifications.identifier, `email:${email}`));
+      
+      return NextResponse.json(
+        { error: 'Failed to send credentials email. Please try again or contact support.' },
+        { status: 500 }
+      );
     }
 
-    // 14. Return success with temp password (shown once)
+    // 14. Return success without exposing password (security: password only transmitted via email)
     return NextResponse.json({
       success: true,
       doctor: {
@@ -203,9 +205,8 @@ export async function POST(req: NextRequest) {
         userId: newUserId,
         name,
         email,
-        tempPassword, // Only shown once, must be securely shared
       },
-      message: 'Doctor account created successfully',
+      message: 'Doctor account created successfully. Credentials have been sent to the doctor\'s email.',
     }, { status: 201 });
 
   } catch (error) {
