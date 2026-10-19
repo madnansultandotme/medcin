@@ -1,27 +1,29 @@
 # Required Dependencies
 
-The following dependencies need to be installed for the doctor authentication system:
+The following dependencies are already installed for the doctor authentication system:
 
 ## Runtime Dependencies
 ```bash
-npm install bcrypt zod google-auth-library
-```
-
-## Dev Dependencies
-```bash
-npm install -D @types/bcrypt
+npm install zod google-auth-library
 ```
 
 ## Dependency Rationale
 
-- **bcrypt**: Password hashing and verification (matches Better Auth's default pattern)
-- **zod**: Request validation schemas for API routes
-- **google-auth-library**: Google OAuth token verification for web and mobile
-- **@types/bcrypt**: TypeScript types for bcrypt
+- **zod**: Request validation schemas for API routes (installed via package.json)
+- **google-auth-library**: Google OAuth token verification for web and mobile (installed)
+- **bcrypt**: ❌ NOT NEEDED - Better Auth provides password hashing via `better-auth/crypto`
+
+## Note on Password Hashing
+
+The project uses Better Auth's built-in password hashing from `better-auth/crypto`:
+- `hashPassword()` - hashes passwords using Better Auth's internal implementation
+- `verifyPassword()` - verifies password hashes
+
+No additional bcrypt dependency is required.
 
 ## Installation Command
 
-Run this before building:
+All dependencies are already installed. If adding to a new environment:
 ```bash
-npm install bcrypt zod google-auth-library && npm install -D @types/bcrypt
+npm install
 ```

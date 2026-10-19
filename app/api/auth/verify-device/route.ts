@@ -12,6 +12,10 @@ import { userDevices, verifications } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import crypto from 'crypto';
 
+// OTP configuration with validation
+const OTP_LENGTH = Math.max(4, Math.min(8, parseInt(process.env.OTP_LENGTH || '6', 10) || 6));
+const OTP_REGEX = new RegExp(`^\\d{${OTP_LENGTH}}$`);
+
 // NOTE: This uses in-memory rate limiting which resets on server restart
 // and doesn't work across multiple server instances.
 // For production deployments with multiple replicas, migrate to Redis
@@ -75,9 +79,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!otp || typeof otp !== 'string' || !/^\d{6}$/.test(otp)) {
+    if (!otp || typeof otp !== 'string' || !OTP_REGEX.test(otp)) {
       return NextResponse.json(
-        { error: 'Valid 6-digit OTP is required' },
+        { error: `Valid ${OTP_LENGTH}-digit OTP is required` },
         { status: 400 }
       );
     }

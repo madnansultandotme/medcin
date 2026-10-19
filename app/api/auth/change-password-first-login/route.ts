@@ -12,35 +12,7 @@ import { db } from '@/db';
 import { users, accounts } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { sendEmail } from '@/lib/email';
-
-// Temporary inline validation until zod is installed
-function validatePasswordChangeRequest(body: any) {
-  const errors: string[] = [];
-  
-  if (!body.oldPassword || typeof body.oldPassword !== 'string') {
-    errors.push('Current password is required');
-  }
-  if (!body.newPassword || typeof body.newPassword !== 'string') {
-    errors.push('New password is required');
-  }
-  if (body.newPassword && body.newPassword.length < 8) {
-    errors.push('Password must be at least 8 characters');
-  }
-  if (body.newPassword && !/[A-Z]/.test(body.newPassword)) {
-    errors.push('Password must contain at least one uppercase letter');
-  }
-  if (body.newPassword && !/[a-z]/.test(body.newPassword)) {
-    errors.push('Password must contain at least one lowercase letter');
-  }
-  if (body.newPassword && !/[0-9]/.test(body.newPassword)) {
-    errors.push('Password must contain at least one number');
-  }
-  if (body.oldPassword === body.newPassword) {
-    errors.push('New password must be different from current password');
-  }
-  
-  return errors;
-}
+import { changePasswordFirstLoginSchema } from '@/lib/validations/doctor';
 
 export async function POST(req: NextRequest) {
   try {
@@ -88,16 +60,17 @@ export async function POST(req: NextRequest) {
 
     // 4. Parse and validate request
     const body = await req.json();
-    const validationErrors = validatePasswordChangeRequest(body);
-    
-    if (validationErrors.length > 0) {
+    const parseResult = changePasswordFirstLoginSchema.safeParse(body);
+
+    if (!parseResult.success) {
+      const errors = parseResult.error.issues.map((err: any) => err.message);
       return NextResponse.json(
-        { error: 'Validation failed', errors: validationErrors },
+        { error: 'Validation failed', errors },
         { status: 400 }
       );
     }
 
-    const { oldPassword, newPassword } = body;
+    const { oldPassword, newPassword } = parseResult.data;
 
     // 5. Fetch credential account
     const accountRecord = await db

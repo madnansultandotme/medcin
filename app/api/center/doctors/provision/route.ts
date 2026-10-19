@@ -13,29 +13,7 @@ import { users, doctors, accounts, verifications, notifications } from '@/db/sch
 import { eq } from 'drizzle-orm';
 import { sendDoctorProvisioningEmail } from '@/lib/email';
 import crypto from 'crypto';
-
-// Temporary inline validation until zod is installed
-function validateProvisionDoctorRequest(body: any) {
-  const errors: string[] = [];
-  
-  if (!body.name || typeof body.name !== 'string' || body.name.length < 2) {
-    errors.push('Name must be at least 2 characters');
-  }
-  if (!body.email || typeof body.email !== 'string' || !body.email.includes('@')) {
-    errors.push('Valid email is required');
-  }
-  if (!body.category || typeof body.category !== 'string') {
-    errors.push('Category is required');
-  }
-  if (!body.licenseNumber || typeof body.licenseNumber !== 'string' || body.licenseNumber.length < 5) {
-    errors.push('License number must be at least 5 characters');
-  }
-  if (typeof body.price !== 'number' || body.price <= 0) {
-    errors.push('Price must be a positive number');
-  }
-  
-  return errors;
-}
+import { provisionDoctorSchema } from '@/lib/validations/doctor';
 
 export async function POST(req: NextRequest) {
   try {
@@ -59,11 +37,12 @@ export async function POST(req: NextRequest) {
 
     // 3. Parse and validate request body
     const body = await req.json();
-    const validationErrors = validateProvisionDoctorRequest(body);
-    
-    if (validationErrors.length > 0) {
+    const parseResult = provisionDoctorSchema.safeParse(body);
+
+    if (!parseResult.success) {
+      const errors = parseResult.error.issues.map((err: any) => err.message);
       return NextResponse.json(
-        { error: 'Validation failed', errors: validationErrors },
+        { error: 'Validation failed', errors },
         { status: 400 }
       );
     }
@@ -80,7 +59,7 @@ export async function POST(req: NextRequest) {
       bio,
       imageUrl,
       role: doctorRole,
-    } = body;
+    } = parseResult.data;
 
     // 4. Check email uniqueness
     const existingUser = await db

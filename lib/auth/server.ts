@@ -8,10 +8,16 @@
  */
 
 import { betterAuth } from "better-auth";
+import { bearer } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { findUserByEmail, validateDoctorProfile } from "./google-oauth-helper";
+
+// Validate Google OAuth credentials at startup
+if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  throw new Error('Google OAuth credentials not configured: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set');
+}
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -28,10 +34,12 @@ export const auth = betterAuth({
   },
   socialProviders: {
     google: {
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     },
   },
+  // Required for Flutter/mobile apps to use Bearer token authentication
+  plugins: [bearer()],
   // Enable account linking with strict email matching
   account: {
     accountLinking: {
@@ -49,7 +57,7 @@ export const auth = betterAuth({
       }
 
       // Check if this is a new user (no existing account with this email)
-      const existingUser = await findUserByEmail(user.email);
+      const existingUser = await findUserByEmail(user.email || '');
       
       // If user exists, allow sign-in (Better Auth will link the account automatically)
       if (existingUser) {

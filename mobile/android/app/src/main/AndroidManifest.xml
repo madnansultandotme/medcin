@@ -4,6 +4,12 @@
         android:label="medcin_mobile"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        
+        <!-- Google Sign-In Configuration -->
+        <meta-data
+            android:name="com.google.android.gms.auth.api.signin.GOOGLE_CLIENT_ID"
+            android:value="636314858545-ieminft88fr6mjg7uu0tchqlnkiqnoo4.apps.googleusercontent.com" />
+        
         <activity
             android:name=".MainActivity"
             android:exported="true"

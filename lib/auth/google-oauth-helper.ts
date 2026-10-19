@@ -7,7 +7,7 @@
 
 import { db } from "@/db";
 import { users, doctors, accounts } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 /**
  * Links a Google account to an existing user
@@ -72,12 +72,16 @@ export async function hasGoogleAccountLinked(userId: string): Promise<boolean> {
     return true;
   }
 
-  // Check if accounts table has a Google OAuth record
+  // Check if accounts table has a Google OAuth record  
   const [account] = await db
     .select()
     .from(accounts)
-    .where(eq(accounts.userId, userId))
-    .where(eq(accounts.providerId, "google"))
+    .where(
+      and(
+        eq(accounts.userId, userId),
+        eq(accounts.providerId, "google")
+      )
+    )
     .limit(1);
 
   return !!account;

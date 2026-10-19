@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { users, sessions } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/lib/auth-config';
+import { trackDeviceLogin } from '@/lib/auth/track-device';
 
 /**
  * Mobile App Login
@@ -59,6 +60,24 @@ export async function POST(req: NextRequest) {
 
     const userData = user[0];
 
+    // Device tracking integration: check if device verification is required
+    // Clients must send X-Device-ID header for device tracking to work
+    const deviceId = req.headers.get('x-device-id');
+    const deviceName = req.headers.get('x-device-name') || 'Mobile Device';
+    
+    let deviceVerificationRequired = false;
+    
+    if (deviceId) {
+      try {
+        // Track device login and check if new device verification is needed
+        const deviceResult = await trackDeviceLogin(userData.id, deviceId, deviceName);
+        deviceVerificationRequired = deviceResult.requiresVerification;
+      } catch (error) {
+        // Log error but don't block login if device tracking fails
+        console.error('Device tracking failed during login:', error);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -73,7 +92,9 @@ export async function POST(req: NextRequest) {
           subscriptionStatus: userData.subscriptionStatus,
           subscriptionTier: userData.subscriptionTier,
           subscriptionExpiryDate: userData.subscriptionExpiryDate,
-        }
+        },
+        // If true, mobile app should show OTP verification screen
+        requiresDeviceVerification: deviceVerificationRequired,
       }
     });
 
