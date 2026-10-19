@@ -154,17 +154,35 @@ export async function POST(req: NextRequest) {
     }
 
     // Create session using Better Auth
-    // This generates a Bearer token that can be used in mobile app
-    const session = await auth.api.signInSocial({
+    // Note: We manually created the user and linked the account above
+    // Now we need to create a session for the mobile app
+    // Better Auth expects us to use the session API directly
+    
+    // Since we've already verified the Google token and created/linked the account,
+    // we can create a session manually or use Better Auth's session creation
+    const sessionResponse = await auth.api.signInSocial({
       body: {
         provider: 'google',
-        idToken,
+        idToken: idToken,
       },
     });
 
-    if (!session || !session.token) {
+    // Better Auth returns a Response object with session data
+    // We need to extract the token from the response
+    if (!sessionResponse || sessionResponse.status !== 200) {
       return NextResponse.json(
         { error: 'Failed to create session' },
+        { status: 500 }
+      );
+    }
+
+    // Parse the response to get session token
+    const sessionData = await sessionResponse.json();
+    const token = sessionData?.token;
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Failed to create session token' },
         { status: 500 }
       );
     }
@@ -178,7 +196,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      token: session.token,
+      token: token,
       user: {
         id: user.id,
         email: user.email,

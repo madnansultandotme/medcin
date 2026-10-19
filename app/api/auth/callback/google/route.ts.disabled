@@ -90,10 +90,12 @@ export async function GET(req: NextRequest) {
     }
 
     // Check if Google account already linked
-    const existingAccount = await db
+    const existingAccountQuery = db
       .select()
       .from(accounts)
-      .where(eq(accounts.userId, user.id))
+      .where(eq(accounts.userId, user.id));
+    
+    const existingAccount = await existingAccountQuery
       .where(eq(accounts.providerId, 'google'))
       .limit(1);
 
@@ -126,21 +128,27 @@ export async function GET(req: NextRequest) {
       })
       .where(eq(users.id, user.id));
 
-    // Create session via Better Auth
-    const session = await auth.api.createSession({
-      userId: user.id,
-      expiresIn: 60 * 60 * 24, // 24 hours
+    // Better Auth handles session creation automatically via OAuth
+    // We'll use the built-in session management by delegating to Better Auth
+    // Redirect to Better Auth's OAuth callback which will create the session
+    const callbackUrl = new URL('/api/auth/callback/google/internal', req.url);
+    callbackUrl.searchParams.set('code', code);
+    
+    // Let Better Auth handle the OAuth flow and session creation
+    const authResponse = await fetch(callbackUrl.toString(), {
+      method: 'GET',
+      headers: req.headers,
     });
 
-    // Set session cookie
-    const response = NextResponse.redirect(new URL('/doctor/dashboard', req.url));
-    response.cookies.set('better-auth.session_token', session.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24, // 24 hours
-      path: '/',
-    });
+    // Get the session cookie from Better Auth response
+    const sessionCookie = authResponse.headers.get('set-cookie');
+    
+    // Redirect to doctor dashboard
+    const response = NextResponse.redirect(new URL('/doctor', req.url));
+    
+    if (sessionCookie) {
+      response.headers.set('set-cookie', sessionCookie);
+    }
 
     return response;
   } catch (error) {

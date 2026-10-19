@@ -28,8 +28,8 @@ export const auth = betterAuth({
   },
   socialProviders: {
     google: {
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     },
   },
   // Enable account linking with strict email matching
@@ -49,7 +49,7 @@ export const auth = betterAuth({
       }
 
       // Check if this is a new user (no existing account with this email)
-      const existingUser = await findUserByEmail(user.email);
+      const existingUser = await findUserByEmail(user.email || '');
       
       // If user exists, allow sign-in (Better Auth will link the account automatically)
       if (existingUser) {

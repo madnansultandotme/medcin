@@ -88,8 +88,8 @@ export default function CenterDoctorsPage() {
         return;
       }
 
-      // Show temp password
-      setTempPassword(data.doctor.tempPassword);
+      // Show success message - credentials sent via email
+      setTempPassword('SENT_VIA_EMAIL'); // Marker to show success state
       
       // Reset form and refresh list
       setFormData({
@@ -235,45 +235,37 @@ export default function CenterDoctorsPage() {
 
               {tempPassword ? (
                 <div className="space-y-4">
-                  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                  <div className="bg-green-50 border-l-4 border-green-400 p-4">
                     <div className="flex">
                       <div className="flex-shrink-0">
-                        <span className="text-yellow-400 text-xl">⚠️</span>
+                        <span className="text-green-400 text-xl">✓</span>
                       </div>
                       <div className="ml-3">
-                        <p className="text-sm text-yellow-700 font-semibold">
-                          Important: Temporary Password
+                        <p className="text-sm text-green-700 font-semibold">
+                          Doctor Account Provisioned Successfully
                         </p>
-                        <p className="text-sm text-yellow-700 mt-1">
-                          This password will only be shown once. Please share it securely with the doctor.
-                          It expires in 24 hours.
+                        <p className="text-sm text-green-700 mt-1">
+                          Login credentials have been sent to the doctor's email address.
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Temporary Password
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <code className="flex-1 bg-white px-4 py-3 rounded border border-gray-300 font-mono text-sm">
-                        {showTempPassword ? tempPassword : '••••••••••••••••'}
-                      </code>
-                      <button
-                        onClick={() => setShowTempPassword(!showTempPassword)}
-                        className="p-2 text-gray-600 hover:text-gray-900"
-                      >
-                        {showTempPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                      <button
-                        onClick={() => copyToClipboard(tempPassword)}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                      >
-                        <Clipboard className="w-4 h-4" />
-                        Copy
-                      </button>
-                    </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 className="text-sm font-medium text-blue-900 mb-2">What happens next?</h3>
+                    <ul className="list-disc list-inside text-sm text-blue-700 space-y-1">
+                      <li>The doctor will receive an email with their temporary password</li>
+                      <li>The temporary password expires in 24 hours</li>
+                      <li>On first login, they will be required to change their password</li>
+                      <li>After setting a new password, they can access their dashboard</li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p className="text-sm text-yellow-800">
+                      <span className="font-semibold">Security Note:</span> For security reasons, the temporary 
+                      password is only transmitted via email and is not displayed in this interface.
+                    </p>
                   </div>
 
                   <button

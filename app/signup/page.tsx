@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { User, Building2, ArrowRight } from 'lucide-react';
+import { User, Building2, Stethoscope, ArrowRight } from 'lucide-react';
 
 export default function SignupLandingPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 via-indigo-50 to-gray-50 dark:from-gray-900 dark:to-gray-800">
-      <div className="w-full max-w-5xl">
+      <div className="w-full max-w-7xl">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl sm:text-5xl font-bold text-[#102A43] dark:text-[#EAF5FF] mb-4">
@@ -18,7 +18,7 @@ export default function SignupLandingPage() {
         </div>
 
         {/* Role Selection Cards */}
-        <div className="grid gap-8 md:grid-cols-2">
+        <div className="grid gap-8 md:grid-cols-3">
           {/* Patient Signup */}
           <Link
             href="/signup/patient"
@@ -80,7 +80,7 @@ export default function SignupLandingPage() {
 
               {/* Content */}
               <h2 className="text-3xl font-bold text-[#102A43] dark:text-[#EAF5FF] mb-3">
-                I'm a Healthcare Provider
+                Medical Center
               </h2>
               <p className="text-[#5C7185] dark:text-[#A1B8CB] mb-6">
                 Register your medical center or clinic, manage appointments, and reach more patients.
@@ -108,6 +108,54 @@ export default function SignupLandingPage() {
                   Register Your Center
                 </span>
                 <ArrowRight className="h-5 w-5 text-[#2F80B7] dark:text-[#72BCE8] transition-transform group-hover:translate-x-1" />
+              </div>
+            </div>
+
+            {/* Hover Effect */}
+            <div className="absolute inset-0 -z-10 bg-gradient-to-br from-white/50 to-transparent opacity-0 transition-opacity group-hover:opacity-100 dark:from-white/10" />
+          </Link>
+
+          {/* Doctor Signup */}
+          <Link
+            href="/signup/doctor"
+            className="group relative overflow-hidden rounded-2xl border-2 border-[#D7E7F5] dark:border-[#244766] bg-[#D7E7F5] dark:bg-[#244766]/20 p-8 transition-all hover:scale-105 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-[#1769AA]/50"
+          >
+            <div className="relative z-10">
+              {/* Icon */}
+              <div className="mb-6 inline-flex rounded-xl bg-white/50 dark:bg-gray-900/50 p-4 backdrop-blur-sm">
+                <Stethoscope className="h-12 w-12 text-[#10B981] dark:text-[#34D399]" />
+              </div>
+
+              {/* Content */}
+              <h2 className="text-3xl font-bold text-[#102A43] dark:text-[#EAF5FF] mb-3">
+                Independent Doctor
+              </h2>
+              <p className="text-[#5C7185] dark:text-[#A1B8CB] mb-6">
+                Register as an independent practitioner and manage your own practice online.
+              </p>
+
+              {/* Features List */}
+              <ul className="space-y-2 mb-6 text-sm text-[#5C7185] dark:text-[#A1B8CB]">
+                <li className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#10B981]" />
+                  Work independently
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#10B981]" />
+                  Set your own schedule
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#10B981]" />
+                  Connect with patients directly
+                </li>
+              </ul>
+
+              {/* CTA */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-[#10B981] dark:text-[#34D399]">
+                  Register as Doctor
+                </span>
+                <ArrowRight className="h-5 w-5 text-[#10B981] dark:text-[#34D399] transition-transform group-hover:translate-x-1" />
               </div>
             </div>
 
