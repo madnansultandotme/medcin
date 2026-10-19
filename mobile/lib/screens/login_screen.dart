@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../services/google_auth_service.dart';
 import 'signup_screen.dart';
 import 'home_screen.dart';
 
@@ -15,7 +16,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _googleAuthService = GoogleAuthService();
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   bool _obscurePassword = true;
   String? _errorMessage;
 
@@ -62,6 +65,55 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _isGoogleLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final result = await _googleAuthService.signInWithGoogle();
+      
+      if (!mounted) return;
+
+      if (result['success'] == true) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✓ Successfully signed in with Google!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        // Navigate to home
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      
+      setState(() {
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_errorMessage!),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGoogleLoading = false;
         });
       }
     }
@@ -218,6 +270,59 @@ class _LoginScreenState extends State<LoginScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Divider with "or"
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: Colors.grey[300])),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'or',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      Expanded(child: Divider(color: Colors.grey[300])),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Google Sign-In Button
+                  OutlinedButton.icon(
+                    onPressed: (_isLoading || _isGoogleLoading) ? null : _handleGoogleSignIn,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: BorderSide(color: Colors.grey[300]!),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: _isGoogleLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Image.network(
+                            'https://www.google.com/favicon.ico',
+                            height: 20,
+                            width: 20,
+                            errorBuilder: (context, error, stackTrace) => 
+                                const Icon(Icons.g_mobiledata, size: 24),
+                          ),
+                    label: Text(
+                      _isGoogleLoading ? 'Signing in...' : 'Continue with Google',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
 

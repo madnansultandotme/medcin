@@ -16,6 +16,9 @@ dependencies:
   # HTTP Client
   http: ^1.1.0
   
+  # Better Auth Flutter SDK
+  better_auth_flutter: ^0.0.7
+  
   # Secure Storage for tokens
   flutter_secure_storage: ^9.0.0
   
