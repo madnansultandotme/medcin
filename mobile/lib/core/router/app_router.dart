@@ -12,10 +12,21 @@ import '../../features/appointments/presentation/appointments_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/doctor_detail/presentation/doctor_detail_screen.dart';
 import '../../features/booking/presentation/service_selection_screen.dart';
+import '../../features/doctor/presentation/screens/doctor_login_screen.dart';
+import '../../features/doctor/presentation/screens/first_login_password_screen.dart';
+import '../../features/doctor/presentation/screens/device_verification_screen.dart';
+import '../../features/doctor/presentation/screens/doctor_dashboard_screen.dart';
+import '../../features/doctor/presentation/screens/doctor_bookings_screen.dart';
+import '../../features/doctor/presentation/screens/patient_checkin_screen.dart';
 import '../../features/booking/presentation/slot_selection_screen.dart';
 import '../../features/booking/presentation/patient_details_screen.dart';
 import '../../features/booking/presentation/booking_confirmation_screen.dart';
 import '../../features/booking/presentation/booking_success_screen.dart';
+import '../../features/doctor/presentation/screens/doctor_login_screen.dart';
+import '../../features/doctor/presentation/screens/doctor_dashboard_screen.dart';
+import '../../features/doctor/presentation/screens/doctor_bookings_screen.dart';
+import '../../features/doctor/presentation/screens/first_login_password_screen.dart';
+import '../../features/doctor/presentation/screens/device_verification_screen.dart';
 import '../../shared/widgets/main_shell.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../shared/models/doctor.dart';
@@ -79,6 +90,62 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.forgotPassword,
         builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+
+      // Doctor auth routes
+      GoRoute(
+        path: AppRoutes.doctorLogin,
+        builder: (context, state) => const DoctorLoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.doctorChangePassword,
+        builder: (context, state) => const FirstLoginPasswordScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.doctorVerifyDevice,
+        builder: (context, state) => const DeviceVerificationScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.doctorDashboard,
+        builder: (context, state) => const DoctorDashboardScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.doctorBookings,
+        builder: (context, state) {
+          final filter = state.uri.queryParameters['filter'];
+          return DoctorBookingsScreen(filter: filter);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.doctorCheckin,
+        builder: (context, state) {
+          final bookingId = state.pathParameters['bookingId']!;
+          return PatientCheckinScreen(bookingId: bookingId);
+        },
+      ),
+
+      // Doctor auth routes (outside shell)
+      GoRoute(
+        path: AppRoutes.doctorLogin,
+        builder: (context, state) => const DoctorLoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.doctorChangePassword,
+        builder: (context, state) => const FirstLoginPasswordScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.doctorVerifyDevice,
+        builder: (context, state) => const DeviceVerificationScreen(),
+      ),
+
+      // Doctor dashboard routes (outside shell, standalone)
+      GoRoute(
+        path: AppRoutes.doctorDashboard,
+        builder: (context, state) => const DoctorDashboardScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.doctorBookings,
+        builder: (context, state) => const DoctorBookingsScreen(),
       ),
 
       // Main app shell with bottom navigation
